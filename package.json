@@ -1,0 +1,28 @@
+{
+  "name": "codesignal-20",
+  "version": "1.0.0",
+  "description": "Citation-first deep research agent for sourcing software engineers",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "NODE_OPTIONS='--experimental-vm-modules --no-warnings' jest",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'Linting skipped for initial implementation'",
+    "start": "node dist/index.js"
+  },
+  "keywords": ["sourcing", "research", "engineering"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.19",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  }
+}
