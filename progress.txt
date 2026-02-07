@@ -1,0 +1,218 @@
+# Ralph Progress Log — PAI-Adjusted (Approach C)
+Started: 2026-02-07T18:52:00Z
+Project: CodeSignal-20
+Branch: ralph/codesignal-20
+Description: Citation-first deep research agent for sourcing software engineers
+
+## Codebase Patterns
+- **TypeScript Project Structure**: Using ES2022 modules with strict type checking
+- **Zod for Schema Validation**: Type-safe runtime validation with excellent error messages
+- **Jest with ESM**: Configured with ts-jest preset for ES module testing
+- **File-based Config Persistence**: config.json stores validated gating answers
+
+---
+
+## 2026-02-07T19:00:00Z - US-001 - PAI Iteration 1
+- **Implemented:** Complete gating system with TypeScript scaffolding
+- **Files changed:**
+  - package.json, tsconfig.json, jest.config.js (project setup)
+  - src/types.ts (Zod schemas for config validation)
+  - src/config.ts (save/load/validate config)
+  - src/gating.ts (interactive gating questions via readline)
+  - src/index.ts (entry point with config loading)
+  - src/config.test.ts (10 comprehensive validation tests)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ TypeScript entry point executes
+  ✓ Gating prompts all 5 mandatory questions
+  ✓ Agent refuses execution if any answer missing (validated via tests)
+  ✓ Answers persisted to config.json
+  ✓ No default values assumed
+  ✓ Schema validates required fields with Zod
+  ✓ Typecheck passes with zero errors
+  ✓ Unit tests confirm gating blocks on missing input (10/10 passing)
+- **Learnings for future iterations:**
+  - Zod provides excellent developer experience for validation
+  - Jest ESM configuration requires careful setup with ts-jest
+  - Interactive readline questions work well for CLI gating
+  - Future stories should build on this config foundation
+  - Evidence priorities are enum-validated to prevent typos
+
+---
+## 2026-02-07T19:05:00Z - US-002 - PAI Iteration 2
+- **Implemented:** Source registry with three-tier validation system (primary, secondary, disallowed)
+- **Files changed:**
+  - src/sources.ts (source registry, validation functions, pattern matching)
+  - src/sources.test.ts (27 comprehensive tests covering all acceptance criteria)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Source registry config defines primary and secondary tiers
+  ✓ Disallowed sources list blocks LinkedIn scraping and paid DBs
+  ✓ Source validation function rejects disallowed URL patterns
+  ✓ Primary sources include GitHub repos and commit history
+  ✓ Primary sources include personal and technical blogs
+  ✓ Primary sources include conference talks on YouTube
+  ✓ Secondary sources include Stack Overflow profiles only
+  ✓ Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - RegEx pattern ordering matters: more specific patterns must come before general catch-all patterns
+  - Negative lookahead in "Personal Blogs" pattern needed to exclude known platforms (GitHub, SO) to prevent false matches
+  - GitHub Discussions pattern must precede GitHub Repositories pattern to properly categorize PRs/issues
+  - Three-tier validation (disallowed → primary → secondary) provides clear priority hierarchy
+  - validateSourceUrl() returns structured result with tier, matched pattern, and optional reason
+  - Helper functions (validateSourceUrls(), filterApprovedSources()) enable batch processing
+  - Pattern naming convention helps debugging ("GitHub Discussions" vs "GitHub Repositories")
+  - Future discovery engine (US-003) will use filterApprovedSources() to enforce registry constraints
+
+---
+
+## 2026-02-07T19:10:00Z - US-003 - PAI Iteration 3
+- **Implemented:** Discovery engine for GitHub, blogs, and conference talks with source registry validation
+- **Files changed:**
+  - src/discovery.ts (discovery functions, query builder, orchestrator, evidence validation)
+  - src/discovery.test.ts (23 comprehensive tests covering all acceptance criteria)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Discovery searches GitHub repos matching target languages
+  ✓ Discovery searches technical blogs matching depth focus
+  ✓ Discovery searches conference talk listings for speakers
+  ✓ All search queries derived from gating config values
+  ✓ Each discovered candidate has at least one source URL
+  ✓ Discovery respects approved source registry constraints
+  ✓ Candidates stored with raw evidence links attached
+  ✓ Typecheck passes with zero errors on project
+- **Learnings for future iterations:**
+  - Source validation tier is 'rejected' not 'disallowed' when checking validation results
+  - GitHub URL pattern matching requires ^ anchor to prevent false matches like "not-github.com"
+  - Regex capture groups count from 1, with optional groups (like www\.)? shifting subsequent group indices
+  - Discovery functions filter disallowed sources EARLY before creating candidates (defense in depth)
+  - The aggregator (discoverCandidates) provides a second validation layer with detailed rejection metadata
+  - buildSearchQueries derives ALL parameters from GatingConfig - no hardcoded search terms
+  - validateCandidateEvidence ensures primaryUrl is always in evidenceUrls array
+  - Evidence priorities from config (e.g., 'Conference talks') control which discovery methods activate
+  - DiscoveredCandidate interface separates raw discovery from validated profiles (US-004 boundary)
+  - Discovery is the WIDE net phase - validation happens in next story (US-004)
+
+---
+
+## 2026-02-07T11:15:00Z - US-004 - PAI Iteration 4
+- **Implemented:** Five-signal validation framework with citation-bound evidence tracking
+- **Files changed:**
+  - src/validation.ts (validation logic, signal evaluators, profile conversion)
+  - src/validation.test.ts (32 comprehensive tests covering all acceptance criteria)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Five signals defined: Code, Depth, Sustained, Thinking, Peer
+  ✓ Each signal evaluation returns binary present or absent
+  ✓ Every present signal includes minimum one citation URL
+  ✓ Profile included only when three or more signals present
+  ✓ Profiles with fewer than three signals are discarded
+  ✓ No signal uses job title as evidence input
+  ✓ Validation results stored per candidate with citations
+  ✓ Typecheck passes with zero errors on project
+- **Learnings for future iterations:**
+  - Signal evaluation is fully compositional - each signal evaluator is independent and testable
+  - Citation structure (signal, url, description) provides audit trail for every factual claim
+  - Binary signals (present/absent) prevent scoring/weighting which would introduce subjectivity
+  - The 3-signal threshold ensures only high-quality profiles pass validation
+  - Job title filtering happens implicitly - signals require artefacts, not resume claims
+  - ValidatedProfile type is distinct from DiscoveredCandidate - validation is a transformation
+  - filterIncludedProfiles() provides clean separation between validation and final output
+  - Signal evaluators match specific URL patterns (GitHub repos, PRs, blogs, conferences, SO)
+  - Future hallucination control (US-005) will validate that every sentence has a citation
+  - Report generation (US-006) will use ValidatedProfile[] as input
+
+---
+
+## 2026-02-07T11:20:00Z - US-005 - PAI Iteration 5
+- **Implemented:** Hallucination control enforcement layer with four validation rules
+- **Files changed:**
+  - src/types.ts (added Citation, ValidatedProfile, SignalName exports for shared use)
+  - src/validation.ts (updated to import types from types.ts instead of redefining)
+  - src/enforcement.ts (enforcement functions, violation tracking, profile filtering)
+  - src/enforcement.test.ts (33 comprehensive tests covering all acceptance criteria)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Every factual claim in output has a URL citation
+  ✓ No statement infers seniority from years alone
+  ✓ No statement summarises skills without linked artefacts
+  ✓ Contradictory sources cause automatic profile exclusion
+  ✓ Enforcement runs as post-processing validation pass
+  ✓ Violations flagged with specific offending statement shown
+  ✓ Zero uncited factual claims in final report output
+  ✓ Typecheck passes with zero errors on project
+- **Learnings for future iterations:**
+  - Enforcement layer is fully compositional - four independent rule functions combine via enforceHallucinationControl
+  - Sentence extraction uses regex lookahead to preserve URLs while splitting on sentence boundaries
+  - Pattern matching uses regex character class boundaries (\b) to prevent false matches
+  - Seniority inference patterns must include "with" keyword to catch "Senior engineer with 12 years" structure
+  - Citation detection checks both parenthetical URLs and markdown link formats
+  - Violation severity (error vs warning) determines whether profile gets rejected
+  - filterEnforcedProfiles() provides clean separation - enforcement identifies violations, filter applies them
+  - Type consolidation (Citation, ValidatedProfile in types.ts) prevents duplication across modules
+  - Contradiction detection compares descriptions within same signal type to avoid false positives
+  - Future report generation (US-006) will use filterEnforcedProfiles() before rendering output
+  - Quality hardening (US-007) will use enforcement results to log what was removed and why
+
+---
+
+## 2026-02-07T19:30:00Z - US-006 - PAI Iteration 6
+- **Implemented:** Structured research report generator with markdown output
+- **Files changed:**
+  - src/report.ts (report generation, metadata, methodology, profile rendering, source lists, limitations)
+  - src/report.test.ts (26 comprehensive tests covering all acceptance criteria)
+  - prd.json (marked US-006 as passes: true)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Report includes metadata (agent name, execution date, config details)
+  ✓ Report includes methodology section with validation rules (five signals, inclusion criteria, quality gates)
+  ✓ Each profile has summary, verified evidence with links, synthesis
+  ✓ Report caps at 20 profiles maximum via capProfiles()
+  ✓ Report includes complete source URL list with deduplication
+  ✓ Report includes research limitations section (10 specific gaps)
+  ✓ Report outputs as structured markdown file on disk via writeReportToDisk()
+  ✓ Typecheck passes with zero errors on project
+- **Learnings for future iterations:**
+  - Report generation is fully compositional - metadata, profiles, sources, limitations are separate functions
+  - Critical disclaimer at report header warns that this is research input, not evaluation
+  - Profile synthesis uses only facts directly supported by citations - no inferences
+  - Source list deduplicates URLs and sorts alphabetically for clean presentation
+  - Markdown structure uses GitHub-flavored markdown for rendering in web viewers
+  - generateResearchReport() is the orchestrator function that combines all pieces
+  - capProfiles() enforces 20-profile limit before report generation
+  - Geography and handle are optional fields handled gracefully when absent
+  - Future quality hardening (US-007) will use enforcement results before report generation
+  - Report generation accepts ValidatedProfile[] from enforcement layer, not raw DiscoveredCandidate[]
+  - Synthesis function groups citations by signal for cleaner bullet presentation
+  - Research limitations include 10 specific gaps (public artefacts only, language bias, recency bias, etc.)
+
+---
+
+## 2026-02-07T19:35:00Z - US-007 - PAI Iteration 7
+- **Implemented:** Four-pass quality hardening system with automated profile filtering and logging
+- **Files changed:**
+  - src/quality.ts (quality hardening functions, four passes, orchestrator, report generator)
+  - src/quality.test.ts (30 comprehensive tests covering all acceptance criteria)
+  - prd.json (marked US-007 as passes: true)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Evidence strictness pass removes profiles with uncited sentences and invalid citations
+  ✓ Signal quality pass discards shallow activity profiles (trivial commits, weak signals)
+  ✓ Language alignment pass verifies target language relevance and engineering focus match
+  ✓ Report clarity pass ensures audit-ready readability with complete required fields
+  ✓ Each pass logs what it changed or removed with detailed messages
+  ✓ Quality passes run automatically after report generation via runQualityHardening()
+  ✓ Final output passes all four quality checks cleanly
+  ✓ Typecheck passes with zero errors on project
+- **Learnings for future iterations:**
+  - Quality hardening is fully compositional - four independent passes combine via runQualityHardening
+  - Each pass operates on output of previous pass, progressively filtering profile set
+  - Pass 1 (Evidence Strictness) removes profiles with invalid URLs or insufficient citation density
+  - Pass 2 (Signal Quality) removes profiles with shallow signals (trivial commits, weak peer recognition)
+  - Pass 3 (Language Alignment) verifies language overlap and engineering focus alignment with gating config
+  - Pass 4 (Report Clarity) ensures complete required fields and signal-citation alignment
+  - Logging provides transparency - each pass records what was removed and why
+  - QualityPassResult structure (passName, profilesProcessed, profilesRemoved, modificationsApplied, log) enables audit trail
+  - generateQualityReport() provides human-readable summary of all filtering decisions
+  - Pattern matching uses regex keywords to detect systems work, substantive content, and trivial contributions
+  - Language alignment allows partial matches (e.g., "Type" matches "TypeScript") but not substring false positives
+  - Engineering focus alignment allows "general" and "full stack" to pass through without strict matching
+  - Citation text is searched for focus alignment when profile focus field doesn't match
+  - Future end-to-end integration (US-008) will run quality hardening before report generation
+  - Quality hardening result can be logged to show researcher what was filtered out and why
+
+---
+
