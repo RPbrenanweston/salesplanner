@@ -1,20 +1,5 @@
 import { DiscoveredCandidate } from './discovery.js';
-import { GatingConfig } from './types.js';
-
-/**
- * Five binary signals for validation.
- * Each signal is either present (with citations) or absent.
- */
-export type SignalName = 'code' | 'depth' | 'sustained' | 'thinking' | 'peer';
-
-/**
- * A citation linking a factual claim to a verifiable source.
- */
-export interface Citation {
-  signal: SignalName;
-  url: string;
-  description: string;
-}
+import { GatingConfig, SignalName, Citation, ValidatedProfile } from './types.js';
 
 /**
  * Signal evaluation result: present or absent.
@@ -35,20 +20,6 @@ export interface ValidationResult {
   signalCount: number;
   included: boolean;
   reason?: string;
-}
-
-/**
- * Validated profile ready for inclusion in final report.
- */
-export interface ValidatedProfile {
-  name: string;
-  handle?: string;
-  primaryUrl: string;
-  languages: string[];
-  engineeringFocus: string;
-  geography?: string;
-  signals: Record<SignalName, boolean>;
-  citations: Citation[];
 }
 
 /**
