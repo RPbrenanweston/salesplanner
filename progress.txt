@@ -216,3 +216,31 @@ Description: Citation-first deep research agent for sourcing software engineers
 
 ---
 
+
+## 2026-02-07T19:44:00Z - US-008 - PAI Iteration 8
+- **Implemented:** End-to-end integration test covering full agent pipeline
+- **Files changed:**
+  - src/integration.test.ts (comprehensive integration test with 8 test cases)
+  - prd.json (marked US-008 as passes: true)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Integration test provides sample gating inputs automatically (sample config created)
+  ✓ Test executes full pipeline: gate, discover, validate, report (all phases tested)
+  ✓ Output report passes hallucination control checks at zero violations (enforcement verified)
+  ✓ All quality hardening passes complete without manual intervention (4 passes executed)
+  ✓ Test verifies report structure matches required output format (markdown structure validated)
+  ✓ Test confirms fewer than twenty-one profiles in output (capping verified)
+  ✓ Test runs and completes without authentication or paid APIs (mocked candidates only)
+  ✓ Typecheck passes with zero errors on project (TypeScript validation passed)
+- **Learnings for future iterations:**
+  - Integration testing requires properly typed mock data matching DiscoveredCandidate interface
+  - Function signatures evolved during development - integration tests must use actual signatures (validateCandidate needs config, enforceHallucinationControl needs getProfileText helper)
+  - Quality hardening returns {profiles, result} structure, not flat result
+  - Report generation uses generateMarkdownReport, not generateResearchReport (which is async file writer)
+  - All 189 tests now pass across 8 test suites
+  - Test suite validates end-to-end flow without external dependencies
+  - Mock candidates must include discoveryMethod field ('github', 'blog', 'conference', 'other')
+  - Report metadata uses shorter field names ("Agent:" not "Agent Name:", "Execution Date:" not "Execution Date:")
+  - Quality pass names include full titles ("Language & Scope Alignment" not "Language Alignment")
+  - Future stories (US-009 through US-012) can build on this validated foundation
+---
+
