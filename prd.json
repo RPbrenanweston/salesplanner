@@ -217,7 +217,7 @@
         "Typecheck passes with zero errors on project"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "This is what makes the agent PERMANENT. After Ralph builds the code (US-001 through US-011), this story wraps it as a PAI skill at ~/.claude/skills/CodeSignal20/ with SKILL.md and Workflows/ (Run.md, NewSearch.md, Resume.md, Status.md). The skill points to /Users/robertpeacock/Projects/codesignal-20/ as the execution directory. Three distinct workflows: (1) Run/NewSearch — fresh gating questions, clean config, starts from scratch but does NOT reset exclusions from other searches, (2) Resume — takes feedback ('show me 20 more', calibration notes), maintains exclusion list, runs next batch, (3) Status — shows how many candidates have been found, excluded, how many runs completed, and Supabase DB stats (total engineers stored, breakdown by language/focus). This means RPBW can just say 'find me Go engineers' or 'source backend developers' from ANY Claude Code session and the agent runs."
     }
   ]

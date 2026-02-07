@@ -404,6 +404,81 @@ export class Database {
       };
     }
   }
+
+  /**
+   * Get database statistics for status reporting
+   * Returns aggregated counts by language, focus, and staleness
+   */
+  async getDatabaseStats(maxStaleDays: number = 90): Promise<DatabaseResult<{
+    totalEngineers: number;
+    byLanguage: Record<string, number>;
+    byFocus: Record<string, number>;
+    fresh: number;
+    stale: number;
+  }>> {
+    if (!this.available || !this.client) {
+      return {
+        success: false,
+        error: 'Database unavailable - running in local-only mode'
+      };
+    }
+
+    try {
+      const { data: engineers, error } = await this.client
+        .from('engineers')
+        .select('languages, engineering_focus, last_validated');
+
+      if (error) {
+        return {
+          success: false,
+          error: `Failed to get database stats: ${error.message}`
+        };
+      }
+
+      // Aggregate stats
+      const byLanguage: Record<string, number> = {};
+      const byFocus: Record<string, number> = {};
+      let fresh = 0;
+      let stale = 0;
+
+      const staleThreshold = new Date();
+      staleThreshold.setDate(staleThreshold.getDate() - maxStaleDays);
+
+      engineers?.forEach((e: { languages: string[]; engineering_focus: string; last_validated: string }) => {
+        // Count by language
+        e.languages.forEach(lang => {
+          byLanguage[lang] = (byLanguage[lang] || 0) + 1;
+        });
+
+        // Count by focus
+        byFocus[e.engineering_focus] = (byFocus[e.engineering_focus] || 0) + 1;
+
+        // Staleness check
+        const lastValidated = new Date(e.last_validated);
+        if (lastValidated >= staleThreshold) {
+          fresh++;
+        } else {
+          stale++;
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          totalEngineers: engineers?.length || 0,
+          byLanguage,
+          byFocus,
+          fresh,
+          stale
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Unexpected error getting database stats: ${error}`
+      };
+    }
+  }
 }
 
 /**
