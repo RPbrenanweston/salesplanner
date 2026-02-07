@@ -244,3 +244,33 @@ Description: Citation-first deep research agent for sourcing software engineers
   - Future stories (US-009 through US-012) can build on this validated foundation
 ---
 
+## 2026-02-07T11:44:00Z - US-009 - PAI Iteration 9
+- **Implemented:** Iterative feedback loop with exclusion system for multi-run candidate discovery
+- **Files changed:**
+  - src/exclusion.ts (exclusion list management, feedback parsing, calibration, filtering)
+  - src/exclusion.test.ts (25 comprehensive tests covering all acceptance criteria)
+  - .gitignore (added exclusions.json and config.json)
+  - prd.json (marked US-009 as passes: true)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Exclusion list persists candidate identifiers to exclusions.json
+  ✓ Next run filters excluded candidates via filterExcludedProfiles()
+  ✓ Feedback parser accepts free-text calibration notes
+  ✓ "Show me 20 more" triggers fresh discovery with same criteria
+  ✓ Calibration adjusts gating parameters (focus, depth, geography)
+  ✓ Exclusion list is human-readable JSON on disk
+  ✓ getExclusionCount() confirms exclusion count before discovery
+  ✓ Typecheck passes with zero errors on project (214 tests passing)
+- **Learnings for future iterations:**
+  - Exclusion system is compositional: load → filter → save → report
+  - ExclusionList structure tracks name, primaryUrl, excludedAt, searchContext for audit trail
+  - Feedback parser uses three-tier intent detection: include_override → show_more → calibrate
+  - Calibration adjusts engineeringFocus, depthExpectation, and geography fields
+  - Deduplication by primaryUrl prevents duplicate exclusions across runs
+  - removeFromExclusions() supports explicit override for "include [name] again" feedback
+  - getSearchContext() formats config as "Focus | Languages | Depth" string for exclusion metadata
+  - Exclusion list grows across runs, making agent a true iterative research tool
+  - Future Supabase integration (US-010) will sync exclusion list bidirectionally with database
+  - Discovery engine (US-003) needs integration to call filterExcludedProfiles() before validation
+  - Report generation (US-006) needs integration to call addToExclusions() after completion
+---
+
