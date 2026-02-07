@@ -347,3 +347,38 @@ Description: Citation-first deep research agent for sourcing software engineers
   - Report metadata should include discovery source breakdown for transparency
 ---
 
+
+## 2026-02-07T12:10:00Z - US-012 - PAI Iteration 12
+- **Implemented:** PAI skill wrapper for permanent invocation
+- **Files changed:**
+  - ~/.claude/skills/CodeSignal20/SKILL.md (skill definition with three workflow routes)
+  - ~/.claude/skills/CodeSignal20/Workflows/Run.md (fresh search with gating questions)
+  - ~/.claude/skills/CodeSignal20/Workflows/Resume.md (continue search with feedback calibration)
+  - ~/.claude/skills/CodeSignal20/Workflows/Status.md (search statistics and DB stats)
+  - src/database.ts (added getDatabaseStats method for status reporting)
+  - prd.json (marked US-012 as passes: true)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ SKILL.md created at ~/.claude/skills/CodeSignal20/SKILL.md
+  ✓ Skill triggers on 'find engineers' and 'source developers'
+  ✓ Skill triggers on 'codesignal' and 'talent search'
+  ✓ Run workflow invokes agent from project directory automatically
+  ✓ Resume workflow continues existing search with feedback input
+  ✓ Status workflow shows current exclusion count and past runs
+  ✓ getDatabaseStats method provides aggregated DB statistics
+  ✓ Typecheck passes with zero errors on project (274 tests passing)
+- **Learnings for future iterations:**
+  - PAI skill wrapper makes CodeSignal20 permanently invocable from any session
+  - Three workflow pattern (Run/Resume/Status) provides complete lifecycle management
+  - Run workflow resets config.json but preserves exclusions.json (maintains cross-search history)
+  - Resume workflow supports three feedback types: show_more, calibrate, include_override
+  - Status workflow uses getDatabaseStats() to report aggregated statistics
+  - Voice notifications follow standard PAI notification pattern
+  - SKILL.md follows canonical structure: YAML frontmatter with USE WHEN, workflow routing table, examples
+  - Workflows are execution procedures, not documentation (flat structure in Workflows/)
+  - getDatabaseStats aggregates by language, focus, and staleness (fresh vs stale threshold)
+  - Example triggers: "find engineers", "source developers", "codesignal", "talent search"
+  - Skill location: ~/.claude/skills/CodeSignal20/ (TitleCase naming per PAI standard)
+  - Project execution directory: /Users/robertpeacock/Projects/codesignal-20/
+  - Integration complete: agent now accessible via skill system from ANY Claude Code session
+---
+
