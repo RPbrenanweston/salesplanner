@@ -11,7 +11,11 @@
     "lint": "echo 'Linting skipped for initial implementation'",
     "start": "node dist/index.js"
   },
-  "keywords": ["sourcing", "research", "engineering"],
+  "keywords": [
+    "sourcing",
+    "research",
+    "engineering"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -23,6 +27,8 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
+    "dotenv": "^17.2.4",
     "zod": "^3.22.4"
   }
 }

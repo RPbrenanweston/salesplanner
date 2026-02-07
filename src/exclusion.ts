@@ -24,6 +24,11 @@ export interface ExcludedCandidate {
 }
 
 /**
+ * Type alias for database compatibility
+ */
+export type ExclusionEntry = ExcludedCandidate;
+
+/**
  * Exclusion list structure
  */
 export interface ExclusionList {

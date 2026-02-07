@@ -181,7 +181,7 @@
         "Typecheck passes with zero errors on project"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Supabase schema: Table 'engineers' — id (uuid), name (text), handle (text), primary_url (text, unique), languages (text[]), engineering_focus (text), geography (text), signals (jsonb — {code: bool, depth: bool, sustained: bool, thinking: bool, peer: bool}), citations (jsonb — array of {signal: string, url: string, description: string}), last_validated (timestamptz), created_at (timestamptz), updated_at (timestamptz). Table 'search_runs' — id (uuid), config (jsonb — the gating answers), profiles_discovered (int), profiles_validated (int), profiles_returned (int), exclusion_count (int), created_at (timestamptz). Table 'exclusions' — id (uuid), engineer_id (uuid FK), search_context (text — which search excluded them), excluded_at (timestamptz). Credentials via SUPABASE_URL and SUPABASE_ANON_KEY in .env file. NEVER commit .env. Agent should gracefully degrade if Supabase is unavailable (fall back to local-only mode)."
     },
     {

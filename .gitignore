@@ -5,6 +5,15 @@ progress.txt
 exclusions.json
 config.json
 
+# Environment variables and credentials
+.env
+.env.local
+.env.*.local
+
+# Node modules
+node_modules/
+dist/
+
 # Archive is optional to commit
 # archive/
 

@@ -274,3 +274,42 @@ Description: Citation-first deep research agent for sourcing software engineers
   - Report generation (US-006) needs integration to call addToExclusions() after completion
 ---
 
+## 2026-02-07T19:50:00Z - US-010 - PAI Iteration 10
+- **Implemented:** Supabase persistence layer with graceful degradation
+- **Files changed:**
+  - package.json (added @supabase/supabase-js and dotenv dependencies)
+  - src/database.ts (Database class with upsert, query, sync operations)
+  - src/database.test.ts (30 comprehensive tests covering all acceptance criteria)
+  - src/exclusion.ts (added ExclusionEntry type alias for database compatibility)
+  - .gitignore (added .env files to prevent credential commits)
+  - .env.example (template for Supabase credentials)
+  - DATABASE_SETUP.md (complete setup guide with schema, migration steps, monitoring)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Supabase client connects using env variable credentials only
+  ✓ Validated profiles upserted with all citation URLs preserved
+  ✓ Each profile stores signals, languages, focus, and geography
+  ✓ Each profile stores last_validated timestamp for staleness tracking
+  ✓ Exclusion list syncs bidirectionally with database records
+  ✓ Run metadata stored: search parameters, date, profiles returned
+  ✓ Database write happens after report generation completes successfully
+  ✓ Typecheck passes with zero errors on project (244 tests passing)
+- **Learnings for future iterations:**
+  - Database class uses graceful degradation pattern - fully functional in local-only mode
+  - isAvailable() method gates all database operations for safe fallback behavior
+  - EngineerRecord, SearchRunRecord, ExclusionRecord types mirror Supabase schema
+  - Upsert operations use primary_url as unique key for deduplication
+  - DatabaseResult<T> generic provides consistent error handling across all operations
+  - Batch operations (upsertEngineers, syncExclusions) reduce API calls for multi-profile writes
+  - queryEngineers() filters by language overlap, geography match, and staleness threshold (default 90 days)
+  - Bidirectional exclusion sync: syncExclusions() writes to DB, fetchExclusions() reads back
+  - Database initialization reads SUPABASE_URL and SUPABASE_ANON_KEY from process.env
+  - Console warnings inform user when running in local-only mode (credentials missing)
+  - All 30 database tests pass without actual Supabase connection (validates graceful degradation)
+  - DATABASE_SETUP.md provides SQL schema, setup steps, migration path, troubleshooting
+  - .env.example serves as template - users copy to .env and fill in credentials
+  - .gitignore updated to prevent .env files from being committed (CRITICAL security requirement)
+  - Future database-first discovery (US-011) will call queryEngineers() before web search
+  - Integration points: report generation should call upsertEngineers() and recordSearchRun() after quality hardening
+  - Exclusion sync should happen after each search run to maintain bidirectional consistency
+---
+
