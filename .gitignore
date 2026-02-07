@@ -2,6 +2,8 @@
 prd.json
 progress.txt
 .last-branch
+exclusions.json
+config.json
 
 # Archive is optional to commit
 # archive/

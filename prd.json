@@ -163,7 +163,7 @@
         "Typecheck passes with zero errors on project"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "This is the iterative refinement system. After each run, the agent writes all returned candidate identifiers (name/handle + primary URL) to an exclusion list (e.g., exclusions.json). On next run, the discovery engine filters OUT all excluded candidates before validation. Feedback types: (1) 'show me 20 more' — same criteria, fresh candidates, (2) calibrated feedback like 'more systems-focused' or 'less frontend' — adjusts gating parameters while maintaining exclusions, (3) 'include [name] again' — explicit override to remove from exclusion list. The exclusion list grows across runs, ensuring the agent never resurfaces the same high-scoring candidates. This makes the agent a true iterative research tool, not a one-shot ranker."
     },
     {
