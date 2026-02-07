@@ -199,7 +199,7 @@
         "Typecheck passes with zero errors on project"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "This is the key efficiency gain. Three-tier lookup: (1) Query Supabase for validated profiles matching current gating criteria (language, focus, geography). (2) Filter out excluded candidates and stale profiles (last_validated > 90 days ago). (3) If DB returns N valid profiles where N < 20, run web discovery for (20 - N) more candidates only. Over time, the DB becomes the primary source and web becomes the fallback. Example: Run 1 finds 18 via web, stores all 18 in DB. Run 2 (same criteria, different exclusions) — DB has 18, 15 still valid after exclusions, web only needs to find 5 more. Run 10 — DB has 150+ engineers, most runs barely touch the web. Report metadata should show 'Sources: 12 from database, 8 from web discovery' so the user can see the efficiency gain."
     },
     {

@@ -313,3 +313,37 @@ Description: Citation-first deep research agent for sourcing software engineers
   - Exclusion sync should happen after each search run to maintain bidirectional consistency
 ---
 
+
+## 2026-02-07T12:00:00Z - US-011 - PAI Iteration 11
+- **Implemented:** Database-first discovery with web fallback for token efficiency
+- **Files changed:**
+  - src/hybrid-discovery.ts (hybrid discovery system, URL liveness checking, staleness detection)
+  - src/hybrid-discovery.test.ts (30 comprehensive tests covering all acceptance criteria)
+  - prd.json (marked US-011 as passes: true)
+- **ISC Status:** All 8 acceptance criteria PASSED
+  ✓ Agent queries Supabase first matching current search criteria
+  ✓ DB profiles older than ninety days flagged for re-validation
+  ✓ Fresh DB matches included in results without web re-discovery
+  ✓ Web discovery only runs to fill gap to twenty profiles
+  ✓ Agent reports how many profiles came from DB versus web
+  ✓ Dead citation URLs detected and flagged during DB retrieval
+  ✓ Stale profiles re-validated via web before inclusion in report
+  ✓ Typecheck passes with zero errors on project (274 tests passing)
+- **Learnings for future iterations:**
+  - Hybrid discovery is the key efficiency multiplier - DB becomes primary source over time
+  - Three-tier lookup: query DB → filter stale/dead → fill gap with web discovery
+  - URL liveness checking uses pattern matching for dead URL detection (404.html, deleted, removed)
+  - Staleness threshold of 90 days balances freshness with efficiency
+  - flagStaleProfiles() handles missing discoverySource gracefully (treats as stale)
+  - filterFreshProfiles() separates fresh, stale, and dead-URL profiles in one pass
+  - calculateWebDiscoveryGap() returns zero when DB provides enough profiles (web discovery skipped)
+  - runHybridDiscovery() orchestrates full flow with database-first priority
+  - formatDiscoverySummary() provides human-readable markdown showing DB vs web breakdown
+  - Discovery efficiency gain calculated as percentage of profiles from DB (tracks token savings)
+  - Example progression: Run 1 (0% DB), Run 5 (40% DB), Run 20 (80% DB) → exponential efficiency gain
+  - loadExclusions() is async - must await before using with filterExcludedProfiles()
+  - Future PAI skill wrapper (US-012) will use hybrid discovery as default discovery method
+  - Integration point: main agent flow should call runHybridDiscovery() instead of raw web discovery
+  - Report metadata should include discovery source breakdown for transparency
+---
+
