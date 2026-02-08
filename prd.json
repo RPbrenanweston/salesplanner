@@ -119,8 +119,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed: README.md updated with project overview, tech stack, quick start. API.md created with full endpoint documentation. DEPLOY.md already existed from US-004. OpenAPI docs verified at /docs. All linked files exist. Both backend and frontend typechecks pass."
     },
     {
       "id": "US-008",
