@@ -15,8 +15,8 @@
         "Typecheck passes (Python type hints on all functions)"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed: FastAPI scaffold with health endpoint, Pydantic models, type hints. Tested locally with uvicorn."
     },
     {
       "id": "US-002",
