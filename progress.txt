@@ -85,3 +85,30 @@ Started: Sun Feb  8 10:43:44 GMT 2026
   - **Next story (US-004)**: Will configure CORS in FastAPI backend to accept requests from http://localhost:3000 and Railway production domain
   - **Railway deployment pattern**: PRD expects two services (backend container + frontend static). Frontend builds with `bun run build` but package.json uses npm (may need Railway build config).
 ---
+
+## 2026-02-08 03:00 PST - US-004 - PAI Iteration 4
+- **Implemented:** CORS middleware and environment variable configuration for FastAPI backend
+- **Files changed:**
+  - Modified `backend/main.py` (added CORS middleware with CORSMiddleware, environment variables: ALLOWED_ORIGINS, DATABASE_URL)
+  - Created `backend/.env.example` (template for ALLOWED_ORIGINS and DATABASE_URL with dev defaults)
+  - Created `DEPLOY.md` (comprehensive Railway deployment guide: architecture, setup steps, environment variables, troubleshooting, production checklist)
+  - Updated `prd.json` (marked US-004 passes: true)
+- **ISC Status:** 9/9 PASSED
+  - ✅ CORS middleware added to FastAPI backend (CORSMiddleware configured)
+  - ✅ CORS allows localhost:3000 for development (included in default ALLOWED_ORIGINS)
+  - ✅ CORS allows Railway production domain (configurable via ALLOWED_ORIGINS env var)
+  - ✅ Backend reads DATABASE_URL environment variable (os.getenv("DATABASE_URL"))
+  - ✅ Frontend .env.example created (already existed from US-003)
+  - ✅ Backend .env.example created (with ALLOWED_ORIGINS and DATABASE_URL templates)
+  - ✅ DEPLOY.md documents Railway environment variables (complete guide with setup, verification, troubleshooting)
+  - ✅ Health check endpoint verified (curl returned {"status":"ok"})
+  - ✅ Python typecheck passes (py_compile successful on main.py)
+- **Learnings for future iterations:**
+  - **CORS configuration**: Using comma-separated ALLOWED_ORIGINS env var allows flexible dev/prod configuration without code changes
+  - **Environment defaults**: Provided sensible defaults (localhost:3000,localhost:5173) for local dev while allowing Railway override
+  - **DEPLOY.md structure**: Comprehensive deployment docs include architecture diagram, step-by-step setup, env var reference, troubleshooting, and production checklist
+  - **Railway service pattern**: Backend uses container deployment with uvicorn, frontend uses static deployment with build output from dist/
+  - **Health check pattern**: Simple curl test confirms server startup before proceeding with commits
+  - **Next story (US-005)**: Will integrate useProcessSourcing hook into ExecutionView component, handle loading/success/error states, navigate to IntelligenceView on success
+  - **Frontend location**: ExecutionView component likely needs to be created in frontend/src/components/ or frontend/src/views/
+---
