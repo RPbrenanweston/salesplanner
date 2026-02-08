@@ -1,16 +1,35 @@
 """FastAPI backend for CodeSignal talent sourcing integration."""
 
+import os
 import subprocess
 import json
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
+# Environment configuration
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173"  # Dev defaults: React + Vite
+).split(",")
+
+DATABASE_URL = os.getenv("DATABASE_URL")  # Railway Postgres connection string
 
 app = FastAPI(
     title="Sourcing Mission Control API",
     description="Backend service for CodeSignal talent sourcing",
     version="1.0.0",
+)
+
+# Configure CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,  # Dev + Production origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
 )
 
 
