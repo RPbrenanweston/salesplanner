@@ -1,224 +1,145 @@
 {
-  "project": "CodeSignal-20",
+  "project": "Sourcing Mission Control",
   "branchName": "ralph/codesignal-20",
-  "description": "Citation-first deep research agent that identifies up to 20 software engineers using only publicly verifiable technical artefacts. No inferred skill, no titles-as-proxy, no uncited claims.",
-  "systemPrompt": "You are a research-grade software engineering sourcing agent. Your sole task is to identify software engineers using ONLY publicly verifiable technical artefacts. You must obey the following rules at all times: 1. You may not make any claim without a citation. 2. Every factual statement must link to a source URL. 3. If evidence is missing, ambiguous, or contradictory, exclude the profile. 4. You must not infer skill, seniority, or impact from job titles. 5. You must inspect actual artefacts: code, writing, talks, discussions. 6. You must return NO MORE THAN 20 profiles. 7. It is acceptable to return fewer than 20 profiles if validation fails. 8. Your output must be a structured research report, not a list. 9. You must include a methodology and limitations section. 10. You must never generate outreach, rankings, or opinions. If you cannot verify a claim, you must say nothing. Silence is preferable to speculation.",
+  "description": "CodeSignal Agent Integration - Connect talent sourcing agent to React frontend with end-to-end workflow from configuration to results display, deployable on Railway",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Project scaffold and gating question system",
-      "description": "As a researcher, I need the project structure and mandatory entry gating so the agent refuses to run without required inputs (engineering focus, languages, depth expectation, evidence priorities).",
+      "title": "Create FastAPI backend scaffold",
+      "description": "As a developer, I need a FastAPI backend service that the React frontend can call with a working health check endpoint.",
       "acceptanceCriteria": [
-        "Project has TypeScript entry point that executes",
-        "Gating prompts all five mandatory questions before proceeding",
-        "Agent refuses execution if any gating answer missing",
-        "Gating answers persisted to config JSON file",
-        "No default values assumed for any gating field",
-        "Config schema validates required fields exist and non-empty",
-        "Typecheck passes with zero errors on project",
-        "Unit test confirms gating blocks on missing input"
+        "FastAPI app created at backend/main.py",
+        "Health check endpoint: GET /api/v1/health returns {\"status\": \"ok\"}",
+        "Pydantic models defined for request/response validation",
+        "python -m uvicorn backend.main:app --reload runs locally without errors",
+        "Typecheck passes (Python type hints on all functions)"
       ],
       "priority": 1,
-      "passes": true,
-      "notes": "Gating questions: 1) Target engineering focus, 2) Required languages (max 3), 3) Minimum depth expectation, 4) Evidence priority (choose 2-3 from: GitHub repos, OSS contributions, tech blogs, conference talks, SO depth), 5) Geography constraints (optional). The 'optional' geography still must be explicitly asked."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Approved data source registry with enforcement",
-      "description": "As a researcher, I need a source registry that defines which data sources are approved, secondary, and explicitly disallowed, with runtime enforcement.",
+      "title": "Implement /api/v1/process endpoint",
+      "description": "As the ExecutionView component, I want to POST sourcing configuration to the backend and receive scored candidates in response.",
       "acceptanceCriteria": [
-        "Source registry config defines primary and secondary tiers",
-        "Disallowed sources list blocks LinkedIn scraping and paid DBs",
-        "Source validation function rejects disallowed URL patterns",
-        "Primary sources include GitHub repos and commit history",
-        "Primary sources include personal and technical blogs",
-        "Primary sources include conference talks on YouTube",
-        "Secondary sources include Stack Overflow profiles only",
-        "Typecheck passes with zero errors on project"
+        "Endpoint accepts POST with: keywords (list), rssFeedUrls (list), filters (dict with minimumConfidence, signalTypes)",
+        "Endpoint triggers CodeSignal agent (synchronous) to score candidates",
+        "Returns JSON: {\"status\": \"completed\", \"results\": {\"candidates\": [...], \"metadata\": {...}}}",
+        "Candidate schema: {id, name, source, confidenceScore (0-100), signals (list), rawData}",
+        "Signal schema: {type (HIRING/COMPANY/INDIVIDUAL), text, confidence, patterns, keywords}",
+        "Error responses: 400 for invalid input, 500 for processing errors",
+        "Response time < 30 seconds for typical sourcing (100-500 items processed)",
+        "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "Primary (Open Web Only): GitHub repos/commits, personal/Medium blogs, conference talks (YouTube, event pages), RFCs/whitepapers, public GitHub discussions/PRs. Secondary (Read-Only): Stack Overflow profiles/answers, GitHub profile summaries. Disallowed: LinkedIn scraping, paid databases, resume aggregators, skill inference tools, 'About me' claims without artefacts."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Candidate discovery engine via public artefacts",
-      "description": "As a researcher, I need to discover an initial pool of candidate engineers by searching public technical artefacts matching the gating criteria.",
+      "title": "Create React hooks for backend integration",
+      "description": "As the ExecutionView, I want a clean React Query hook to call the backend and track execution state.",
       "acceptanceCriteria": [
-        "Discovery searches GitHub repos matching target languages",
-        "Discovery searches technical blogs matching depth focus",
-        "Discovery searches conference talk listings for speakers",
-        "All search queries derived from gating config values",
-        "Each discovered candidate has at least one source URL",
-        "Discovery respects approved source registry constraints",
-        "Candidates stored with raw evidence links attached",
-        "Typecheck passes with zero errors on project"
+        "Hook: useProcessSourcing() created at src/api/sourcing.ts",
+        "Hook uses React Query useMutation to POST to /api/v1/process",
+        "Hook returns: {mutate, isPending, isSuccess, data, error}",
+        "VITE_API_URL configured via .env.production and .env.development",
+        "Handles CORS errors gracefully with user-friendly error message",
+        "Unit test exists: src/api/__tests__/sourcing.test.ts",
+        "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "Discovery is the WIDE net phase. It finds candidates to evaluate, not validated profiles. Use WebSearch and WebFetch for public artefact discovery. Store raw results — validation happens in US-004."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Citation-bound validation framework with five signals",
-      "description": "As a researcher, I need to validate each discovered candidate against five binary signals, where each signal requires at least one citation URL.",
+      "title": "Configure CORS and environment variables",
+      "description": "As DevOps, I need the backend and frontend to communicate securely with proper CORS configuration.",
       "acceptanceCriteria": [
-        "Five signals defined: Code, Depth, Sustained, Thinking, Peer",
-        "Each signal evaluation returns binary present or absent",
-        "Every present signal includes minimum one citation URL",
-        "Profile included only when three or more signals present",
-        "Profiles with fewer than three signals are discarded",
-        "No signal uses job title as evidence input",
-        "Validation results stored per candidate with citations",
-        "Typecheck passes with zero errors on project"
+        "CORS configured in FastAPI for http://localhost:3000 (dev) and Railway production domain",
+        "Backend reads DATABASE_URL from env (Postgres connection string)",
+        "Frontend reads VITE_API_URL from .env files",
+        ".env.example files created (no secrets committed)",
+        "Railway environment variables documented in DEPLOY.md",
+        "Health check verifies backend is running",
+        "Typecheck passes"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "Signals: Code Signal (non-trivial repos, meaningful PRs), Depth Signal (systems/infra/performance/scaling concerns), Sustained Activity (evidence across 12+ months), Thinking Signal (blogs, RFCs, long-form explanations), Peer Recognition (accepted PRs, referenced work, high-signal SO answers). Signals are binary — no weighting, no scoring."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Hallucination control enforcement layer",
-      "description": "As a researcher, I need hard enforcement rules that prevent any factual statement without a URL, any inferred seniority, and any paraphrased code intent without inspection.",
+      "title": "Integrate hook into ExecutionView",
+      "description": "As a user, I want to click Execute in ExecutionView to trigger candidate sourcing.",
       "acceptanceCriteria": [
-        "Every factual claim in output has a URL citation",
-        "No statement infers seniority from years alone",
-        "No statement summarises skills without linked artefacts",
-        "Contradictory sources cause automatic profile exclusion",
-        "Enforcement runs as post-processing validation pass",
-        "Violations flagged with specific offending statement shown",
-        "Zero uncited factual claims in final report output",
-        "Typecheck passes with zero errors on project"
+        "ExecutionView calls useProcessSourcing() hook",
+        "Execute Search button triggers mutation with config from props",
+        "Shows loading spinner while isPending is true",
+        "On success: navigates to IntelligenceView with results (via React Router state)",
+        "On error: displays error toast with details",
+        "Button disabled while processing",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (loading state, success navigation, error handling)"
       ],
       "priority": 5,
-      "passes": true,
-      "notes": "Hard rules from section 8: No factual statement without a URL. No paraphrasing code intent without inspection. No inferred seniority. No summarised skills without artefacts. Contradictory sources → discard profile. This is the most critical quality gate."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Structured research report generator",
-      "description": "As a researcher, I need to generate a structured markdown report with metadata, methodology, validated profiles (max 20), sources, and limitations.",
+      "title": "Update IntelligenceView to display results",
+      "description": "As a user, I want to see scored candidates in a table sorted by confidence.",
       "acceptanceCriteria": [
-        "Report includes metadata: agent name and execution date",
-        "Report includes methodology section with validation rules",
-        "Each profile has summary, verified evidence with links, synthesis",
-        "Report caps at twenty validated profiles maximum",
-        "Report includes complete source URL list at end",
-        "Report includes research limitations section with gaps",
-        "Report outputs as structured markdown file on disk",
-        "Typecheck passes with zero errors on project"
+        "IntelligenceView receives results from React Router location state",
+        "Table columns: Name | Confidence (%) | Signal Type | Source | Actions",
+        "Table sorted by confidence descending by default (highest scores first)",
+        "Confidence displayed as number + bar chart (0-100 scale)",
+        "Signal type color-coded: HIRING=green, COMPANY=blue, INDIVIDUAL=purple",
+        "Empty state message if no results",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (table layout, sorting, colors, empty state)"
       ],
       "priority": 6,
-      "passes": true,
-      "notes": "Output format from section 7. Metadata: agent name, execution date, role focus, languages, evidence priorities, profiles reviewed, profiles returned. Each profile: Name/handle, primary languages, engineering focus, geography, verified evidence (each bullet = direct link), synthesis from cited facts only. Must include full sources list and research limitations. CRITICAL: Report header must state 'This is research input requiring human review before any outreach. This is not an evaluation or ranking.' Human-in-the-loop is mandatory — the agent produces research, never sends outreach."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-007",
-      "title": "Quality hardening: strictness, relevance, and clarity",
-      "description": "As a researcher, I need post-generation quality passes that enforce evidence strictness, signal quality depth, language/scope alignment, and report clarity.",
+      "title": "Document deployment and API",
+      "description": "As a developer, I need clear documentation to operate and extend the system.",
       "acceptanceCriteria": [
-        "Evidence strictness pass removes all uncited sentences",
-        "Signal quality pass discards shallow activity profiles",
-        "Language alignment pass verifies target language relevance",
-        "Report clarity pass ensures audit-ready readability",
-        "Each pass logs what it changed or removed",
-        "Quality passes run automatically after report generation",
-        "Final output passes all four quality checks cleanly",
-        "Typecheck passes with zero errors on project"
+        "README.md updated with: project overview, tech stack, quick start (local dev)",
+        "DEPLOY.md created with: Railway setup, environment variables, troubleshooting",
+        "API.md created with: endpoint specs, request/response schemas, error codes",
+        "OpenAPI docs auto-generated at /docs (FastAPI built-in)",
+        "All docs in Markdown, no broken links",
+        "Typecheck passes"
       ],
       "priority": 7,
-      "passes": true,
-      "notes": "Maps to original iterations 1-4: (1) Evidence Strictness — eliminate uncited claims, (2) Signal Quality — confirm depth not surface activity, (3) Language & Scope Alignment — verify target language relevance, (4) Report Clarity — audit-ready rewrite without adding facts. These run as automated post-processing, not interactive loops."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-008",
-      "title": "End-to-end integration test with sample parameters",
-      "description": "As a developer, I need an end-to-end test that runs the full agent pipeline with sample gating inputs and verifies the complete output meets all quality standards.",
+      "title": "Deploy to Railway",
+      "description": "As an operator, I need the full stack running on Railway with Postgres provisioned.",
       "acceptanceCriteria": [
-        "Integration test provides sample gating inputs automatically",
-        "Test executes full pipeline: gate, discover, validate, report",
-        "Output report passes hallucination control checks at zero violations",
-        "All quality hardening passes complete without manual intervention",
-        "Test verifies report structure matches required output format",
-        "Test confirms fewer than twenty-one profiles in output",
-        "Test runs and completes without authentication or paid APIs",
-        "Typecheck passes with zero errors on project"
+        "Railway project created with two services: backend (container) + frontend (static)",
+        "Railway Postgres provisioned and linked to backend service",
+        "Backend Dockerfile created with Python 3.11 + uvicorn",
+        "Frontend builds with bun run build and deploys as static",
+        "Both services accessible via Railway domains",
+        "Health check: GET /api/v1/health returns ok on live deployment",
+        "End-to-end test: execute sourcing flow in production, verify results display",
+        "DEPLOY.md documents: setup steps, environment variables, debugging",
+        "Typecheck passes (Dockerfile is valid, configs correct)"
       ],
       "priority": 8,
-      "passes": true,
-      "notes": "This is the final stress test (maps to original iteration 5 — Hallucination Stress Test). Use sample inputs like: focus=Backend, languages=[Go, Rust], depth=distributed systems, evidence=[GitHub repos, Technical blogs]. The test should be repeatable and deterministic in structure (though web results may vary). Confirms the whole system works end-to-end before human review."
-    },
-    {
-      "id": "US-009",
-      "title": "Iterative feedback loop with candidate exclusion",
-      "description": "As a researcher, I need the agent to accept calibrated feedback after each run and produce a fresh batch of up to 20 different engineers on the next run, never repeating previously returned candidates unless explicitly requested.",
-      "acceptanceCriteria": [
-        "Exclusion list persists previously returned candidate identifiers",
-        "Next run automatically excludes all prior returned candidates",
-        "Feedback input accepts free-text calibration notes from user",
-        "Feedback like 'show me 20 more' triggers fresh discovery",
-        "Calibration adjusts search parameters based on feedback content",
-        "Exclusion list file is human-readable JSON on disk",
-        "Agent confirms exclusion count before starting new discovery",
-        "Typecheck passes with zero errors on project"
-      ],
-      "priority": 9,
-      "passes": true,
-      "notes": "This is the iterative refinement system. After each run, the agent writes all returned candidate identifiers (name/handle + primary URL) to an exclusion list (e.g., exclusions.json). On next run, the discovery engine filters OUT all excluded candidates before validation. Feedback types: (1) 'show me 20 more' — same criteria, fresh candidates, (2) calibrated feedback like 'more systems-focused' or 'less frontend' — adjusts gating parameters while maintaining exclusions, (3) 'include [name] again' — explicit override to remove from exclusion list. The exclusion list grows across runs, ensuring the agent never resurfaces the same high-scoring candidates. This makes the agent a true iterative research tool, not a one-shot ranker."
-    },
-    {
-      "id": "US-010",
-      "title": "Supabase persistence layer for validated profiles",
-      "description": "As a researcher, I need all validated engineer profiles pushed to a Supabase database after each run, creating a growing knowledge base the agent can reference in future searches.",
-      "acceptanceCriteria": [
-        "Supabase client connects using env variable credentials only",
-        "Validated profiles upserted with all citation URLs preserved",
-        "Each profile stores signals, languages, focus, and geography",
-        "Each profile stores last_validated timestamp for staleness tracking",
-        "Exclusion list syncs bidirectionally with database records",
-        "Run metadata stored: search parameters, date, profiles returned",
-        "Database write happens after report generation completes successfully",
-        "Typecheck passes with zero errors on project"
-      ],
-      "priority": 10,
-      "passes": true,
-      "notes": "Supabase schema: Table 'engineers' — id (uuid), name (text), handle (text), primary_url (text, unique), languages (text[]), engineering_focus (text), geography (text), signals (jsonb — {code: bool, depth: bool, sustained: bool, thinking: bool, peer: bool}), citations (jsonb — array of {signal: string, url: string, description: string}), last_validated (timestamptz), created_at (timestamptz), updated_at (timestamptz). Table 'search_runs' — id (uuid), config (jsonb — the gating answers), profiles_discovered (int), profiles_validated (int), profiles_returned (int), exclusion_count (int), created_at (timestamptz). Table 'exclusions' — id (uuid), engineer_id (uuid FK), search_context (text — which search excluded them), excluded_at (timestamptz). Credentials via SUPABASE_URL and SUPABASE_ANON_KEY in .env file. NEVER commit .env. Agent should gracefully degrade if Supabase is unavailable (fall back to local-only mode)."
-    },
-    {
-      "id": "US-011",
-      "title": "Database-first discovery with web fallback",
-      "description": "As a researcher, I need the agent to query its Supabase database BEFORE searching the open web, using cached validated profiles to reduce token usage and speed up results.",
-      "acceptanceCriteria": [
-        "Agent queries Supabase first matching current search criteria",
-        "DB profiles older than ninety days flagged for re-validation",
-        "Fresh DB matches included in results without web re-discovery",
-        "Web discovery only runs to fill gap to twenty profiles",
-        "Agent reports how many profiles came from DB versus web",
-        "Dead citation URLs detected and flagged during DB retrieval",
-        "Stale profiles re-validated via web before inclusion in report",
-        "Typecheck passes with zero errors on project"
-      ],
-      "priority": 11,
-      "passes": true,
-      "notes": "This is the key efficiency gain. Three-tier lookup: (1) Query Supabase for validated profiles matching current gating criteria (language, focus, geography). (2) Filter out excluded candidates and stale profiles (last_validated > 90 days ago). (3) If DB returns N valid profiles where N < 20, run web discovery for (20 - N) more candidates only. Over time, the DB becomes the primary source and web becomes the fallback. Example: Run 1 finds 18 via web, stores all 18 in DB. Run 2 (same criteria, different exclusions) — DB has 18, 15 still valid after exclusions, web only needs to find 5 more. Run 10 — DB has 150+ engineers, most runs barely touch the web. Report metadata should show 'Sources: 12 from database, 8 from web discovery' so the user can see the efficiency gain."
-    },
-    {
-      "id": "US-012",
-      "title": "PAI skill wrapper for permanent invocation",
-      "description": "As a user, I need the agent registered as a PAI skill so I can invoke it by saying 'find engineers', 'source developers', or 'codesignal' without navigating to the project directory or remembering commands.",
-      "acceptanceCriteria": [
-        "SKILL.md created at ~/.claude/skills/CodeSignal20/SKILL.md",
-        "Skill triggers on 'find engineers' and 'source developers'",
-        "Skill triggers on 'codesignal' and 'talent search'",
-        "Run workflow invokes agent from project directory automatically",
-        "New search workflow resets config but preserves exclusion history",
-        "Resume workflow continues existing search with feedback input",
-        "Status workflow shows current exclusion count and past runs",
-        "Typecheck passes with zero errors on project"
-      ],
-      "priority": 12,
-      "passes": true,
-      "notes": "This is what makes the agent PERMANENT. After Ralph builds the code (US-001 through US-011), this story wraps it as a PAI skill at ~/.claude/skills/CodeSignal20/ with SKILL.md and Workflows/ (Run.md, NewSearch.md, Resume.md, Status.md). The skill points to /Users/robertpeacock/Projects/codesignal-20/ as the execution directory. Three distinct workflows: (1) Run/NewSearch — fresh gating questions, clean config, starts from scratch but does NOT reset exclusions from other searches, (2) Resume — takes feedback ('show me 20 more', calibration notes), maintains exclusion list, runs next batch, (3) Status — shows how many candidates have been found, excluded, how many runs completed, and Supabase DB stats (total engineers stored, breakdown by language/focus). This means RPBW can just say 'find me Go engineers' or 'source backend developers' from ANY Claude Code session and the agent runs."
+      "passes": false,
+      "notes": ""
     }
   ]
 }
