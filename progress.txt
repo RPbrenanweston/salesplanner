@@ -55,3 +55,33 @@ Started: Sun Feb  8 10:43:44 GMT 2026
   - **Next story (US-003)**: Will create React hooks. Need to handle TypeScript/Python data model differences in frontend mapping layer.
   - **TypeScript agent integration**: For full implementation, need to spawn TypeScript process via subprocess and parse stdout JSON response. Mock data sufficient for frontend development.
 ---
+## 2026-02-08 10:59 PST - US-003 - PAI Iteration 3
+- **Implemented:** React frontend scaffold with React Query hook for backend integration
+- **Files changed:**
+  - Created `frontend/` directory with complete Vite + React + TypeScript setup
+  - Created `frontend/src/api/sourcing.ts` (useProcessSourcing hook using React Query)
+  - Created `frontend/src/api/client.ts` (axios client with CORS error handling)
+  - Created `frontend/src/types/api.ts` (TypeScript types matching backend schemas)
+  - Created `frontend/src/api/__tests__/sourcing.test.tsx` (4 unit tests, all passing)
+  - Created `frontend/package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`
+  - Created `frontend/.env.development`, `.env.production`, `.env.example`
+  - Created `frontend/src/App.tsx`, `main.tsx` (minimal React scaffold)
+  - Updated `prd.json` (marked US-003 passes: true)
+- **ISC Status:** 7/7 PASSED
+  - ✅ useProcessSourcing() hook created at frontend/src/api/sourcing.ts
+  - ✅ Hook uses React Query useMutation to POST to /api/v1/process
+  - ✅ Hook returns {mutate, isPending, isSuccess, data, error}
+  - ✅ VITE_API_URL configured via .env files
+  - ✅ CORS errors handled gracefully with user-friendly messages (axios interceptor)
+  - ✅ Unit tests created and passing (4/4 tests pass)
+  - ✅ Typecheck passes (npm run typecheck successful)
+- **Learnings for future iterations:**
+  - **Frontend structure**: Created `frontend/` directory as monorepo pattern alongside `backend/` and `src/` (TypeScript agent)
+  - **Test file extension**: Vitest tests with JSX must use `.tsx` extension, not `.ts`, even for hook tests
+  - **React Query callbacks**: onSuccess/onError receive additional parameters beyond data/error. Use `mock.calls[0][0]` in test assertions.
+  - **Missing dependencies**: jsdom required for vitest with jsdom environment, not included by default
+  - **Environment variables**: Vite uses `VITE_` prefix for env vars exposed to client. Backend URL: `import.meta.env.VITE_API_URL`
+  - **CORS handling**: Axios interceptor transforms network errors and CORS failures into user-friendly messages before reaching React Query
+  - **Next story (US-004)**: Will configure CORS in FastAPI backend to accept requests from http://localhost:3000 and Railway production domain
+  - **Railway deployment pattern**: PRD expects two services (backend container + frontend static). Frontend builds with `bun run build` but package.json uses npm (may need Railway build config).
+---
