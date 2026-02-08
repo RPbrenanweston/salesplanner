@@ -139,7 +139,7 @@ describe('IntelligenceView', () => {
   it('displays correct signal type badges with proper colors', () => {
     mockLocation.mockReturnValue({ state: { results: mockResults } });
 
-    const { container } = render(
+    render(
       <BrowserRouter>
         <IntelligenceView />
       </BrowserRouter>

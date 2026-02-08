@@ -1,3 +1,65 @@
+# Sourcing Mission Control
+
+End-to-end talent sourcing platform that connects the CodeSignal agent (TypeScript) to a React frontend with backend orchestration via FastAPI. Execute searches, view scored candidates, and deploy to Railway.
+
+## Project Overview
+
+**Tech Stack:**
+- **Frontend:** React + TypeScript + Vite + React Query
+- **Backend:** FastAPI (Python 3.11+) + Pydantic
+- **Agent:** CodeSignal TypeScript agent (signal detection, confidence scoring)
+- **Database:** PostgreSQL (via Railway)
+- **Deployment:** Railway (backend container + frontend static)
+
+**Features:**
+- Execute sourcing searches with keywords and RSS feed URLs
+- Real-time candidate scoring with confidence percentages
+- Signal type detection (HIRING, COMPANY, INDIVIDUAL)
+- Sortable results table with color-coded signals
+- Production-ready deployment to Railway
+
+## Quick Start (Local Development)
+
+### 1. Start Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+Backend runs at `http://localhost:8000`
+- Health check: `http://localhost:8000/api/v1/health`
+- API docs: `http://localhost:8000/docs`
+
+### 2. Start Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend runs at `http://localhost:3000`
+
+### 3. Test End-to-End
+
+1. Open `http://localhost:3000` in browser
+2. Navigate to Execution View
+3. Click "Execute Search" to trigger sourcing
+4. View results in Intelligence View (sortable table)
+
+---
+
+## Documentation
+
+- **[API.md](API.md)** - REST API endpoints, request/response schemas, error codes
+- **[DEPLOY.md](DEPLOY.md)** - Railway deployment guide with environment variables
+- **[progress.txt](progress.txt)** - Ralph iteration history and learnings
+- **[prd.json](prd.json)** - User stories with completion status
+
+---
+
 # Ralph
 
 ![Ralph](ralph.webp)
