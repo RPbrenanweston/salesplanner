@@ -42,36 +42,70 @@ Or use the Railway web dashboard to create a new project.
 
 ### 3. Deploy Backend Service
 
+**Option A: Automatic Detection (Recommended)**
+
+Railway will auto-detect the `backend/Dockerfile` and `railway.json` configuration:
+
 1. Click **"New"** → **"GitHub Repo"** → Select your repository
-2. Railway will auto-detect the Python app
-3. Set the following environment variables:
+2. Railway detects Dockerfile automatically
+3. Set environment variables:
 
 | Variable | Value | Description |
 |----------|-------|-------------|
-| `ALLOWED_ORIGINS` | `https://your-frontend.up.railway.app` | Replace with your actual Railway frontend domain (comma-separated for multiple origins) |
+| `ALLOWED_ORIGINS` | `https://your-frontend.up.railway.app,http://localhost:3000` | Replace with your actual Railway frontend domain |
 | `DATABASE_URL` | (auto-provided) | Railway automatically links this from Postgres service |
 
-4. Configure build/start commands:
-   - **Build Command**: `pip install -r backend/requirements.txt`
-   - **Start Command**: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+**Option B: Manual Configuration**
 
-5. Set **Root Directory**: `backend/` (if Railway doesn't auto-detect)
+If Railway doesn't auto-detect:
+
+1. Click **"New"** → **"GitHub Repo"** → Select your repository
+2. Set **Root Directory**: `backend/`
+3. Set **Dockerfile Path**: `backend/Dockerfile`
+4. Configure environment variables (same as Option A)
 
 ### 4. Deploy Frontend Service
 
+**Option A: Automatic Detection (Recommended)**
+
+Railway will auto-detect the `frontend/railway.json` configuration:
+
 1. Click **"New"** → **"GitHub Repo"** → Select your repository again
-2. Set the following environment variables:
+2. Railway detects build configuration automatically
+3. Set environment variables:
 
 | Variable | Value | Description |
 |----------|-------|-------------|
 | `VITE_API_URL` | `https://your-backend.up.railway.app` | Replace with your actual Railway backend domain |
 
-3. Configure build/start commands:
-   - **Build Command**: `cd frontend && npm install && npm run build`
-   - **Start Command**: (Leave empty - Railway will serve static files from `frontend/dist`)
-   - **Output Directory**: `frontend/dist`
+**Option B: Manual Configuration**
 
-4. Set **Root Directory**: `frontend/` (if Railway doesn't auto-detect)
+If Railway doesn't auto-detect:
+
+1. Click **"New"** → **"GitHub Repo"** → Select your repository
+2. Set **Root Directory**: `frontend/`
+3. Set **Build Command**: `npm install && npm run build`
+4. Set **Start Command**: `npx serve -s dist -p $PORT`
+5. Configure environment variables (same as Option A)
+
+---
+
+## Railway Configuration Files
+
+This repository includes Railway configuration files for automatic deployment:
+
+- **`railway.json`** (root) - Backend service configuration
+  - Uses Dockerfile from `backend/Dockerfile`
+  - Runs `uvicorn` with Railway's dynamic `$PORT`
+  - Restarts on failure (max 10 retries)
+
+- **`frontend/railway.json`** - Frontend service configuration
+  - Uses Nixpacks builder
+  - Builds with `npm run build`
+  - Serves static files with `serve` from `dist/` directory
+  - Restarts on failure (max 10 retries)
+
+Railway will automatically detect these configuration files when you connect your GitHub repository.
 
 ---
 
