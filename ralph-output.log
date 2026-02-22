@@ -5,3 +5,26 @@ Starting Ralph - Tool: claude - Max iterations: 50
 ===============================================================
   Ralph Iteration 1 of 50 (claude)
 ===============================================================
+Perfect! US-001 shows `"passes": true`. All verification complete. 
+
+━━━ 📚 LEARN ━━━ 7/7
+
+**Key Learnings:**
+1. **Branch Management** - Caught wrong branch (ralph/codesignal-20) early and created correct branch (ralph/salesblock-io) per PRD
+2. **Supabase Initialization** - Default config.toml includes email auth enabled; no additional config needed
+3. **Schema Design Pattern** - Used ENUMs for constrained values (user_role), JSONB for flexible data (settings, preferences)
+4. **Foreign Key Strategy** - CASCADE for mandatory hierarchies (org → divisions/teams/users), SET NULL for optional (division_id, team_id)
+5. **Index Coverage** - Created indexes on all FK columns plus email for performance
+6. **Migration Naming** - Used descriptive name `init_org_user_schema` for clarity in version history
+
+**Next Iteration Guidance:**
+- US-002 requires RLS policies - will need to reference these tables in policy definitions
+- Future stories reference these tables via FK - schema is now foundation
+- Consider checking Supabase CLI version updates (v2.75.0 available) if new features needed
+
+🗣️ **PAI:** Successfully initialized SalesBlock.io foundation with Supabase project and complete org/user schema. Created organizations, divisions, teams, and users tables with proper foreign keys, indexes, and enum types. Email authentication enabled. Typecheck passes. US-001 complete — ready for RLS policies in next iteration.
+Iteration 1 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 2 of 50 (claude)
+===============================================================
