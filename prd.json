@@ -1,145 +1,818 @@
 {
-  "project": "Sourcing Mission Control",
-  "branchName": "ralph/codesignal-20",
-  "description": "CodeSignal Agent Integration - Connect talent sourcing agent to React frontend with end-to-end workflow from configuration to results display, deployable on Railway",
+  "project": "SalesBlock.io",
+  "branchName": "ralph/salesblock-io",
+  "description": "SalesBlock.io — Sales Productivity Cockpit. Timed, calendar-synced focus sessions with curated contact lists for sales reps.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Create FastAPI backend scaffold",
-      "description": "As a developer, I need a FastAPI backend service that the React frontend can call with a working health check endpoint.",
+      "title": "Supabase project init and org/user schema",
+      "description": "As a developer, I need Supabase initialized with auth and the core org/user tables so all features have a foundation.",
       "acceptanceCriteria": [
-        "FastAPI app created at backend/main.py",
-        "Health check endpoint: GET /api/v1/health returns {\"status\": \"ok\"}",
-        "Pydantic models defined for request/response validation",
-        "python -m uvicorn backend.main:app --reload runs locally without errors",
-        "Typecheck passes (Python type hints on all functions)"
+        "Supabase project initialized with email+password auth enabled",
+        "SQL migration creates organizations table: id, name, logo_url, settings (jsonb), stripe_customer_id, created_at",
+        "SQL migration creates divisions table: id, org_id (FK), name, created_at",
+        "SQL migration creates teams table: id, org_id (FK), division_id (FK nullable), name, created_at",
+        "SQL migration creates users table: id (auth.users FK), org_id (FK), team_id (FK), role (enum: sdr, ae, manager), display_name, email, preferences (jsonb), created_at",
+        "Foreign key constraints and indexes on all FK columns",
+        "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
-      "notes": "Completed: FastAPI scaffold with health endpoint, Pydantic models, type hints. Tested locally with uvicorn."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Implement /api/v1/process endpoint",
-      "description": "As the ExecutionView component, I want to POST sourcing configuration to the backend and receive scored candidates in response.",
+      "title": "RLS policies for org/user tables",
+      "description": "As a developer, I need row-level security policies so users only see their own org's data and managers see their team.",
       "acceptanceCriteria": [
-        "Endpoint accepts POST with: keywords (list), rssFeedUrls (list), filters (dict with minimumConfidence, signalTypes)",
-        "Endpoint triggers CodeSignal agent (synchronous) to score candidates",
-        "Returns JSON: {\"status\": \"completed\", \"results\": {\"candidates\": [...], \"metadata\": {...}}}",
-        "Candidate schema: {id, name, source, confidenceScore (0-100), signals (list), rawData}",
-        "Signal schema: {type (HIRING/COMPANY/INDIVIDUAL), text, confidence, patterns, keywords}",
-        "Error responses: 400 for invalid input, 500 for processing errors",
-        "Response time < 30 seconds for typical sourcing (100-500 items processed)",
+        "RLS enabled on organizations, divisions, teams, users tables",
+        "Users can only read/write their own org's data",
+        "Managers see their team's data",
+        "Higher roles see cascading data (division heads see all teams in division)",
+        "Policies tested with at least 2 different user roles",
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "Completed: /api/v1/process endpoint with Pydantic schemas, error handling, mock data. TypeScript agent integration pending (currently returns mock data)."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Create React hooks for backend integration",
-      "description": "As the ExecutionView, I want a clean React Query hook to call the backend and track execution state.",
+      "title": "Vite + React + TypeScript project scaffold",
+      "description": "As a developer, I need the frontend project initialized with the correct tech stack so development can begin.",
       "acceptanceCriteria": [
-        "Hook: useProcessSourcing() created at src/api/sourcing.ts",
-        "Hook uses React Query useMutation to POST to /api/v1/process",
-        "Hook returns: {mutate, isPending, isSuccess, data, error}",
-        "VITE_API_URL configured via .env.production and .env.development",
-        "Handles CORS errors gracefully with user-friendly error message",
-        "Unit test exists: src/api/__tests__/sourcing.test.ts",
+        "Vite + React + TypeScript project created with correct tsconfig",
+        "Tailwind CSS configured with dark mode class strategy",
+        "Lucide React icons installed",
+        "Supabase JS client installed and configured with env vars",
+        "React Router v6 installed with basic route structure",
+        "TanStack Query installed and provider set up",
+        "App renders without errors at localhost",
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "Completed: React frontend scaffold with Vite + React Query. useProcessSourcing hook with full TypeScript types, CORS error handling, environment config, and 4 passing unit tests."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Configure CORS and environment variables",
-      "description": "As DevOps, I need the backend and frontend to communicate securely with proper CORS configuration.",
+      "title": "Authentication flow: sign up, sign in, sign out",
+      "description": "As a user, I want to create an account, sign in, and sign out so I can access my workspace securely.",
       "acceptanceCriteria": [
-        "CORS configured in FastAPI for http://localhost:3000 (dev) and Railway production domain",
-        "Backend reads DATABASE_URL from env (Postgres connection string)",
-        "Frontend reads VITE_API_URL from .env files",
-        ".env.example files created (no secrets committed)",
-        "Railway environment variables documented in DEPLOY.md",
-        "Health check verifies backend is running",
-        "Typecheck passes"
+        "Sign-up page: email, password, display name, organization name (creates new org + user as manager)",
+        "Sign-in page: email + password with Forgot password link",
+        "After sign-in, redirect to home dashboard route",
+        "Sign-out clears session and redirects to sign-in",
+        "Auth state persisted via Supabase session with auto-refresh tokens",
+        "Protected route wrapper redirects unauthenticated users to sign-in",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "Completed: CORS middleware added to FastAPI with ALLOWED_ORIGINS support. Created backend/.env.example and comprehensive DEPLOY.md with Railway setup guide. Health check verified with curl. Python typecheck passes."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Integrate hook into ExecutionView",
-      "description": "As a user, I want to click Execute in ExecutionView to trigger candidate sourcing.",
+      "title": "App layout with sidebar navigation",
+      "description": "As a user, I want a persistent sidebar navigation so I can quickly access all areas of the app.",
       "acceptanceCriteria": [
-        "ExecutionView calls useProcessSourcing() hook",
-        "Execute Search button triggers mutation with config from props",
-        "Shows loading spinner while isPending is true",
-        "On success: navigates to IntelligenceView with results (via React Router state)",
-        "On error: displays error toast with details",
-        "Button disabled while processing",
+        "Sidebar with items: Home, SalesBlocks, Lists, Email, Social, Pipeline, Goals, Analytics, Team, Settings",
+        "Each item has a Lucide icon and label",
+        "Active item highlighted with accent color",
+        "Sidebar collapsible to icon-only mode (persisted in user preferences)",
+        "Organization logo at top of sidebar (falls back to SalesBlock logo)",
+        "User avatar and name at bottom with sign-out option",
+        "Main content area fills remaining viewport width",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill (loading state, success navigation, error handling)"
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": true,
-      "notes": "Completed: ExecutionView component with useProcessSourcing hook, loading/success/error states, navigation to IntelligenceView, error toast. IntelligenceView placeholder created. React Router configured. Manual browser verification completed (Browser skill unavailable due to missing Playwright)."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Update IntelligenceView to display results",
-      "description": "As a user, I want to see scored candidates in a table sorted by confidence.",
+      "title": "Dark mode / light mode toggle",
+      "description": "As a user, I want to toggle between light and dark themes so I can work comfortably.",
       "acceptanceCriteria": [
-        "IntelligenceView receives results from React Router location state",
-        "Table columns: Name | Confidence (%) | Signal Type | Source | Actions",
-        "Table sorted by confidence descending by default (highest scores first)",
-        "Confidence displayed as number + bar chart (0-100 scale)",
-        "Signal type color-coded: HIRING=green, COMPANY=blue, INDIVIDUAL=purple",
-        "Empty state message if no results",
+        "Theme toggle in sidebar (sun/moon icon)",
+        "Dark mode uses dark background (#0a0a0a range), light text, muted borders",
+        "Light mode uses white/gray backgrounds, dark text",
+        "Theme preference saved to user's Supabase preferences jsonb",
+        "Respects system preference on first load (prefers-color-scheme)",
+        "All components support both themes via Tailwind dark: variant",
+        "No flash of wrong theme on page load",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill (table layout, sorting, colors, empty state)"
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": true,
-      "notes": "Completed: Full IntelligenceView with sortable table, confidence bars, signal color coding, empty state. 7/7 unit tests passing. Manual browser verification completed."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-007",
-      "title": "Document deployment and API",
-      "description": "As a developer, I need clear documentation to operate and extend the system.",
+      "title": "White-label logo upload",
+      "description": "As an org admin, I want to upload my company logo so the app feels branded.",
       "acceptanceCriteria": [
-        "README.md updated with: project overview, tech stack, quick start (local dev)",
-        "DEPLOY.md created with: Railway setup, environment variables, troubleshooting",
-        "API.md created with: endpoint specs, request/response schemas, error codes",
-        "OpenAPI docs auto-generated at /docs (FastAPI built-in)",
-        "All docs in Markdown, no broken links",
-        "Typecheck passes"
+        "Settings > Organization: logo upload area (drag-drop or click to browse)",
+        "Accepts PNG, JPG, SVG (max 2MB)",
+        "Uploaded to Supabase Storage, URL saved to organizations.logo_url",
+        "Logo appears in sidebar top and sign-in page",
+        "Falls back to SalesBlock.io default logo if none set",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": true,
-      "notes": "Completed: README.md updated with project overview, tech stack, quick start. API.md created with full endpoint documentation. DEPLOY.md already existed from US-004. OpenAPI docs verified at /docs. All linked files exist. Both backend and frontend typechecks pass."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-008",
-      "title": "Deploy to Railway",
-      "description": "As an operator, I need the full stack running on Railway with Postgres provisioned.",
+      "title": "Contact and list database schema",
+      "description": "As a developer, I need contact, list, and junction tables so reps can manage prospect data.",
       "acceptanceCriteria": [
-        "Railway project created with two services: backend (container) + frontend (static)",
-        "Railway Postgres provisioned and linked to backend service",
-        "Backend Dockerfile created with Python 3.11 + uvicorn",
-        "Frontend builds with bun run build and deploys as static",
-        "Both services accessible via Railway domains",
-        "Health check: GET /api/v1/health returns ok on live deployment",
-        "End-to-end test: execute sourcing flow in production, verify results display",
-        "DEPLOY.md documents: setup steps, environment variables, debugging",
-        "Typecheck passes (Dockerfile is valid, configs correct)"
+        "SQL migration creates contacts table: id, org_id (FK), first_name, last_name, email, phone, company, title, source (enum: csv, salesforce, manual), custom_fields (jsonb), created_by (FK users), created_at, updated_at",
+        "SQL migration creates lists table: id, org_id (FK), name, description, filter_criteria (jsonb), owner_id (FK users), is_shared (boolean), created_at, updated_at",
+        "SQL migration creates list_contacts junction table: list_id (FK), contact_id (FK), added_at, position (int)",
+        "RLS: users see contacts in their org; list owners and shared-with users can see list contents",
+        "Indexes on org_id, email, company for fast filtering",
+        "Typecheck passes"
       ],
       "priority": 8,
-      "passes": true,
-      "notes": "Completed: Railway deployment infrastructure created. Dockerfile, railway.json configs, serve dependency added. DEPLOY.md updated with configuration file documentation. Ready for manual Railway deployment via GitHub integration."
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "CSV contact import",
+      "description": "As a rep, I want to import contacts from a CSV file so I can populate my contact database quickly.",
+      "acceptanceCriteria": [
+        "Lists page has Import CSV button that opens upload modal",
+        "Drag-drop or click-to-browse CSV file selection",
+        "Column mapping step: auto-detect common headers, allow manual remapping",
+        "Preview first 5 rows before import",
+        "Import creates contacts and optionally adds to a list",
+        "Duplicate detection by email with skip/update/create options",
+        "Progress indicator during import with summary on completion",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "Use Papa Parse for CSV handling. Max 10,000 contacts per import."
+    },
+    {
+      "id": "US-010",
+      "title": "Manual contact creation",
+      "description": "As a rep, I want to manually add a contact so I can track prospects not in my CSV.",
+      "acceptanceCriteria": [
+        "Add Contact button on Contacts/Lists page",
+        "Form: first name, last name, email, phone, company, title, custom fields (key-value)",
+        "Email validation (format check)",
+        "Duplicate warning if email already exists in org",
+        "After creation, option to add to a list",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "List builder with filters",
+      "description": "As a rep, I want to create and save filtered contact lists so I can target specific segments.",
+      "acceptanceCriteria": [
+        "Create List opens builder with name, description, and filter criteria",
+        "Filter by: company, title, source, date added, custom field values",
+        "Multiple filters combinable with AND logic",
+        "Live preview shows matching contact count as filters change",
+        "Save List persists filter criteria and current matching contacts",
+        "Auto-refresh toggle: when on, re-runs filter criteria on each view",
+        "Lists page shows all lists with contact count, owner, last refreshed date",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "List detail view with contact table",
+      "description": "As a rep, I want to view and manage contacts within a list to prepare for salesblocks.",
+      "acceptanceCriteria": [
+        "Clicking a list opens detail view with contact table",
+        "Table columns: name, company, title, email, phone, last activity date",
+        "Sortable columns (click header)",
+        "Searchable contacts within the list by name/email/company",
+        "Add to List and Remove from List actions",
+        "Start SalesBlock button to begin a session from this list",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "SalesBlock and activity database schema",
+      "description": "As a developer, I need salesblock and activity tables to store session and outreach data.",
+      "acceptanceCriteria": [
+        "SQL migration creates salesblocks table: id, org_id (FK), list_id (FK), user_id (FK), assigned_by (FK nullable), title, scheduled_start (timestamptz), scheduled_end (timestamptz), actual_start (timestamptz nullable), actual_end (timestamptz nullable), duration_minutes (int), status (enum: scheduled, in_progress, completed, cancelled), calendar_event_id (text nullable), notes (text), created_at",
+        "SQL migration creates activities table: id, org_id (FK), contact_id (FK), user_id (FK), salesblock_id (FK nullable), type (enum: call, email, social, meeting, note), outcome (enum: no_answer, voicemail, connect, conversation, meeting_booked, not_interested, follow_up, other), notes (text), duration_seconds (int nullable), created_at",
+        "RLS: users see their own salesblocks/activities; managers see team's",
+        "Indexes on user_id, list_id, scheduled_start, status",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Create a salesblock form",
+      "description": "As a rep, I want to create a salesblock from a list so I can schedule a focused outreach session.",
+      "acceptanceCriteria": [
+        "Create SalesBlock button on Lists and SalesBlocks pages",
+        "Form: select list, title (auto-generated from list name + date), date/time, duration (15/25/30/45/60 min dropdown)",
+        "Creates salesblock record with status scheduled",
+        "Appears on SalesBlocks page and Home dashboard",
+        "Manager can create salesblocks assigned to team members (assigned_by populated)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Calendar preview placeholder — filled when calendar integration done."
+    },
+    {
+      "id": "US-015",
+      "title": "SalesBlock session cockpit layout",
+      "description": "As a rep, I want an active session view with contact queue, timer, and active contact detail.",
+      "acceptanceCriteria": [
+        "Clicking Start on a scheduled salesblock opens session cockpit",
+        "Status changes to in_progress, actual_start recorded",
+        "Layout: contact queue on left (scrollable list), active contact detail on right",
+        "Timer bar at top showing elapsed time / total duration with progress bar",
+        "Active contact shows: name, company, title, phone (tel: link), email, last activity, notes",
+        "Next Contact button advances queue; Skip moves contact to end",
+        "Contact shows green checkmark in queue when at least one activity logged",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Session cockpit activity logging",
+      "description": "As a rep, I want quick-log buttons to record calls, emails, social touches, and notes during a salesblock.",
+      "acceptanceCriteria": [
+        "Activity buttons in cockpit: Log Call, Log Email, Log Social, Log Note",
+        "Each opens quick-log modal with outcome dropdown and notes text area",
+        "Save auto-fills contact_id, salesblock_id, user_id",
+        "Call script panel: expandable/collapsible, shows assigned script content",
+        "Activity count updates in real-time on the contact queue",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "SalesBlock session completion summary",
+      "description": "As a rep, I want a summary when my salesblock ends so I can see what I accomplished.",
+      "acceptanceCriteria": [
+        "Timer expiry or End Session button triggers completion",
+        "Status changes to completed, actual_end recorded",
+        "Summary screen: total contacts worked, calls made, emails sent, social touches, meetings booked, total duration",
+        "Conversion ratios: contacts worked / total, calls to connects, connects to meetings",
+        "Save Notes text area for session-level observations",
+        "Back to Home button returns to dashboard",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "SalesBlocks list page",
+      "description": "As a rep, I want to see all my salesblocks (upcoming, in-progress, completed) in one place.",
+      "acceptanceCriteria": [
+        "Tab filters: Upcoming, In Progress, Completed, All",
+        "Each card: title, list name, date/time, duration, status badge, contact count",
+        "Upcoming: Start button (if time is now/past), Edit, Cancel actions",
+        "Completed: shows summary stats inline (contacts worked, meetings booked)",
+        "Sortable by date",
+        "Manager view: toggle My SalesBlocks / Team SalesBlocks",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Home dashboard",
+      "description": "As a rep, I want a home screen showing today's salesblocks, recent activity, and progress.",
+      "acceptanceCriteria": [
+        "Top section: Today's salesblock(s) with Start Block button for next scheduled",
+        "If no salesblocks today: Schedule a SalesBlock call-to-action",
+        "Activity feed: chronological recent activities with contact name, type icon, outcome, time",
+        "SalesBlock list: upcoming salesblocks for the week in card format",
+        "Goal progress indicators: calls made / target, meetings booked / target",
+        "Greeting: Good morning/afternoon, display_name with current date",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Call scripts CRUD",
+      "description": "As a rep, I want to create and manage call scripts for guidance during salesblocks.",
+      "acceptanceCriteria": [
+        "SQL migration creates call_scripts table: id, org_id, name, content (text/markdown), owner_id (FK), is_shared (boolean), created_at, updated_at",
+        "Scripts page: list all scripts with name, owner, shared status",
+        "Create/Edit: name + rich text editor for script content",
+        "Delete with confirmation dialog",
+        "Shared scripts visible to team; personal only to owner",
+        "Scripts selectable when creating a salesblock",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "Use TipTap or similar for rich text editing."
+    },
+    {
+      "id": "US-021",
+      "title": "Email templates CRUD",
+      "description": "As a rep, I want to create and manage email templates for consistent outreach.",
+      "acceptanceCriteria": [
+        "SQL migration creates email_templates table: id, org_id, name, subject, body (text), owner_id (FK), is_shared (boolean), times_used (int default 0), reply_count (int default 0), created_at, updated_at",
+        "Templates page: list all with name, subject preview, owner, usage stats",
+        "Create/Edit: name, subject, body with variable placeholders ({{first_name}}, {{company}}, {{title}})",
+        "Preview mode shows template with sample data filled in",
+        "Delete with confirmation dialog",
+        "Shared templates visible to team members",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Gmail OAuth connection",
+      "description": "As a rep using Gmail, I want to connect my Google account so I can send emails from SalesBlock.",
+      "acceptanceCriteria": [
+        "Settings > Integrations: Connect Gmail button",
+        "OAuth 2.0 flow with Google requesting gmail.send and gmail.readonly scopes",
+        "Refresh token stored securely in Supabase (encrypted column or vault)",
+        "Shows connected email address with Disconnect option",
+        "Connection status indicator in Email section",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Outlook OAuth connection",
+      "description": "As a rep using Outlook, I want to connect my Microsoft account so I can send emails from SalesBlock.",
+      "acceptanceCriteria": [
+        "Settings > Integrations: Connect Outlook button",
+        "OAuth 2.0 flow with Microsoft Graph API requesting Mail.Send and Mail.Read scopes",
+        "Refresh token stored securely in Supabase",
+        "Shows connected email address with Disconnect option",
+        "Connection status indicator in Email section",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Send one-to-one email from SalesBlock",
+      "description": "As a rep, I want to send a personalized email to a contact without switching apps.",
+      "acceptanceCriteria": [
+        "Email button on contact detail (in cockpit and contact list)",
+        "Compose modal: To (pre-filled), Subject, Body",
+        "Use Template dropdown populates from saved templates with variables auto-filled from contact data",
+        "Send via connected Gmail API or Outlook Graph API (sends as rep's email)",
+        "If no email connected: prompt to connect in Settings",
+        "After send: auto-logs email activity on contact with subject and timestamp",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Email reply tracking background job",
+      "description": "As a rep, I want replies to my emails detected automatically so I can follow up and track template effectiveness.",
+      "acceptanceCriteria": [
+        "Supabase Edge Function polls Gmail/Outlook inbox for replies to sent emails (every 5 min cron)",
+        "Matches replies to original sent email by thread ID / conversation ID",
+        "Email activity on contact timeline shows sent and replied timestamps",
+        "No open tracking (no tracking pixels — preserves deliverability)",
+        "Email templates page shows aggregate reply_count per template",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Log social activity (manual)",
+      "description": "As a rep, I want to manually log LinkedIn and social outreach activities.",
+      "acceptanceCriteria": [
+        "Log Social button in session cockpit and on contact detail page",
+        "Modal: platform dropdown (LinkedIn, Twitter/X, Other), activity type (Connection Request, Message Sent, InMail, Comment, Post Engagement), notes, timestamp",
+        "Creates activity record with type=social",
+        "Appears in contact timeline alongside calls and emails",
+        "Social page: list all social activities with filters by platform, type, date range",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Google Calendar OAuth connection",
+      "description": "As a rep using Google Calendar, I want to connect my calendar so salesblocks sync as events.",
+      "acceptanceCriteria": [
+        "Settings > Integrations: Connect Google Calendar button",
+        "OAuth 2.0 flow requesting calendar.events scope",
+        "Refresh token stored securely",
+        "Shows connected status with Disconnect option",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Outlook Calendar OAuth connection",
+      "description": "As a rep using Outlook, I want to connect my Microsoft calendar so salesblocks sync as events.",
+      "acceptanceCriteria": [
+        "Settings > Integrations: Connect Outlook Calendar button",
+        "OAuth 2.0 flow with Microsoft Graph API requesting Calendars.ReadWrite scope",
+        "Refresh token stored securely",
+        "Shows connected status with Disconnect option",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Sync salesblocks to calendar",
+      "description": "As a rep, I want salesblocks to appear on my calendar so my focus time is protected.",
+      "acceptanceCriteria": [
+        "When salesblock created with scheduled time: creates calendar event via connected API",
+        "Event title: SalesBlock: [session title], description: list name, contact count, duration",
+        "calendar_event_id stored on salesblock record",
+        "When rescheduled: updates calendar event",
+        "When cancelled: deletes calendar event",
+        "Works with whichever calendar is connected (Google or Outlook)",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Insert availability and book meetings",
+      "description": "As a rep, I want to share availability and book meetings from within SalesBlock.",
+      "acceptanceCriteria": [
+        "Insert Availability button in email compose reads calendar for free/busy and generates formatted time slots",
+        "Time slots inserted into email body as selectable text",
+        "Book Meeting button on contact detail creates calendar event with contact as attendee",
+        "Meeting form: title, date/time, duration, description, attendee email",
+        "Created meeting auto-logged as activity (type=meeting) on the contact",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Salesforce OAuth connection",
+      "description": "As a rep with Salesforce, I want to connect my SF account to sync contacts and push activities.",
+      "acceptanceCriteria": [
+        "Settings > Integrations: Connect Salesforce button",
+        "OAuth 2.0 Connected App flow (authorization code grant)",
+        "Access and refresh tokens stored securely",
+        "Shows connected status with org name and Disconnect option",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Import contacts from Salesforce",
+      "description": "As a rep, I want to import contacts from Salesforce so I don't re-enter data.",
+      "acceptanceCriteria": [
+        "Lists page: Import from Salesforce button (visible only when SF connected)",
+        "Object selection: Leads, Contacts, or Accounts (radio buttons)",
+        "Filter by owner (default: current user), date range",
+        "Preview matching records with count before import",
+        "Maps SF fields to SalesBlock contact fields (Name, Email, Phone, Company, Title)",
+        "Stores salesforce_id on contact record for future sync",
+        "Duplicate detection by email",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Push activities to Salesforce",
+      "description": "As a rep, I want my SalesBlock activities to sync back to Salesforce.",
+      "acceptanceCriteria": [
+        "Settings > Salesforce: toggle Auto-push activities on/off",
+        "When on: after each activity logged, create Task record in SF on matching Lead/Contact",
+        "Maps activity type to SF Task Subject, notes to Description, outcome to Status",
+        "Sync happens asynchronously (queue-based, does not block UI)",
+        "Sync status indicator per activity: pending, synced, failed (with retry)",
+        "Manual Sync Now button for pending activities",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Pipeline stages and deals schema",
+      "description": "As a developer, I need pipeline_stages and deals tables for the Kanban pipeline view.",
+      "acceptanceCriteria": [
+        "SQL migration creates pipeline_stages table: id, org_id (FK), name, position (int), color (text), probability (int default 0), is_default (boolean), created_at",
+        "Default stages seeded: Prospect, Qualified, Proposal, Negotiation, Closed Won, Closed Lost",
+        "SQL migration creates deals table: id, org_id (FK), contact_id (FK), user_id (FK), stage_id (FK), title, value (decimal), currency (text default USD), close_date (date nullable), custom_fields (jsonb), notes (text), created_at, updated_at",
+        "RLS: users see deals in their org; can edit their own deals",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Pipeline Kanban board",
+      "description": "As a rep, I want a visual pipeline board to track deals through stages.",
+      "acceptanceCriteria": [
+        "Pipeline page shows Kanban board with columns for each stage",
+        "Deal cards show: title, contact name, value (formatted currency), close date, days in stage",
+        "Drag-and-drop to move deals between stages (updates stage_id)",
+        "Add Deal button: title, contact (search/select), value, close date, stage",
+        "Click deal card to open detail view with all fields and activity log",
+        "Column header shows deal count and total value per stage",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Basic revenue forecasting",
+      "description": "As a manager, I want basic revenue forecasting based on pipeline data.",
+      "acceptanceCriteria": [
+        "Forecast bar below Kanban showing weighted pipeline value",
+        "Each stage has configurable probability % (in Settings > Pipeline)",
+        "Forecast = sum of (deal.value * stage.probability) for all open deals",
+        "Shows: total pipeline value, weighted forecast, deals closing this month",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Goal setting and tracking",
+      "description": "As a rep, I want to set and track daily/weekly/monthly goals.",
+      "acceptanceCriteria": [
+        "SQL migration creates goals table: id, org_id (FK), user_id (FK), metric (enum: calls, emails, social_touches, meetings_booked, pipeline_value, custom), target_value (int), period (enum: daily, weekly, monthly), custom_metric_name (text nullable), created_at",
+        "Goals page: list current goals with progress bars",
+        "Add Goal form: metric dropdown, target number, period",
+        "Progress auto-calculated by counting activities of that type in the current period",
+        "Progress bar with percentage, color shifts green as approaching target",
+        "Goals visible on Home dashboard as compact progress indicators",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Unified contact activity timeline",
+      "description": "As a rep, I want to see all activities for a contact in one chronological timeline.",
+      "acceptanceCriteria": [
+        "Contact detail page shows chronological activity timeline",
+        "Each entry: type icon, outcome badge, notes preview, timestamp",
+        "Filter by activity type",
+        "Add Note inline to log observations without a formal activity",
+        "Timeline visible in contact detail page and salesblock session cockpit",
+        "Most recent activity at top (reverse chronological)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Analytics dashboard — activity metrics",
+      "description": "As a rep, I want to see my activity metrics and trends.",
+      "acceptanceCriteria": [
+        "Analytics page with date range selector (today, this week, this month, custom)",
+        "Activity cards: total calls, total emails, total social touches, total meetings booked",
+        "Activity trend chart: line/bar chart showing daily activity volume over selected period",
+        "Breakdown by type (calls vs emails vs social) as stacked bar or pie chart",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": "Use Recharts for charts."
+    },
+    {
+      "id": "US-040",
+      "title": "Analytics dashboard — conversion ratios",
+      "description": "As a rep, I want to see my conversion ratios to know where to improve.",
+      "acceptanceCriteria": [
+        "Conversion funnel visualization: Calls to Connects to Conversations to Meetings Booked",
+        "Each stage shows count and conversion rate to next stage",
+        "Comparison to previous period (e.g., this week vs last week)",
+        "Ratios: call-to-connect %, connect-to-meeting %, emails-to-reply %",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Custom KPI builder",
+      "description": "As a user, I want to create custom KPIs to track metrics specific to my workflow.",
+      "acceptanceCriteria": [
+        "SQL migration creates custom_kpis table: id, org_id (FK), user_id (FK), name, formula_type (enum: count, ratio, sum), numerator_metric (text), denominator_metric (text nullable), period (enum: daily, weekly, monthly), created_at",
+        "Add Custom KPI form: name, type (count/ratio/sum), select metrics, period",
+        "Custom KPIs displayed as cards on Analytics page alongside built-in metrics",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Team dashboard (manager view)",
+      "description": "As a manager, I want to see my team's performance to identify coaching opportunities.",
+      "acceptanceCriteria": [
+        "Team page: leaderboard showing each rep's key metrics (calls, emails, meetings, pipeline value)",
+        "Date range selector",
+        "Click rep name to drill into individual analytics",
+        "Comparison view: bar chart of reps side-by-side",
+        "Assign SalesBlock button to create a salesblock for a team member",
+        "Only visible to users with role manager (or higher in hierarchy)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-043",
+      "title": "Stripe pricing page and checkout",
+      "description": "As a user, I want to see pricing and complete payment to access SalesBlock.",
+      "acceptanceCriteria": [
+        "Pricing page: three tiers (SDR $3.50/wk, AE $4.50/wk, Manager $5.50/wk)",
+        "Display weekly, monthly, and annual pricing toggles",
+        "Checkout: Stripe Checkout Session redirect for payment",
+        "Free trial: 14 days, full access, no credit card required",
+        "Trial expiry: restrict to read-only access, prompt to subscribe",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": "Use Stripe.js for frontend, Supabase Edge Functions for backend."
+    },
+    {
+      "id": "US-044",
+      "title": "Stripe webhook handling and subscription management",
+      "description": "As a user, I want my subscription managed automatically after payment.",
+      "acceptanceCriteria": [
+        "Supabase Edge Function handles Stripe webhooks: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed",
+        "After payment: updates organizations.stripe_customer_id and users.subscription_status",
+        "Settings > Billing: current plan, next billing date, update payment method (Stripe Customer Portal link), cancel subscription",
+        "Team plans: minimum 2 users, billed per seat per role",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 44,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-045",
+      "title": "Team invitation flow",
+      "description": "As a manager, I want to invite team members so they can join my organization.",
+      "acceptanceCriteria": [
+        "Settings > Team: Invite Member button (visible to managers only)",
+        "Invite form: email, role (SDR/AE/Manager), team assignment",
+        "Sends Supabase auth invite email with magic link",
+        "Invited user completes sign-up with pre-filled org/team assignment",
+        "Invited users appear in team list with pending status until accepted",
+        "Managers can only invite to their own team; org admins can invite to any team",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-046",
+      "title": "Organization hierarchy management",
+      "description": "As an org admin, I want to configure divisions and teams so data access reflects our structure.",
+      "acceptanceCriteria": [
+        "Settings > Organization: hierarchy tree view",
+        "Create/rename/delete divisions (optional grouping layer)",
+        "Create/rename/delete teams within divisions or directly under org",
+        "Reassign users between teams via select dropdown",
+        "Hierarchy depth configurable: flat, standard, or full (org > division > team > users)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 46,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-047",
+      "title": "Settings page shell with tabs",
+      "description": "As a user, I want a settings page to manage my profile, integrations, and preferences.",
+      "acceptanceCriteria": [
+        "Settings page with tabs: Profile, Organization, Team, Integrations, Pipeline, Billing",
+        "Profile tab: display name, email (read-only), password change, preferences (theme, sidebar collapsed default)",
+        "Organization tab: name, logo upload (US-007), hierarchy management (US-046)",
+        "Team tab: invite members (US-045), list current members with roles",
+        "Integrations tab: Gmail, Outlook, Google Calendar, Outlook Calendar, Salesforce — each with connect/disconnect",
+        "Pipeline tab: manage stages (add, rename, reorder, set probability %, delete)",
+        "Billing tab: subscription management (US-044)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 47,
+      "passes": false,
+      "notes": "This ties together many previous stories into the Settings UI."
     }
   ]
 }
