@@ -45,3 +45,25 @@ npm run dev
 - Memory persists via git history, `progress.txt`, and `prd.json`
 - Stories should be small enough to complete in one context window
 - Always update AGENTS.md with discovered patterns for future iterations
+
+## SalesBlock.io Specific Patterns
+
+### Frontend Architecture (Vite + React + TypeScript)
+- **Project structure**: `frontend/` subdirectory contains the React app
+- **Type definitions**: Must include `src/vite-env.d.ts` with `/// <reference types="vite/client" />` for env type support
+- **Environment variables**: Use `VITE_` prefix (e.g., `VITE_SUPABASE_URL`) and access via `import.meta.env`
+- **Styling**: Tailwind CSS with `darkMode: 'class'` strategy for manual dark mode toggling
+- **Routing**: React Router v6 with BrowserRouter wrapping all routes
+- **Data fetching**: TanStack Query (React Query) provider wraps the entire app in `App.tsx`
+- **Supabase client**: Centralized in `src/lib/supabase.ts` using environment variables
+- **Dev server**: Runs on port 3000 (configured in `vite.config.ts`)
+
+### Backend Architecture (Supabase)
+- **Database**: PostgreSQL via Supabase with migrations in `supabase/migrations/`
+- **Auth**: Email+password authentication enabled by default
+- **Schema conventions**:
+  - ENUM types for user roles and activity types
+  - JSONB columns for flexible settings/preferences
+  - All foreign keys use CASCADE on DELETE for org hierarchy
+  - SET NULL for optional relationships (division_id, team_id)
+- **RLS**: Row-level security policies enforce org-scoped data access
