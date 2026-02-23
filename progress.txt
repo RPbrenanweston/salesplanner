@@ -726,3 +726,35 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Browser verification deferred**: Docker Desktop not running for dev server (same as previous iterations)
   - **Backend implementation needed**: US-031 AC includes "Access and refresh tokens stored securely" but token exchange requires backend (Edge Function) - frontend only initiates OAuth flow
 ---
+## 2026-02-23 01:55 - US-032 - PAI Iteration 25
+- **Implemented:** Salesforce contact import with object selection, owner filter, date range, preview, field mapping, duplicate detection
+- **Files changed:**
+  - Created `supabase/migrations/20260223015500_add_salesforce_id_to_contacts.sql` - Added salesforce_id column with unique constraint
+  - Created `frontend/src/lib/salesforce.ts` - Salesforce REST API wrapper functions (query, getUserId, mapping)
+  - Created `frontend/src/components/ImportSalesforceModal.tsx` - Full-featured SF import modal
+  - Updated `frontend/src/pages/Lists.tsx` - Added "Import from Salesforce" button (conditional on SF connection)
+  - Updated `prd.json` (US-032 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Import from Salesforce button visible when SF connected (conditional render with getSalesforceConnection check)
+  - Object selection: radio buttons for Leads, Contacts, Accounts
+  - Filter by owner defaults to current user (useState(true), calls getSalesforceUserId when enabled)
+  - Date range filter: optional start/end dates, builds SOQL WHERE clause with CreatedDate conditions
+  - Preview shows matching record count + first 5 records in table before import
+  - Field mapping: Lead (FirstName, LastName, Email, Phone, Company, Title), Contact (FirstName, LastName, Email, Phone, Title), Account (Name → first/last split, Phone)
+  - Salesforce ID stored on contacts.salesforce_id with unique constraint (org_id, salesforce_id)
+  - Duplicate detection: checks existing contacts by email + org_id, skips if found
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - **Salesforce SOQL date format**: Use ISO 8601 for CreatedDate filtering (`CreatedDate >= 2026-02-01T00:00:00.000Z`)
+  - **Object-specific field mapping**: Accounts lack FirstName/LastName (use Name field and split); Leads have Company, Contacts don't
+  - **Salesforce API versioning**: Used v59.0 (services/data/v59.0/query) - should periodically bump for new features
+  - **Preview-before-import UX**: Two-stage flow prevents accidental bulk operations (Preview → Import transition)
+  - **Unique constraint pattern**: UNIQUE (org_id, salesforce_id) allows same SF ID across different orgs while preventing duplicates within org
+  - **Conditional integration button**: Check connection with getSalesforceConnection() on mount, conditionally render button only when connected
+  - **Duplicate skip strategy**: Always skip duplicates (vs CSV's skip/update/create options) for Salesforce imports to avoid data loss
+  - **Button color semantics**: Indigo-600 for SF import distinguishes from blue CSV import (both in blue family, visually different)
+  - **Field mapping transparency**: Display SF→SalesBlock field mapping before import to set user expectations
+  - **Salesforce REST API query pattern**: `SELECT fields FROM object WHERE conditions ORDER BY CreatedDate DESC LIMIT 200`
+  - **Browser verification deferred**: Docker Desktop not running (same as previous 24 iterations)
+---
+

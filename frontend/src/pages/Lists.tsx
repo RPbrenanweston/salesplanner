@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Plus, List, RefreshCw, Users, Clock } from 'lucide-react';
+import { Upload, Plus, List, RefreshCw, Users, Clock, Database } from 'lucide-react';
 import ImportCSVModal from '../components/ImportCSVModal';
 import { AddContactModal } from '../components/AddContactModal';
 import ListBuilderModal from '../components/ListBuilderModal';
 import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal';
+import ImportSalesforceModal from '../components/ImportSalesforceModal';
 import { supabase } from '../lib/supabase';
+import { getSalesforceConnection } from '../lib/salesforce';
 
 interface ListRecord {
   id: string;
@@ -25,15 +27,26 @@ interface ListRecord {
 export default function Lists() {
   const navigate = useNavigate();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isImportSalesforceModalOpen, setIsImportSalesforceModalOpen] = useState(false);
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [isListBuilderOpen, setIsListBuilderOpen] = useState(false);
   const [isCreateSalesBlockOpen, setIsCreateSalesBlockOpen] = useState(false);
   const [lists, setLists] = useState<ListRecord[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
+  const [salesforceConnection, setSalesforceConnection] = useState<{
+    access_token: string;
+    instance_url: string;
+  } | null>(null);
 
   useEffect(() => {
     loadLists();
+    checkSalesforceConnection();
   }, []);
+
+  const checkSalesforceConnection = async () => {
+    const connection = await getSalesforceConnection();
+    setSalesforceConnection(connection);
+  };
 
   const loadLists = async () => {
     setIsLoadingLists(true);
@@ -153,6 +166,15 @@ export default function Lists() {
             <Upload className="w-4 h-4" />
             Import CSV
           </button>
+          {salesforceConnection && (
+            <button
+              onClick={() => setIsImportSalesforceModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              <Database className="w-4 h-4" />
+              Import from Salesforce
+            </button>
+          )}
         </div>
       </div>
 
@@ -285,6 +307,16 @@ export default function Lists() {
           // No need to reload lists - salesblock creation doesn't affect list data
         }}
       />
+
+      {salesforceConnection && (
+        <ImportSalesforceModal
+          isOpen={isImportSalesforceModalOpen}
+          onClose={() => setIsImportSalesforceModalOpen(false)}
+          onSuccess={handleImportComplete}
+          accessToken={salesforceConnection.access_token}
+          instanceUrl={salesforceConnection.instance_url}
+        />
+      )}
     </div>
   );
 }
