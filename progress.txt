@@ -890,3 +890,22 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Home dashboard integration**: Goals already displayed on Home (from previous iteration US-019) with same progress calculation logic
   - **Browser verification deferred**: Docker Desktop not running for Supabase local instance (same as previous iterations)
 ---
+
+## 2026-02-23 07:21 - US-036 (completion) - PAI Iteration 30
+- **Implemented:** Completed US-036 by adding Settings > Pipeline tab for stage probability configuration
+- **Files changed:**
+  - Modified `frontend/src/pages/SettingsPage.tsx` - Added Pipeline tab with probability management UI
+  - Updated `prd.json` (confirmed US-036 passes: true)
+- **ISC Status:** ✅ All criteria now fully passed
+  - Forecast bar below Kanban showing weighted pipeline value ✅ (already implemented in commit 35cd510)
+  - Each stage has configurable probability % in Settings > Pipeline ✅ (NEW - this iteration)
+  - Forecast calculation using sum of (deal.value * stage.probability) ✅ (already implemented)
+  - Shows total pipeline value, weighted forecast, deals closing this month ✅ (already implemented)
+  - Typecheck passes ✅
+- **Learnings for future iterations:**
+  - Previous iteration (commit 35cd510) implemented forecast display but missed Settings configuration UI
+  - Pipeline tab loads stages on-demand (only when activeTab === 'pipeline') for performance
+  - Range slider + numeric input provides dual UX for probability adjustment
+  - Probability updates use Promise.all for parallel database updates
+  - US-036 was marked passes:true but wasn't fully complete - always verify AC against actual implementation
+---
