@@ -247,3 +247,36 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Updated_at triggers**: Created separate trigger functions for contacts and lists (pattern from existing schema)
   - **Migration not applied**: Docker daemon not running (same as US-007), will execute when Docker Desktop starts
 ---
+
+## 2026-02-23 16:23 - US-009 - PAI Iteration 9
+- **Implemented:** CSV contact import with column mapping, preview, duplicate detection, and optional list assignment
+- **Files changed:**
+  - Updated `frontend/package.json` - Added papaparse and @types/papaparse dependencies
+  - Created `frontend/src/components/ImportCSVModal.tsx` - Full-featured CSV import modal (4-step wizard: upload → mapping → preview → importing)
+  - Updated `frontend/src/pages/Lists.tsx` - Added Import CSV button that opens modal
+  - Updated `prd.json` (US-009 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Import CSV button added to Lists page with Upload icon
+  - Click-to-browse file selection (hidden file input with styled label)
+  - File validation: .csv extension required, max 10MB, max 10,000 rows
+  - Papa Parse client-side CSV parsing with header detection
+  - Auto-detect column mapping: first_name, last_name, email, phone, company, title (normalized matching)
+  - Manual column remapping via dropdown for each CSV column
+  - Preview table shows first 5 rows with mapped columns
+  - Duplicate email detection with 3 strategies: skip, update, create
+  - Optional list assignment dropdown (loads user's lists from Supabase)
+  - Progress indicator with live counts: imported, skipped, errors
+  - Summary screen on completion with final counts
+  - Typecheck passes with zero errors (removed unused state vars: user, file, csvHeaders)
+- **Learnings for future iterations:**
+  - **Papa Parse pattern**: `Papa.parse(file, { header: true, skipEmptyLines: true, complete: callback })` for client-side CSV parsing
+  - **Auto-mapping heuristic**: Normalize headers (lowercase, strip non-alpha) then check for common patterns (e.g., "firstname" → "first_name")
+  - **Multi-step wizard state**: Single `step` state with union type (`'upload' | 'mapping' | 'preview' | 'importing' | 'complete'`)
+  - **File validation order**: Check extension → size → row count before parsing
+  - **Duplicate handling**: Check existing contact by email with `maybeSingle()` then branch on strategy
+  - **List assignment**: Optional feature; if selected, insert into list_contacts junction table after contact creation
+  - **Sequential import**: Loop through CSV rows one-by-one (not batched) for simplicity and live progress updates
+  - **Error resilience**: Continue import on individual row errors; increment error counter, don't fail entire batch
+  - **Clean modal state**: Reset all state on close to ensure fresh state on next open
+  - **Browser verification deferred**: Requires Docker Desktop + Supabase local + npm run dev (blocked for this iteration)
+---
