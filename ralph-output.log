@@ -269,3 +269,42 @@ Iteration 10 complete. Continuing...
 ===============================================================
   Ralph Iteration 11 of 50 (claude)
 ===============================================================
+**Evidence:**
+
+✅ **SQL migration created** - `supabase/migrations/20260223004500_create_email_templates_schema.sql` with email_templates table (all required fields), RLS policies (owner + shared visibility), indexes, and updated_at trigger
+
+✅ **Templates page created** - `frontend/src/pages/EmailTemplates.tsx` with template list, usage stats (times_used, reply_count, reply rate %), edit/delete actions, and delete confirmation dialog
+
+✅ **Create/Edit modal created** - `frontend/src/components/TemplateModal.tsx` with name, subject, body fields, variable placeholder support ({{first_name}}, {{company}}, {{title}}), Edit/Preview tabs, and shared checkbox
+
+✅ **Preview mode** - renderPreview() function shows template with sample data filled in (replaces {{variables}} with sample contact data)
+
+✅ **Delete confirmation** - Confirmation dialog implemented before deletion
+
+✅ **Shared templates visibility** - RLS policies allow users to see own templates + shared templates in org (same pattern as US-020 call_scripts)
+
+✅ **TypeScript passes** - `npx tsc --noEmit` completed with zero errors after fixing MailTemplate icon import and title prop issues
+
+✅ **Route added** - `/templates` route configured in App.tsx with ProtectedRoute + AppLayout wrapper
+
+✅ **Navigation item added** - Templates menu item added to AppLayout sidebar with FileText icon
+
+━━━ 📚 LEARN ━━━ 7/7
+
+**What worked well:**
+- Followed US-020 call scripts pattern closely for consistency (RLS policies, shared visibility, modal structure)
+- Plain text textarea for email body is simpler than rich text editor and more appropriate for email template editing
+- Variable placeholder pattern with {{variable_name}} syntax is intuitive and easy to implement with regex replacement
+- Edit/Preview tabs provide good UX for template creation workflow
+
+**What to improve next iteration:**
+- Consider adding autocomplete/suggestions for variable names when typing {{
+- Usage stats (times_used, reply_count) are placeholder fields - will be populated by future email sending features (US-024, US-025)
+- Browser verification remains blocked by Docker Desktop not running - 9 iterations deferred now
+
+🗣️ PAI: I've successfully implemented US-021 Email Templates CRUD. Created database schema with RLS policies, built a templates list page showing usage statistics, and implemented a create/edit modal with variable placeholder support ({{first_name}}, {{company}}, etc.). The modal includes Edit and Preview tabs so reps can see how their template will look with real data. Templates can be shared with the team or kept private. TypeScript passes with zero errors. Ready for the next story when you are!
+Iteration 11 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 12 of 50 (claude)
+===============================================================

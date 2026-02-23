@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import GmailOAuthButton from '../components/GmailOAuthButton'
 
-type Tab = 'profile' | 'organization'
+type Tab = 'profile' | 'organization' | 'integrations'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('profile')
@@ -176,6 +177,16 @@ export default function SettingsPage() {
           >
             Organization
           </button>
+          <button
+            onClick={() => setActiveTab('integrations')}
+            className={`${
+              activeTab === 'integrations'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+          >
+            Integrations
+          </button>
         </nav>
       </div>
 
@@ -266,6 +277,101 @@ export default function SettingsPage() {
                   ✓ Logo updated successfully
                 </span>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'integrations' && (
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Integrations
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Connect your email, calendar, and CRM to sync data and send messages directly from SalesBlock.
+          </p>
+
+          {/* Email Providers */}
+          <div className="mb-8">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              Email
+            </h3>
+            <div className="space-y-4">
+              <GmailOAuthButton />
+              {/* Outlook OAuth button placeholder for US-023 */}
+              <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 opacity-50">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+                    <span className="text-sm font-medium text-blue-600 dark:text-blue-400">O</span>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">Outlook</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Coming soon
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Calendar Providers */}
+          <div className="mb-8">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              Calendar
+            </h3>
+            <div className="space-y-4">
+              {/* Google Calendar placeholder for US-027 */}
+              <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 opacity-50">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded">
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">G</span>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">Google Calendar</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Coming soon
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {/* Outlook Calendar placeholder for US-028 */}
+              <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 opacity-50">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded">
+                    <span className="text-sm font-medium text-blue-600 dark:text-blue-400">O</span>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">Outlook Calendar</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Coming soon
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CRM */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              CRM
+            </h3>
+            <div className="space-y-4">
+              {/* Salesforce placeholder for US-031 */}
+              <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 opacity-50">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded">
+                    <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">SF</span>
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">Salesforce</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Coming soon
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

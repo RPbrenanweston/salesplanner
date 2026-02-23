@@ -17,6 +17,7 @@ import SettingsPage from './pages/SettingsPage'
 import SalesBlockSessionPage from './pages/SalesBlockSessionPage'
 import Scripts from './pages/Scripts'
 import EmailTemplates from './pages/EmailTemplates'
+import GmailOAuthCallback from './pages/GmailOAuthCallback'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 
@@ -30,6 +31,7 @@ function App() {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/oauth/gmail/callback" element={<GmailOAuthCallback />} />
 
           {/* Protected routes with AppLayout */}
           <Route
