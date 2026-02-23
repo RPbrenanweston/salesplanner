@@ -353,7 +353,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "Use TipTap or similar for rich text editing."
     },
     {

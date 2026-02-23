@@ -21,25 +21,33 @@ interface TeamMember {
   email: string
 }
 
+interface CallScript {
+  id: string
+  name: string
+}
+
 export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedListId }: CreateSalesBlockModalProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [lists, setLists] = useState<List[]>([])
+  const [scripts, setScripts] = useState<CallScript[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [isManager, setIsManager] = useState(false)
 
   // Form fields
   const [selectedListId, setSelectedListId] = useState(preSelectedListId || '')
+  const [selectedScriptId, setSelectedScriptId] = useState('')
   const [title, setTitle] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
   const [duration, setDuration] = useState('30')
   const [assignedToUserId, setAssignedToUserId] = useState('') // Empty = assign to self
 
-  // Load user's lists and check if manager
+  // Load user's lists, scripts, and check if manager
   useEffect(() => {
     if (isOpen && user) {
       loadLists()
+      loadScripts()
       checkManagerStatus()
     }
   }, [isOpen, user])
@@ -70,6 +78,19 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
       if (preSelectedListId) {
         setSelectedListId(preSelectedListId)
       }
+    }
+  }
+
+  async function loadScripts() {
+    const { data, error } = await supabase
+      .from('call_scripts')
+      .select('id, name')
+      .order('name')
+
+    if (error) {
+      console.error('Error loading scripts:', error)
+    } else {
+      setScripts(data || [])
     }
   }
 
@@ -139,7 +160,8 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
           scheduled_start: scheduledStart.toISOString(),
           scheduled_end: scheduledEnd.toISOString(),
           duration_minutes: parseInt(duration),
-          status: 'scheduled'
+          status: 'scheduled',
+          script_id: selectedScriptId || null
         })
 
       if (error) throw error
@@ -157,6 +179,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
 
   function resetAndClose() {
     setSelectedListId(preSelectedListId || '')
+    setSelectedScriptId('')
     setTitle('')
     setScheduledDate('')
     setScheduledTime('')
@@ -259,6 +282,23 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
               <option value="30">30 minutes</option>
               <option value="45">45 minutes</option>
               <option value="60">60 minutes</option>
+            </select>
+          </div>
+
+          {/* Call Script (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Call Script (optional)
+            </label>
+            <select
+              value={selectedScriptId}
+              onChange={(e) => setSelectedScriptId(e.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">No script</option>
+              {scripts.map(script => (
+                <option key={script.id} value={script.id}>{script.name}</option>
+              ))}
             </select>
           </div>
 
