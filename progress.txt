@@ -343,3 +343,29 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Last activity**: Queries activities table ordered by created_at DESC, takes first result with maybeSingle()
   - **Empty state**: Different messages for "no contacts" vs "no search results" with conditional CTA buttons
 ---
+
+## 2026-02-23 16:23 - US-013 - PAI Iteration 12
+- **Implemented:** SalesBlock and activity database schema with RLS policies
+- **Files changed:**
+  - Created `supabase/migrations/20260223162300_create_salesblocks_activities_schema.sql`
+  - Updated `prd.json` (US-013 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Salesblocks table created with all required fields: id, org_id, list_id, user_id, assigned_by (FK nullable), title, scheduled_start, scheduled_end, actual_start (nullable), actual_end (nullable), duration_minutes, status enum, calendar_event_id (nullable), notes, created_at
+  - Status enum values: scheduled, in_progress, completed, cancelled
+  - Activities table created with all required fields: id, org_id, contact_id, user_id, salesblock_id (FK nullable), type enum, outcome enum, notes, duration_seconds (nullable), created_at
+  - Type enum values: call, email, social, meeting, note
+  - Outcome enum values: no_answer, voicemail, connect, conversation, meeting_booked, not_interested, follow_up, other
+  - RLS policies: users see own salesblocks/activities; managers see team's (2 SELECT policies per table)
+  - RLS policies: users can INSERT/UPDATE/DELETE own records; managers can assign salesblocks to team
+  - Indexes on salesblocks: user_id, list_id, scheduled_start, status, org_id
+  - Indexes on activities: contact_id, user_id, salesblock_id, org_id, created_at
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - **ENUM constraints**: Use CHECK constraints for ENUM-like behavior in Supabase (e.g., `CHECK (status IN ('scheduled', 'in_progress', ...))`)
+  - **Manager policies pattern**: Managers can SELECT team data via EXISTS subquery checking team_id match; INSERT policies for assigning work use similar pattern
+  - **Nullable timestamps**: actual_start and actual_end are nullable because salesblocks start as 'scheduled' and populate these on session start/end
+  - **Cascading vs SET NULL**: salesblock_id on activities uses SET NULL (activity persists after salesblock deleted); org_id/contact_id use CASCADE (delete activities when parent deleted)
+  - **Duration tracking**: duration_minutes stores planned duration on salesblock; duration_seconds on activities tracks actual call length
+  - **Activity indexing**: created_at index enables fast timeline queries; contact_id index for per-contact activity lookup
+  - **Migration not applied**: Docker daemon not running (same as previous iterations), SQL file created but not executed
+---
