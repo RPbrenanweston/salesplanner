@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar } from 'lucide-react';
+import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import ListBuilderModal from '../components/ListBuilderModal';
 import ComposeEmailModal from '../components/ComposeEmailModal';
 import LogSocialActivityModal from '../components/LogSocialActivityModal';
 import BookMeetingModal from '../components/BookMeetingModal';
@@ -23,6 +24,9 @@ interface ListDetail {
   id: string;
   name: string;
   description: string | null;
+  filter_criteria: Record<string, unknown> | null;
+  is_shared: boolean;
+  owner_id: string;
 }
 
 type SortField = 'name' | 'company' | 'title' | 'email' | 'phone' | 'last_activity_date';
@@ -45,6 +49,7 @@ export default function ListDetailPage() {
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [orgId, setOrgId] = useState<string>('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (listId) {
@@ -120,7 +125,7 @@ export default function ListDetailPage() {
     try {
       const { data, error } = await supabase
         .from('lists')
-        .select('id, name, description')
+        .select('id, name, description, filter_criteria, is_shared, owner_id')
         .eq('id', listId)
         .single();
 
@@ -287,13 +292,22 @@ export default function ListDetailPage() {
             )}
           </div>
 
-          <button
-            onClick={handleStartSalesBlock}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            <Play className="w-4 h-4" />
-            Start SalesBlock
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit List
+            </button>
+            <button
+              onClick={handleStartSalesBlock}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Play className="w-4 h-4" />
+              Start SalesBlock
+            </button>
+          </div>
         </div>
       </div>
 
@@ -508,6 +522,24 @@ export default function ListDetailPage() {
           }}
         />
       )}
+
+      {/* Edit List Modal */}
+      <ListBuilderModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        existingList={listDetail ? {
+          id: listDetail.id,
+          name: listDetail.name,
+          description: listDetail.description,
+          filter_criteria: listDetail.filter_criteria as any,
+          is_shared: listDetail.is_shared,
+        } : null}
+        onSuccess={() => {
+          setIsEditModalOpen(false);
+          loadListDetail(); // Refresh list name/description
+          loadContacts(); // Re-fetch contacts (filters may have changed)
+        }}
+      />
     </div>
   );
 }

@@ -20,6 +20,11 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
   const [phone, setPhone] = useState('');
   const [company, setCompany] = useState('');
   const [title, setTitle] = useState('');
+  const [domain, setDomain] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [companyLinkedinUrl, setCompanyLinkedinUrl] = useState('');
+  const [twitterHandle, setTwitterHandle] = useState('');
+  const [companyTwitter, setCompanyTwitter] = useState('');
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [existingContactId, setExistingContactId] = useState<string | null>(null);
@@ -161,6 +166,11 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
           phone: phone || null,
           company: company || null,
           title: title || null,
+          domain: domain || null,
+          linkedin_url: linkedinUrl || null,
+          company_linkedin_url: companyLinkedinUrl || null,
+          twitter_handle: twitterHandle || null,
+          company_twitter: companyTwitter || null,
           source: 'manual',
           custom_fields: Object.keys(customFieldsObj).length > 0 ? customFieldsObj : null,
           created_by: user.user.id,
@@ -222,6 +232,11 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
     setPhone('');
     setCompany('');
     setTitle('');
+    setDomain('');
+    setLinkedinUrl('');
+    setCompanyLinkedinUrl('');
+    setTwitterHandle('');
+    setCompanyTwitter('');
     setCustomFields([]);
     setDuplicateWarning(null);
     setExistingContactId(null);
@@ -378,6 +393,77 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
+            </div>
+
+            {/* Enrichment / Intel */}
+            <div className="border-t dark:border-gray-700 pt-4 mt-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+                Enrichment / Intel
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Domain
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. acme.com"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Prospect LinkedIn URL
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://linkedin.com/in/..."
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Company LinkedIn URL
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://linkedin.com/company/..."
+                    value={companyLinkedinUrl}
+                    onChange={(e) => setCompanyLinkedinUrl(e.target.value)}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Prospect Twitter/X
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="@handle"
+                    value={twitterHandle}
+                    onChange={(e) => setTwitterHandle(e.target.value)}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Company Twitter/X
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="@company"
+                    value={companyTwitter}
+                    onChange={(e) => setCompanyTwitter(e.target.value)}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Custom Fields */}

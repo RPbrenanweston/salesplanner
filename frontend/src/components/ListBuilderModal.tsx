@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-type FilterField = 'company' | 'title' | 'source' | 'created_at' | 'custom_field';
+type FilterField = 'company' | 'title' | 'source' | 'created_at' | 'custom_field' | 'domain' | 'linkedin_url' | 'company_linkedin_url' | 'twitter_handle' | 'company_twitter';
 type FilterOperator = 'equals' | 'contains' | 'starts_with' | 'greater_than' | 'less_than';
 
 interface Filter {
@@ -13,13 +13,26 @@ interface Filter {
   customFieldKey?: string; // For custom_field filters
 }
 
+interface ExistingList {
+  id: string;
+  name: string;
+  description: string | null;
+  filter_criteria: {
+    filters: Array<{ field: FilterField; operator: FilterOperator; value: string; customFieldKey?: string }>;
+    autoRefresh: boolean;
+  } | null;
+  is_shared: boolean;
+}
+
 interface ListBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  existingList?: ExistingList | null;
 }
 
-export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBuilderModalProps) {
+export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingList }: ListBuilderModalProps) {
+  const isEditMode = !!existingList;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [filters, setFilters] = useState<Filter[]>([]);
@@ -28,9 +41,29 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBui
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Reset state when modal closes
+  // Pre-fill when editing, reset when closing or creating new
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen && existingList) {
+      // Edit mode: pre-fill from existing list
+      setName(existingList.name || '');
+      setDescription(existingList.description || '');
+      setAutoRefresh(existingList.filter_criteria?.autoRefresh ?? true);
+      if (existingList.filter_criteria?.filters) {
+        setFilters(
+          existingList.filter_criteria.filters.map(f => ({
+            id: crypto.randomUUID(),
+            field: f.field,
+            operator: f.operator,
+            value: f.value,
+            customFieldKey: f.customFieldKey,
+          }))
+        );
+      } else {
+        setFilters([]);
+      }
+      setError('');
+    } else if (!isOpen) {
+      // Reset on close
       setName('');
       setDescription('');
       setFilters([]);
@@ -38,7 +71,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBui
       setAutoRefresh(true);
       setError('');
     }
-  }, [isOpen]);
+  }, [isOpen, existingList]);
 
   // Live preview: count matching contacts whenever filters change
   useEffect(() => {
@@ -156,21 +189,42 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBui
         autoRefresh,
       };
 
-      // Create list record
-      const { data: newList, error: listError } = await supabase
-        .from('lists')
-        .insert({
-          org_id: userData.org_id,
-          owner_id: user.id,
-          name: name.trim(),
-          description: description.trim() || null,
-          filter_criteria: filterCriteria,
-          is_shared: false,
-        })
-        .select()
-        .single();
+      let listId: string;
 
-      if (listError) throw listError;
+      if (isEditMode && existingList) {
+        // UPDATE existing list
+        const { error: updateError } = await supabase
+          .from('lists')
+          .update({
+            name: name.trim(),
+            description: description.trim() || null,
+            filter_criteria: filterCriteria,
+          })
+          .eq('id', existingList.id);
+
+        if (updateError) throw updateError;
+        listId = existingList.id;
+
+        // Remove old list_contacts, then re-populate
+        await supabase.from('list_contacts').delete().eq('list_id', listId);
+      } else {
+        // INSERT new list
+        const { data: newList, error: listError } = await supabase
+          .from('lists')
+          .insert({
+            org_id: userData.org_id,
+            owner_id: user.id,
+            name: name.trim(),
+            description: description.trim() || null,
+            filter_criteria: filterCriteria,
+            is_shared: false,
+          })
+          .select()
+          .single();
+
+        if (listError) throw listError;
+        listId = newList.id;
+      }
 
       // Get matching contacts and add to list_contacts junction table
       let contactQuery = supabase
@@ -209,7 +263,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBui
       // Insert into junction table
       if (matchingContacts && matchingContacts.length > 0) {
         const junctionRecords = matchingContacts.map((contact, index) => ({
-          list_id: newList.id,
+          list_id: listId,
           contact_id: contact.id,
           position: index,
         }));
@@ -220,8 +274,8 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBui
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      console.error('Error creating list:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create list');
+      console.error('Error saving list:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save list');
     } finally {
       setIsLoading(false);
     }
@@ -235,7 +289,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBui
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Create List
+            {isEditMode ? 'Edit List' : 'Create List'}
           </h2>
           <button
             onClick={onClose}
@@ -307,7 +361,12 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBui
                   >
                     <option value="company">Company</option>
                     <option value="title">Title</option>
+                    <option value="domain">Domain</option>
                     <option value="source">Source</option>
+                    <option value="linkedin_url">Prospect LinkedIn</option>
+                    <option value="company_linkedin_url">Company LinkedIn</option>
+                    <option value="twitter_handle">Prospect Twitter/X</option>
+                    <option value="company_twitter">Company Twitter/X</option>
                     <option value="created_at">Date Added</option>
                     <option value="custom_field">Custom Field</option>
                   </select>
@@ -438,7 +497,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess }: ListBui
             disabled={isLoading || !name.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Creating...' : 'Create List'}
+            {isLoading ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create List')}
           </button>
         </div>
       </div>

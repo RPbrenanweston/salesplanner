@@ -33,6 +33,11 @@ const DB_FIELDS = [
   { value: 'phone', label: 'Phone' },
   { value: 'company', label: 'Company' },
   { value: 'title', label: 'Title' },
+  { value: 'domain', label: 'Domain' },
+  { value: 'linkedin_url', label: 'Prospect LinkedIn URL' },
+  { value: 'company_linkedin_url', label: 'Company LinkedIn URL' },
+  { value: 'twitter_handle', label: 'Prospect Twitter/X' },
+  { value: 'company_twitter', label: 'Company Twitter/X' },
   { value: 'ignore', label: '(Ignore)' },
 ];
 
@@ -91,6 +96,11 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
           else if (normalized.includes('phone') || normalized.includes('mobile')) dbField = 'phone';
           else if (normalized.includes('company') || normalized.includes('organization')) dbField = 'company';
           else if (normalized.includes('title') || normalized.includes('position')) dbField = 'title';
+          else if (normalized.includes('domain') || normalized.includes('website') || normalized === 'url') dbField = 'domain';
+          else if (normalized.includes('companylinkedin') || normalized.includes('organizationlinkedin')) dbField = 'company_linkedin_url';
+          else if (normalized.includes('linkedin')) dbField = 'linkedin_url';
+          else if (normalized.includes('companytwitter') || normalized.includes('organizationtwitter')) dbField = 'company_twitter';
+          else if (normalized.includes('twitter') || normalized.includes('xhandle')) dbField = 'twitter_handle';
 
           return { csvColumn: header, dbField };
         });
