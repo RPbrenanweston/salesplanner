@@ -7,6 +7,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import SalesBlocks from './pages/SalesBlocks'
 import Lists from './pages/Lists'
 import ListDetailPage from './pages/ListDetailPage'
+import ContactDetailPage from './pages/ContactDetailPage'
 import Email from './pages/Email'
 import Social from './pages/Social'
 import Pipeline from './pages/Pipeline'
@@ -86,6 +87,16 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <ListDetailPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contacts/:contactId"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ContactDetailPage />
                 </AppLayout>
               </ProtectedRoute>
             }

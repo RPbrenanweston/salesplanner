@@ -380,9 +380,16 @@ export default function ListDetailPage() {
                 filteredContacts.map((contact) => (
                   <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      <button
+                        onClick={() =>
+                          navigate(`/contacts/${contact.id}`, {
+                            state: { returnPath: `/lists/${listId}` },
+                          })
+                        }
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline text-left"
+                      >
                         {contact.first_name} {contact.last_name}
-                      </div>
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600 dark:text-gray-400">

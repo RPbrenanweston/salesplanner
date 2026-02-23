@@ -7,6 +7,7 @@ import LogActivityModal from '../components/LogActivityModal';
 import LogSocialActivityModal from '../components/LogSocialActivityModal';
 import ComposeEmailModal from '../components/ComposeEmailModal';
 import BookMeetingModal from '../components/BookMeetingModal';
+import ContactActivityTimeline from '../components/ContactActivityTimeline';
 
 interface Contact {
   id: string;
@@ -690,6 +691,18 @@ export default function SalesBlockSessionPage() {
                     </p>
                   </div>
                 )}
+              </div>
+
+              {/* Activity Timeline */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Activity Timeline</h3>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <ContactActivityTimeline
+                    contactId={activeContact.id}
+                    showAddNote={false}
+                    onActivityLogged={refreshActivityStatus}
+                  />
+                </div>
               </div>
 
               {/* Navigation Buttons */}
