@@ -20,6 +20,7 @@ import EmailTemplates from './pages/EmailTemplates'
 import GmailOAuthCallback from './pages/GmailOAuthCallback'
 import OutlookOAuthCallback from './pages/OutlookOAuthCallback'
 import GoogleCalendarOAuthCallback from './pages/GoogleCalendarOAuthCallback'
+import OutlookCalendarOAuthCallback from './pages/OutlookCalendarOAuthCallback'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 
@@ -36,6 +37,7 @@ function App() {
           <Route path="/oauth/gmail/callback" element={<GmailOAuthCallback />} />
           <Route path="/oauth/outlook/callback" element={<OutlookOAuthCallback />} />
           <Route path="/oauth/google-calendar/callback" element={<GoogleCalendarOAuthCallback />} />
+          <Route path="/oauth/outlook-calendar/callback" element={<OutlookCalendarOAuthCallback />} />
 
           {/* Protected routes with AppLayout */}
           <Route
