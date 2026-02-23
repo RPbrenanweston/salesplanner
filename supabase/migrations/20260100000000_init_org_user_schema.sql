@@ -1,3 +1,12 @@
+-- Utility function for auto-updating updated_at columns
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Create role enum type
 CREATE TYPE user_role AS ENUM ('sdr', 'ae', 'manager');
 

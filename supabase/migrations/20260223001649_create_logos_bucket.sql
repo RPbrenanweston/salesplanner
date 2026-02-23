@@ -2,8 +2,7 @@
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('logos', 'logos', true);
 
--- Enable RLS on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS is already enabled on storage.objects by Supabase
 
 -- Policy: Anyone can read logos (public bucket)
 CREATE POLICY "Public logo read access"
