@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Phone, Mail, Share2, Calendar } from 'lucide-react';
+import { Phone, Mail, Share2, Calendar, Plus, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import CustomKPIModal from '../components/CustomKPIModal';
 import {
   BarChart,
   Bar,
@@ -57,6 +58,16 @@ interface PreviousPeriodComparison {
   emailToReplyChange: number;
 }
 
+interface CustomKPI {
+  id: string;
+  name: string;
+  formula_type: 'count' | 'ratio' | 'sum';
+  numerator_metric: string;
+  denominator_metric: string | null;
+  period: 'daily' | 'weekly' | 'monthly';
+  value?: number;
+}
+
 export default function Analytics() {
   const { user } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange>('this_week');
@@ -85,11 +96,14 @@ export default function Analytics() {
     connectToMeetingChange: 0,
     emailToReplyChange: 0,
   });
+  const [customKPIs, setCustomKPIs] = useState<CustomKPI[]>([]);
+  const [showKPIModal, setShowKPIModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadAnalytics();
+      loadCustomKPIs();
     }
   }, [user, dateRange, customStartDate, customEndDate]);
 
@@ -141,6 +155,89 @@ export default function Analytics() {
     }
 
     return { start, end };
+  };
+
+  const loadCustomKPIs = async () => {
+    if (!user) return;
+
+    try {
+      // Get user's org_id
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('org_id')
+        .eq('id', user.id)
+        .single();
+
+      if (userError) throw userError;
+
+      // Load custom KPIs for the user's org
+      const { data: kpis, error } = await supabase
+        .from('custom_kpis')
+        .select('*')
+        .eq('org_id', userData.org_id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setCustomKPIs(kpis || []);
+    } catch (err) {
+      console.error('Error loading custom KPIs:', err);
+    }
+  };
+
+  const calculateKPIValue = async (kpi: CustomKPI): Promise<number> => {
+    if (!user) return 0;
+
+    const { start, end } = getDateRangeBounds();
+
+    // Query activities in date range
+    const { data: activities } = await supabase
+      .from('activities')
+      .select('type, outcome, replied_at')
+      .eq('user_id', user.id)
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString());
+
+    if (!activities) return 0;
+
+    const metricValue = (metric: string): number => {
+      switch (metric) {
+        case 'calls':
+          return activities.filter((a) => a.type === 'call').length;
+        case 'emails':
+          return activities.filter((a) => a.type === 'email').length;
+        case 'social_touches':
+          return activities.filter((a) => a.type === 'social').length;
+        case 'meetings_booked':
+          return activities.filter((a) => a.outcome === 'meeting_booked').length;
+        case 'connects':
+          return activities.filter(
+            (a) =>
+              a.type === 'call' &&
+              (a.outcome === 'connect' || a.outcome === 'conversation' || a.outcome === 'meeting_booked')
+          ).length;
+        case 'replies':
+          return activities.filter((a) => a.type === 'email' && a.replied_at !== null).length;
+        case 'pipeline_value':
+          // TODO: Implement pipeline value calculation from deals table
+          return 0;
+        default:
+          return 0;
+      }
+    };
+
+    const numerator = metricValue(kpi.numerator_metric);
+
+    if (kpi.formula_type === 'count') {
+      return numerator;
+    } else if (kpi.formula_type === 'sum') {
+      return numerator; // For sum, just return the total
+    } else if (kpi.formula_type === 'ratio' && kpi.denominator_metric) {
+      const denominator = metricValue(kpi.denominator_metric);
+      return denominator > 0 ? (numerator / denominator) * 100 : 0;
+    }
+
+    return 0;
   };
 
   const loadAnalytics = async () => {
@@ -518,6 +615,47 @@ export default function Analytics() {
         </div>
       </div>
 
+      {/* Custom KPIs */}
+      {customKPIs.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Custom KPIs</h2>
+            <button
+              onClick={() => setShowKPIModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4" />
+              Add KPI
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {customKPIs.map((kpi) => (
+              <CustomKPICard key={kpi.id} kpi={kpi} calculateValue={calculateKPIValue} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {customKPIs.length === 0 && (
+        <div className="mb-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <div className="text-center">
+            <TrendingUp className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Custom KPIs Yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Create custom KPIs to track metrics specific to your workflow.
+            </p>
+            <button
+              onClick={() => setShowKPIModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mx-auto"
+            >
+              <Plus className="w-4 h-4" />
+              Add Custom KPI
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Conversion Funnel */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Conversion Funnel</h2>
@@ -679,6 +817,70 @@ export default function Analytics() {
           </div>
         </div>
       </div>
+
+      {/* Custom KPI Modal */}
+      <CustomKPIModal
+        isOpen={showKPIModal}
+        onClose={() => setShowKPIModal(false)}
+        onSuccess={() => {
+          loadCustomKPIs();
+        }}
+      />
+    </div>
+  );
+}
+
+// Custom KPI Card Component
+interface CustomKPICardProps {
+  kpi: CustomKPI;
+  calculateValue: (kpi: CustomKPI) => Promise<number>;
+}
+
+function CustomKPICard({ kpi, calculateValue }: CustomKPICardProps) {
+  const [value, setValue] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadValue = async () => {
+      setLoading(true);
+      const result = await calculateValue(kpi);
+      setValue(result);
+      setLoading(false);
+    };
+    loadValue();
+  }, [kpi]);
+
+  const formatValue = (): string => {
+    if (value === null) return '...';
+    if (kpi.formula_type === 'ratio') {
+      return `${value.toFixed(1)}%`;
+    }
+    return Math.round(value).toString();
+  };
+
+  const getFormulaDescription = (): string => {
+    if (kpi.formula_type === 'count') {
+      return `Total ${kpi.numerator_metric.replace(/_/g, ' ')}`;
+    } else if (kpi.formula_type === 'ratio') {
+      return `${kpi.numerator_metric.replace(/_/g, ' ')} / ${kpi.denominator_metric?.replace(/_/g, ' ')}`;
+    } else {
+      return `Sum of ${kpi.numerator_metric.replace(/_/g, ' ')}`;
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+          <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+        </div>
+        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{kpi.name}</h3>
+      </div>
+      <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+        {loading ? '...' : formatValue()}
+      </p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">{getFormulaDescription()}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 capitalize">{kpi.period}</p>
     </div>
   );
 }
