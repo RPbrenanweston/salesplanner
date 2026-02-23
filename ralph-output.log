@@ -332,3 +332,30 @@ Iteration 12 complete. Continuing...
 ===============================================================
   Ralph Iteration 13 of 50 (claude)
 ===============================================================
+**What to improve next time:**
+
+1. **OAuth Pattern Consolidation** - Gmail and Outlook OAuth buttons share 95% of code. Future: Create generic `OAuthButton` component with provider configuration props to eliminate duplication.
+
+2. **Backend Token Exchange** - Both callbacks currently close the popup without exchanging the authorization code for tokens. Next iteration should implement Supabase Edge Function to handle token exchange securely server-side.
+
+3. **Connection Status Real-time Updates** - Currently polls on popup close. Consider using Supabase real-time subscriptions to oauth_connections table for instant status updates across tabs.
+
+4. **Environment Variable Documentation** - Add setup instructions to AGENTS.md for acquiring Microsoft OAuth credentials (Azure Portal app registration steps).
+
+★ Insight ─────────────────────────────────────
+**OAuth Abstraction Opportunity**: The pattern is now proven across two providers. The next OAuth integration (Google Calendar, Outlook Calendar, or Salesforce) would benefit from extracting the common logic into a reusable hook or component factory.
+
+**Key differences between providers**:
+- Auth URL structure (Google vs Microsoft endpoints)
+- Scope format (URL-encoded vs space-separated)
+- Error response structure
+
+**Everything else is identical**: popup flow, state management, connection UI, disconnect logic.
+─────────────────────────────────────────────────
+
+🗣️ **PAI:** RPBW, I've successfully implemented Outlook OAuth connection (US-023). Created OutlookOAuthButton component following the Gmail pattern, configured Microsoft Graph API scopes (Mail.Send, Mail.Read, offline_access), integrated into Settings > Integrations, and added the OAuth callback route. All acceptance criteria verified, typecheck passes, and changes committed to ralph/salesblock-io branch.
+Iteration 13 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 14 of 50 (claude)
+===============================================================

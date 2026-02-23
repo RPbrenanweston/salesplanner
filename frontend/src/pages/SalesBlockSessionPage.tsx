@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home } from 'lucide-react';
 import LogActivityModal from '../components/LogActivityModal';
+import ComposeEmailModal from '../components/ComposeEmailModal';
 
 interface Contact {
   id: string;
@@ -51,6 +52,7 @@ export default function SalesBlockSessionPage() {
 
   // Activity modal state
   const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [activityType, setActivityType] = useState<'call' | 'email' | 'social' | 'note'>('call');
 
   // Call script panel state
@@ -598,6 +600,18 @@ export default function SalesBlockSessionPage() {
                 </div>
               )}
 
+              {/* Send Email Button */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Quick Actions</h3>
+                <button
+                  onClick={() => setIsEmailModalOpen(true)}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Mail className="w-5 h-5" />
+                  <span>Send Email</span>
+                </button>
+              </div>
+
               {/* Activity Buttons */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Log Activity</h3>
@@ -700,6 +714,19 @@ export default function SalesBlockSessionPage() {
           orgId={orgId}
           activityType={activityType}
           onSuccess={refreshActivityStatus}
+        />
+      )}
+
+      {/* Compose Email Modal */}
+      {activeContact && (
+        <ComposeEmailModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setIsEmailModalOpen(false)}
+          contact={activeContact}
+          onSuccess={() => {
+            setIsEmailModalOpen(false);
+            refreshActivityStatus();
+          }}
         />
       )}
     </div>

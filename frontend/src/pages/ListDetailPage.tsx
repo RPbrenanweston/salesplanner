@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import ComposeEmailModal from '../components/ComposeEmailModal';
 
 interface Contact {
   id: string;
@@ -35,6 +36,8 @@ export default function ListDetailPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   useEffect(() => {
     if (listId) {
@@ -191,6 +194,11 @@ export default function ListDetailPage() {
     // Navigate to create salesblock with this list pre-selected
     // For now, just navigate to SalesBlocks page (US-014 will implement full create flow)
     navigate('/salesblocks', { state: { preselectedListId: listId } });
+  };
+
+  const handleEmailClick = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsEmailModalOpen(true);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -375,13 +383,22 @@ export default function ListDetailPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleRemoveContact(contact.id)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-                        title="Remove from list"
-                      >
-                        <UserMinus className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEmailClick(contact)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                          title="Send email"
+                        >
+                          <Mail className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveContact(contact.id)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                          title="Remove from list"
+                        >
+                          <UserMinus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -390,6 +407,19 @@ export default function ListDetailPage() {
           </table>
         </div>
       </div>
+
+      {/* Email Modal */}
+      {selectedContact && (
+        <ComposeEmailModal
+          isOpen={isEmailModalOpen}
+          onClose={() => setIsEmailModalOpen(false)}
+          contact={selectedContact}
+          onSuccess={() => {
+            setIsEmailModalOpen(false);
+            loadContacts(); // Refresh to update last activity
+          }}
+        />
+      )}
     </div>
   );
 }
