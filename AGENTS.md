@@ -72,7 +72,10 @@ npm run dev
 - **Auth**: Email+password authentication enabled by default
 - **Schema conventions**:
   - ENUM types for user roles and activity types
-  - JSONB columns for flexible settings/preferences
+  - JSONB columns for flexible settings/preferences (custom_fields, filter_criteria)
   - All foreign keys use CASCADE on DELETE for org hierarchy
-  - SET NULL for optional relationships (division_id, team_id)
+  - SET NULL for optional relationships (division_id, team_id, created_by)
+  - Junction tables use composite primary keys (e.g., `PRIMARY KEY (list_id, contact_id)`)
+  - Position tracking in junction tables with INTEGER column for ordering
 - **RLS**: Row-level security policies enforce org-scoped data access
+- **Triggers**: updated_at triggers for timestamp maintenance on mutable tables

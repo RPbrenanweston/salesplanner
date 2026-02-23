@@ -218,3 +218,32 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Browser verification blocked**: Requires Docker Desktop running + `npm run dev` in frontend/ + Supabase local
   - **Migration not applied**: Docker daemon not running, migration SQL created but not executed (will apply when Docker starts)
 ---
+
+## 2026-02-23 00:22 - US-008 - PAI Iteration 8
+- **Implemented:** Contact and list database schema with junction table and RLS
+- **Files changed:**
+  - Created `supabase/migrations/20260223002106_create_contacts_lists_schema.sql`
+  - Updated `prd.json` (US-008 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Contacts table created with org_id FK, first_name, last_name, email, phone, company, title
+  - Source ENUM (csv, salesforce, manual) for contact attribution
+  - custom_fields JSONB for extensible contact data
+  - created_by FK to track who added the contact
+  - Lists table created with org_id FK, name, description, filter_criteria JSONB, owner_id FK, is_shared boolean
+  - list_contacts junction table with composite PK (list_id, contact_id), added_at, position integer
+  - RLS policies: users see contacts in their org (4 policies for SELECT/INSERT/UPDATE/DELETE)
+  - RLS policies: list owners see their lists, shared lists visible to org members (3 policies)
+  - Indexes on contacts: org_id, email, company, created_by
+  - Indexes on lists: org_id, owner_id
+  - Indexes on list_contacts: list_id, contact_id (for FK joins)
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - **Junction table pattern**: Composite primary key (list_id, contact_id) with position for ordered lists
+  - **JSONB flexibility**: custom_fields (contacts) and filter_criteria (lists) allow schema evolution without migrations
+  - **Source tracking**: contact_source ENUM (csv, salesforce, manual) enables audit trails
+  - **RLS list sharing**: Policy uses OR condition: `owner_id = auth.uid() OR (is_shared = true AND org_id = user's org)`
+  - **Cascading deletes**: contacts CASCADE on org deletion; list_contacts CASCADE on both list and contact deletion
+  - **SET NULL pattern**: created_by uses SET NULL to preserve contact when creator deleted
+  - **Updated_at triggers**: Created separate trigger functions for contacts and lists (pattern from existing schema)
+  - **Migration not applied**: Docker daemon not running (same as US-007), will execute when Docker Desktop starts
+---
