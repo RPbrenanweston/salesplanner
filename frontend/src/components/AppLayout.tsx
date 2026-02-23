@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import { supabase } from '../lib/supabase'
+import TrialExpiryBanner from './TrialExpiryBanner'
 
 interface NavItem {
   name: string
@@ -240,6 +241,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-auto">
+        <TrialExpiryBanner />
         {children}
       </main>
     </div>

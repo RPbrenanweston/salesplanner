@@ -23,6 +23,7 @@ import OutlookOAuthCallback from './pages/OutlookOAuthCallback'
 import GoogleCalendarOAuthCallback from './pages/GoogleCalendarOAuthCallback'
 import OutlookCalendarOAuthCallback from './pages/OutlookCalendarOAuthCallback'
 import SalesforceOAuthCallback from './pages/SalesforceOAuthCallback'
+import PricingPage from './pages/PricingPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 
@@ -41,6 +42,7 @@ function App() {
           <Route path="/oauth/google-calendar/callback" element={<GoogleCalendarOAuthCallback />} />
           <Route path="/oauth/outlook-calendar/callback" element={<OutlookCalendarOAuthCallback />} />
           <Route path="/oauth/salesforce/callback" element={<SalesforceOAuthCallback />} />
+          <Route path="/pricing" element={<PricingPage />} />
 
           {/* Protected routes with AppLayout */}
           <Route
