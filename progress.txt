@@ -7,6 +7,8 @@ Started: Sun Feb 22 23:45:27 GMT 2026
 - **Email Auth**: Email+password authentication enabled by default in config.toml
 - **Schema Design**: ENUM types for user roles; JSONB for flexible settings/preferences
 - **Foreign Keys**: All FKs use CASCADE on DELETE for org hierarchy; SET NULL for optional relationships
+- **Filter UI Pattern**: Dynamic arrays with crypto.randomUUID() IDs, add/remove/update functions for managing complex filter criteria
+- **JSONB Storage for Filters**: Store filter criteria as JSONB in database for flexibility; allows future extension without schema migrations
 
 ---
 
