@@ -79,3 +79,13 @@ npm run dev
   - Position tracking in junction tables with INTEGER column for ordering
 - **RLS**: Row-level security policies enforce org-scoped data access
 - **Triggers**: updated_at triggers for timestamp maintenance on mutable tables
+
+### OAuth Integration Patterns (US-022+)
+- **OAuth connections table**: Stores provider, access_token, refresh_token, expires_at with RLS (users see only their own)
+- **Popup OAuth flow**: `window.open()` launches OAuth in centered popup, parent polls for closure with setInterval
+- **OAuth URL construction**: Provider-specific endpoints with client_id, redirect_uri, scope, state (JSON-encoded user context)
+- **Callback handler**: Dedicated route (`/oauth/{provider}/callback`) parses code/state, closes popup or redirects
+- **Token exchange**: Should happen in backend (Supabase Edge Function) for security - frontend only initiates flow
+- **Connection UI pattern**: Icon + provider name + status badge + email + Connect/Disconnect button
+- **Integration grouping**: Settings > Integrations tab organizes by Email, Calendar, CRM sections
+- **Environment variables**: Provider-specific client IDs (e.g., `VITE_GMAIL_CLIENT_ID`) required for OAuth
