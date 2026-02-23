@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Upload, Plus, List, RefreshCw, Users } from 'lucide-react';
 import ImportCSVModal from '../components/ImportCSVModal';
 import { AddContactModal } from '../components/AddContactModal';
@@ -21,6 +22,7 @@ interface ListRecord {
 }
 
 export default function Lists() {
+  const navigate = useNavigate();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [isListBuilderOpen, setIsListBuilderOpen] = useState(false);
@@ -192,6 +194,7 @@ export default function Lists() {
                 lists.map((list) => (
                   <tr
                     key={list.id}
+                    onClick={() => navigate(`/lists/${list.id}`)}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
                   >
                     <td className="px-6 py-4">
