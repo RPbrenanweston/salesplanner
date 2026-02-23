@@ -333,3 +333,23 @@ Iteration 13 complete. Continuing...
 ===============================================================
   Ralph Iteration 14 of 50 (claude)
 ===============================================================
+**Key learnings captured:**
+
+1. **Webhook Security** — Stripe signature verification is critical; always use `stripe.webhooks.constructEvent()` to prevent replay attacks
+2. **Metadata Routing** — Store `org_id` and `user_id` in Checkout Session metadata to correlate webhook events with database records
+3. **Subscription Status Mapping** — Map Stripe's subscription statuses to our internal enum (trial, active, past_due, canceled)
+4. **Portal Pattern** — Customer Portal session creates a redirect URL for Stripe-hosted billing management
+5. **Lazy Tab Loading** — Use `activeTab` in `useEffect` dependencies to load billing data only when Billing tab is visible
+
+🗣️ **PAI:** I've successfully implemented US-044: Stripe webhook handling and subscription management. Created a webhook Edge Function that verifies signatures and updates database on payment events, plus a complete Billing tab in Settings showing current plan, next billing date, Customer Portal link, and subscription cancellation. All 8 ISC criteria passed, including typecheck. Ready for the next story!
+
+★ Insight ─────────────────────────────────────
+- **Webhook Security**: Stripe webhooks MUST verify signatures using `stripe.webhooks.constructEvent()` with the webhook secret. This prevents attackers from forging events and manipulating subscription status.
+- **Customer Portal Pattern**: Stripe provides a hosted billing portal. Rather than building custom payment method UI, use `stripe.billingPortal.sessions.create()` to generate a session URL and redirect. This handles PCI compliance automatically.
+- **Metadata as Routing**: Checkout Session metadata (`org_id`, `user_id`) acts as a routing key to correlate webhook events (which only include Stripe IDs) back to your database records. Always populate this on session creation.
+─────────────────────────────────────────────────
+Iteration 14 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 15 of 50 (claude)
+===============================================================

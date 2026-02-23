@@ -7,7 +7,7 @@ import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import OutlookCalendarOAuthButton from '../components/OutlookCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
 
-type Tab = 'profile' | 'organization' | 'integrations' | 'pipeline' | 'billing'
+type Tab = 'profile' | 'organization' | 'team' | 'integrations' | 'pipeline' | 'billing'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('profile')
@@ -47,6 +47,32 @@ export default function SettingsPage() {
   })
   const [loadingBilling, setLoadingBilling] = useState(false)
 
+  // Team & Invitations state
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [teamMembers, setTeamMembers] = useState<{
+    id: string
+    email: string
+    display_name: string
+    role: string
+    team_id: string | null
+  }[]>([])
+  const [teamInvitations, setTeamInvitations] = useState<{
+    id: string
+    email: string
+    role: string
+    status: string
+    invited_by: string
+    created_at: string
+    expires_at: string
+  }[]>([])
+  const [loadingTeam, setLoadingTeam] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState<'sdr' | 'ae' | 'manager'>('sdr')
+  const [inviteTeamId, setInviteTeamId] = useState<string | null>(null)
+  const [availableTeams, setAvailableTeams] = useState<{ id: string; name: string }[]>([])
+  const [sendingInvite, setSendingInvite] = useState(false)
+
   // Load organization data
   useEffect(() => {
     const loadOrgData = async () => {
@@ -54,13 +80,14 @@ export default function SettingsPage() {
 
       const { data: userData } = await supabase
         .from('users')
-        .select('org_id')
+        .select('org_id, role')
         .eq('id', user.id)
         .single()
 
       if (!userData?.org_id) return
 
       setOrgId(userData.org_id)
+      setUserRole(userData.role)
 
       const { data: orgData } = await supabase
         .from('organizations')
@@ -111,6 +138,64 @@ export default function SettingsPage() {
 
     loadPipelineStages()
   }, [user, activeTab])
+
+  // Load team data for Team tab
+  useEffect(() => {
+    const loadTeamData = async () => {
+      if (!user || activeTab !== 'team' || userRole !== 'manager') return
+
+      setLoadingTeam(true)
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('org_id, team_id')
+          .eq('id', user.id)
+          .single()
+
+        if (!userData?.org_id) return
+
+        // Load team members
+        const { data: members } = await supabase
+          .from('users')
+          .select('id, email, display_name, role, team_id')
+          .eq('org_id', userData.org_id)
+          .order('display_name')
+
+        if (members) {
+          setTeamMembers(members)
+        }
+
+        // Load pending invitations
+        const { data: invites } = await supabase
+          .from('team_invitations')
+          .select('id, email, role, status, invited_by, created_at, expires_at')
+          .eq('org_id', userData.org_id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+
+        if (invites) {
+          setTeamInvitations(invites)
+        }
+
+        // Load available teams
+        const { data: teams } = await supabase
+          .from('teams')
+          .select('id, name')
+          .eq('org_id', userData.org_id)
+          .order('name')
+
+        if (teams) {
+          setAvailableTeams(teams)
+        }
+      } catch (error) {
+        console.error('Error loading team data:', error)
+      } finally {
+        setLoadingTeam(false)
+      }
+    }
+
+    loadTeamData()
+  }, [user, activeTab, userRole])
 
   // Load billing data for Billing tab
   useEffect(() => {
@@ -402,6 +487,103 @@ export default function SettingsPage() {
     }
   }
 
+  const handleSendInvite = async () => {
+    if (!inviteEmail || !orgId) {
+      alert('Please enter an email address')
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(inviteEmail)) {
+      alert('Please enter a valid email address')
+      return
+    }
+
+    setSendingInvite(true)
+    try {
+      // Create invitation record
+      const { data: invitation, error: inviteError } = await supabase
+        .from('team_invitations')
+        .insert({
+          org_id: orgId,
+          team_id: inviteTeamId,
+          email: inviteEmail,
+          role: inviteRole,
+          invited_by: user!.id,
+        })
+        .select()
+        .single()
+
+      if (inviteError) throw inviteError
+
+      // Send magic link via Supabase Edge Function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-team-invitation`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            invitation_id: invitation.id,
+            email: inviteEmail,
+            org_id: orgId,
+            team_id: inviteTeamId,
+            role: inviteRole,
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Failed to send invitation email')
+      }
+
+      alert(`Invitation sent to ${inviteEmail}`)
+
+      // Reset form
+      setInviteEmail('')
+      setInviteRole('sdr')
+      setInviteTeamId(null)
+      setShowInviteModal(false)
+
+      // Reload team data
+      setActiveTab('team')
+    } catch (error: any) {
+      console.error('Error sending invitation:', error)
+      if (error.message?.includes('duplicate')) {
+        alert('An invitation has already been sent to this email address')
+      } else {
+        alert('Failed to send invitation. Please try again.')
+      }
+    } finally {
+      setSendingInvite(false)
+    }
+  }
+
+  const handleCancelInvite = async (inviteId: string) => {
+    if (!confirm('Are you sure you want to cancel this invitation?')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('team_invitations')
+        .delete()
+        .eq('id', inviteId)
+
+      if (error) throw error
+
+      // Reload invitations
+      setTeamInvitations(invites => invites.filter(i => i.id !== inviteId))
+      alert('Invitation cancelled')
+    } catch (error) {
+      console.error('Error cancelling invitation:', error)
+      alert('Failed to cancel invitation. Please try again.')
+    }
+  }
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
@@ -431,6 +613,18 @@ export default function SettingsPage() {
           >
             Organization
           </button>
+          {userRole === 'manager' && (
+            <button
+              onClick={() => setActiveTab('team')}
+              className={`${
+                activeTab === 'team'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+            >
+              Team
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('integrations')}
             className={`${
@@ -553,6 +747,211 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'team' && userRole === 'manager' && (
+        <div className="max-w-4xl">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Team Management
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Invite team members and manage access to your organization.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Invite Member
+            </button>
+          </div>
+
+          {loadingTeam ? (
+            <div className="text-gray-500 dark:text-gray-400">Loading team data...</div>
+          ) : (
+            <>
+              {/* Pending Invitations */}
+              {teamInvitations.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Pending Invitations ({teamInvitations.length})
+                  </h3>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Email
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Role
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Expires
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                        {teamInvitations.map((invite) => (
+                          <tr key={invite.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                              {invite.email}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                              <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                                {invite.role.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                              {new Date(invite.expires_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <button
+                                onClick={() => handleCancelInvite(invite.id)}
+                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                Cancel
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Team Members */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Team Members ({teamMembers.length})
+                </h3>
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Role
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                      {teamMembers.map((member) => (
+                        <tr key={member.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            {member.display_name}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            {member.email}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded">
+                              {member.role.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Invite Modal */}
+          {showInviteModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Invite Team Member
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="colleague@company.com"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Role
+                    </label>
+                    <select
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value as 'sdr' | 'ae' | 'manager')}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                    >
+                      <option value="sdr">SDR - Sales Development Rep</option>
+                      <option value="ae">AE - Account Executive</option>
+                      <option value="manager">Manager</option>
+                    </select>
+                  </div>
+
+                  {availableTeams.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Team (Optional)
+                      </label>
+                      <select
+                        value={inviteTeamId || ''}
+                        onChange={(e) => setInviteTeamId(e.target.value || null)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                      >
+                        <option value="">No team assignment</option>
+                        {availableTeams.map((team) => (
+                          <option key={team.id} value={team.id}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 flex items-center justify-end space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowInviteModal(false)
+                      setInviteEmail('')
+                      setInviteRole('sdr')
+                      setInviteTeamId(null)
+                    }}
+                    disabled={sendingInvite}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendInvite}
+                    disabled={sendingInvite || !inviteEmail}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingInvite ? 'Sending...' : 'Send Invitation'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

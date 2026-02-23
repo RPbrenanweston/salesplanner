@@ -988,3 +988,29 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - TrialExpiryBanner checks trial_ends_at and shows warnings at 7 days or less
   - Trial banner is dismissible until expiry, then becomes permanent red banner
 ---
+## 2026-02-23 07:59 - US-044 - PAI Iteration 34
+- **Implemented:** Stripe webhook handling and subscription management with Billing tab in Settings
+- **Files changed:**
+  - Created `supabase/functions/handle-stripe-webhook/index.ts`
+  - Modified `frontend/src/pages/SettingsPage.tsx`
+  - Updated `prd.json` (US-044 passes: true)
+- **ISC Status:** ✅ All 8 criteria passed
+  - Supabase Edge Function handles 4 Stripe webhook types (checkout.session.completed, customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed)
+  - Webhook verifies signature using stripe.webhooks.constructEvent() to prevent replay attacks
+  - After payment, updates organizations.stripe_customer_id and users.subscription_status
+  - Settings > Billing tab displays current plan (role + subscription_status)
+  - Billing tab shows next billing date from Stripe subscription
+  - "Manage Payment Method" button opens Stripe Customer Portal (via create-portal-session Edge Function)
+  - "Cancel Subscription" button with confirmation dialog cancels at period end (via cancel-subscription Edge Function)
+  - Team plans informational note: billed per seat per role (SDR $3.50/wk, AE $4.50/wk, Manager $5.50/wk)
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - **Webhook Security Pattern**: Always verify Stripe signature with stripe.webhooks.constructEvent() before processing; return 400 on signature failure
+  - **Metadata Routing**: Store org_id and user_id in Stripe Checkout Session metadata to correlate webhooks with database records
+  - **Edge Function Auth**: Billing-related Edge Functions (get-billing-info, create-portal-session, cancel-subscription) require Authorization header with Supabase session token
+  - **Customer Lookup**: Find org by stripe_customer_id (indexed) when processing subscription webhooks; log error if not found
+  - **Subscription Status Mapping**: Map Stripe subscription.status (trialing, active, past_due, canceled, etc.) to our subscription_status enum
+  - **Portal Redirect Pattern**: create-portal-session returns {url} for window.location.href redirect; opens Stripe-hosted billing management
+  - **Tab State Management**: activeTab triggers useEffect for lazy loading data only when tab becomes visible (avoid unnecessary fetches)
+  - **Billing UI Pattern**: Current plan + next billing date + Customer Portal link + Cancel subscription; informational note for team pricing
+---
