@@ -52,11 +52,20 @@ npm run dev
 - **Project structure**: `frontend/` subdirectory contains the React app
 - **Type definitions**: Must include `src/vite-env.d.ts` with `/// <reference types="vite/client" />` for env type support
 - **Environment variables**: Use `VITE_` prefix (e.g., `VITE_SUPABASE_URL`) and access via `import.meta.env`
+- **Environment file location**: `frontend/.env` (dev server must restart after changes)
 - **Styling**: Tailwind CSS with `darkMode: 'class'` strategy for manual dark mode toggling
 - **Routing**: React Router v6 with BrowserRouter wrapping all routes
 - **Data fetching**: TanStack Query (React Query) provider wraps the entire app in `App.tsx`
 - **Supabase client**: Centralized in `src/lib/supabase.ts` using environment variables
 - **Dev server**: Runs on port 3000 (configured in `vite.config.ts`)
+
+### Authentication Patterns (Supabase Auth)
+- **Auth hook**: `src/hooks/useAuth.ts` provides centralized auth state (user, session, signOut)
+- **Session management**: Supabase handles persistence automatically with getSession() + onAuthStateChange listener
+- **Protected routes**: `src/components/ProtectedRoute.tsx` wraps protected pages, redirects to /signin if unauthenticated
+- **Sign-up flow**: Creates auth user → organization record → user record with manager role in sequence
+- **Auth pages**: SignIn (`/signin`), SignUp (`/signup`), ForgotPassword (`/forgot-password`)
+- **Sign-out**: Calls `supabase.auth.signOut()` and navigates to `/signin`
 
 ### Backend Architecture (Supabase)
 - **Database**: PostgreSQL via Supabase with migrations in `supabase/migrations/`

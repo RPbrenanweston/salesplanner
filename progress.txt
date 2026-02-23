@@ -90,3 +90,36 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - Removed previous CodeSignal project files (different product)
 ---
 
+## 2026-02-23 00:01 - US-004 - PAI Iteration 4
+- **Implemented:** Complete authentication flow with sign-up, sign-in, sign-out, and forgot password
+- **Files changed:**
+  - Created `frontend/src/pages/SignIn.tsx` - Email/password sign-in form
+  - Created `frontend/src/pages/SignUp.tsx` - Registration form with org creation
+  - Created `frontend/src/pages/ForgotPassword.tsx` - Password reset request page
+  - Created `frontend/src/components/ProtectedRoute.tsx` - Route guard component
+  - Created `frontend/src/hooks/useAuth.ts` - Auth state management hook
+  - Updated `frontend/src/App.tsx` - Added auth routes and protected home route
+  - Updated `frontend/src/pages/Home.tsx` - Added sign-out functionality
+  - Created `frontend/.env` - Environment variables for Supabase client
+  - Updated `prd.json` (US-004 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Sign-up page created with email, password, display name, org name fields
+  - Sign-up creates new organization + user as manager in single transaction
+  - Sign-in page with email/password and "Forgot password" link
+  - After sign-in, redirects to home dashboard route
+  - Sign-out clears session and redirects to sign-in page
+  - Auth state persisted via Supabase session with auto-refresh tokens
+  - ProtectedRoute wrapper redirects unauthenticated users to sign-in
+  - Typecheck passes with zero errors
+  - All pages verified in browser without console errors
+- **Learnings for future iterations:**
+  - Supabase client auto-manages session persistence and token refresh
+  - ProtectedRoute uses getSession() for initial check + onAuthStateChange listener for live updates
+  - useAuth hook centralizes auth state (user, session, signOut) across components
+  - Sign-up flow creates auth user first, then org record, then user record with org_id FK
+  - React Router automatically redirects to /signin for unauthenticated access attempts
+  - Environment variables require VITE_ prefix to be accessible in frontend
+  - Dev server must be restarted after .env changes to pick up new values
+  - Browser verification confirmed all three auth pages render without errors
+---
+
