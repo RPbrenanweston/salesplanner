@@ -359,3 +359,65 @@ Iteration 13 complete. Continuing...
 ===============================================================
   Ralph Iteration 14 of 50 (claude)
 ===============================================================
+**Learnings for future iterations:**
+
+1. **Base64url encoding complexity** - Gmail API requires non-standard base64url encoding (- instead of +, _ instead of /, no padding =). Created reusable encoding pattern for future email features.
+
+2. **Dual OAuth provider support** - Checked for either gmail OR outlook in oauth_connections, allowing users to connect whichever email provider they prefer. Query pattern: `.in('provider', ['gmail', 'outlook']).maybeSingle()` handles both cases elegantly.
+
+3. **Template usage analytics foundation** - Incrementing `times_used` after each send sets up future analytics (US-021 acceptance criteria mentions usage stats). This forward-thinking pattern will enable "most effective templates" insights later.
+
+4. **Two distinct email actions** - "Send Email" (blue, API-based) vs "Log Email" (gray, manual logging). This UX distinction prevents confusion - sending is primary action, logging is for manual record-keeping.
+
+5. **RFC 2822 message format** - Gmail requires proper email format with headers (To, Subject, Content-Type) and blank line before body. This standard format ensures deliverability and proper threading.
+
+6. **Error handling for OAuth** - Both Gmail and Outlook may return 401 on expired tokens. Future iteration (token refresh logic) should catch 401 and attempt refresh_token exchange before failing.
+
+🗣️ **PAI:** I've successfully implemented one-to-one email sending for SalesBlock.io. The system now allows reps to compose and send emails directly from contact detail pages and the salesblock session cockpit. Email buttons are integrated in both ListDetailPage and SalesBlockSessionPage. The ComposeEmailModal component supports template selection with automatic variable substitution (first_name, last_name, company, title), sends via either Gmail or Outlook OAuth connections, and auto-logs activities after successful sends. All acceptance criteria are met, typecheck passes with zero errors, and the implementation follows established OAuth patterns from US-022 and US-023. US-024 is complete and committed.
+Iteration 14 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 15 of 50 (claude)
+===============================================================
+Excellent! US-025 is complete. The only uncommitted file is `ralph-output.log` which is auto-generated and not part of the codebase.
+
+━━━ 📚 LEARN ━━━ 7/7
+
+**Key learnings from this iteration:**
+
+1. **Edge Function Integration Pattern** - Created async background job using Supabase Edge Functions with service role key for admin access. Cron scheduling via CLI enables periodic execution without frontend involvement.
+
+2. **Email Thread Tracking** - Implemented dual-provider reply detection:
+   - **Gmail**: Thread ID from send response → fetch thread → check message count
+   - **Outlook**: Create-then-send pattern for conversation ID → filter messages by conversationId + sender
+
+3. **Schema Evolution** - Added nullable fields (thread_id, conversation_id, replied_at) with conditional indexes. Preserves backward compatibility while enabling new functionality.
+
+4. **TypeScript Error Resolution** - Syntax error from extra closing bracket `],` instead of `},` in object array. Careful attention to brace matching prevents subtle parser errors.
+
+5. **API Response Patterns** - Gmail returns threadId in send response; Outlook requires separate create + send calls to access conversation metadata.
+
+6. **Future Enhancement Planning** - Documented template_id requirement for reply_count aggregation. TODO comments preserve implementation context for next iterations.
+
+🗣️ **PAI:** I've successfully completed US-025 - Email reply tracking background job. The implementation includes:
+
+✅ Supabase Edge Function polling Gmail/Outlook every 5 minutes
+✅ Thread/conversation ID tracking from sent emails  
+✅ Reply timestamp detection and storage
+✅ No tracking pixels (preserves deliverability)
+✅ All tests passing, code committed
+
+The system now automatically detects when contacts reply to emails, enabling better follow-up workflows and template effectiveness metrics. Next iteration will continue with the remaining stories in the PRD.
+Iteration 15 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 16 of 50 (claude)
+===============================================================
+✅ VERIFY: Progress entry appended to progress.txt with full implementation details and learnings
+
+🗣️ PAI: US-026 story complete and documented. Progress entry added to progress.txt with implementation details, file changes, ISC status, and learnings for future iterations. All 4 files modified and 1 file created (LogSocialActivityModal.tsx). Typecheck passed with zero errors. Ready for next story when you are.
+Iteration 16 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 17 of 50 (claude)
+===============================================================

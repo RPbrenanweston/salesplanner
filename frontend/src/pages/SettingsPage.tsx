@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import GmailOAuthButton from '../components/GmailOAuthButton'
 import OutlookOAuthButton from '../components/OutlookOAuthButton'
+import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 
 type Tab = 'profile' | 'organization' | 'integrations'
 
@@ -309,20 +310,7 @@ export default function SettingsPage() {
               Calendar
             </h3>
             <div className="space-y-4">
-              {/* Google Calendar placeholder for US-027 */}
-              <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 opacity-50">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded">
-                    <span className="text-sm font-medium text-green-600 dark:text-green-400">G</span>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">Google Calendar</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Coming soon
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <GoogleCalendarOAuthButton />
               {/* Outlook Calendar placeholder for US-028 */}
               <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 opacity-50">
                 <div className="flex items-center space-x-3">
