@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail } from 'lucide-react';
+import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 import ComposeEmailModal from '../components/ComposeEmailModal';
+import LogSocialActivityModal from '../components/LogSocialActivityModal';
 
 interface Contact {
   id: string;
@@ -28,6 +30,7 @@ type SortDirection = 'asc' | 'desc';
 export default function ListDetailPage() {
   const { listId } = useParams<{ listId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [listDetail, setListDetail] = useState<ListDetail | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -37,7 +40,9 @@ export default function ListDetailPage() {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [orgId, setOrgId] = useState<string>('');
 
   useEffect(() => {
     if (listId) {
@@ -45,6 +50,26 @@ export default function ListDetailPage() {
       loadContacts();
     }
   }, [listId]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    async function loadOrgId() {
+      const { data, error } = await supabase
+        .from('users')
+        .select('org_id')
+        .eq('id', user!.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading org_id:', error);
+      } else if (data) {
+        setOrgId(data.org_id);
+      }
+    }
+
+    loadOrgId();
+  }, [user]);
 
   useEffect(() => {
     // Filter contacts based on search query
@@ -199,6 +224,11 @@ export default function ListDetailPage() {
   const handleEmailClick = (contact: Contact) => {
     setSelectedContact(contact);
     setIsEmailModalOpen(true);
+  };
+
+  const handleSocialClick = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsSocialModalOpen(true);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -392,6 +422,13 @@ export default function ListDetailPage() {
                           <Mail className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleSocialClick(contact)}
+                          className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300"
+                          title="Log social activity"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleRemoveContact(contact.id)}
                           className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                           title="Remove from list"
@@ -416,6 +453,22 @@ export default function ListDetailPage() {
           contact={selectedContact}
           onSuccess={() => {
             setIsEmailModalOpen(false);
+            loadContacts(); // Refresh to update last activity
+          }}
+        />
+      )}
+
+      {/* Social Activity Modal */}
+      {selectedContact && user && (
+        <LogSocialActivityModal
+          isOpen={isSocialModalOpen}
+          onClose={() => setIsSocialModalOpen(false)}
+          contactId={selectedContact.id}
+          salesblockId={null}
+          userId={user.id}
+          orgId={orgId}
+          onSuccess={() => {
+            setIsSocialModalOpen(false);
             loadContacts(); // Refresh to update last activity
           }}
         />

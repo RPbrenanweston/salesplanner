@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home } from 'lucide-react';
 import LogActivityModal from '../components/LogActivityModal';
+import LogSocialActivityModal from '../components/LogSocialActivityModal';
 import ComposeEmailModal from '../components/ComposeEmailModal';
 
 interface Contact {
@@ -52,8 +53,9 @@ export default function SalesBlockSessionPage() {
 
   // Activity modal state
   const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [activityType, setActivityType] = useState<'call' | 'email' | 'social' | 'note'>('call');
+  const [activityType, setActivityType] = useState<'call' | 'email' | 'note'>('call');
 
   // Call script panel state
   const [scriptExpanded, setScriptExpanded] = useState(false);
@@ -221,9 +223,13 @@ export default function SalesBlockSessionPage() {
     setContacts(newContacts);
   };
 
-  const openActivityModal = (type: 'call' | 'email' | 'social' | 'note') => {
+  const openActivityModal = (type: 'call' | 'email' | 'note') => {
     setActivityType(type);
     setActivityModalOpen(true);
+  };
+
+  const openSocialModal = () => {
+    setIsSocialModalOpen(true);
   };
 
   const refreshActivityStatus = async () => {
@@ -631,7 +637,7 @@ export default function SalesBlockSessionPage() {
                     <span>Log Email</span>
                   </button>
                   <button
-                    onClick={() => openActivityModal('social')}
+                    onClick={openSocialModal}
                     className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     <Share2 className="w-5 h-5" />
@@ -713,6 +719,19 @@ export default function SalesBlockSessionPage() {
           userId={user!.id}
           orgId={orgId}
           activityType={activityType}
+          onSuccess={refreshActivityStatus}
+        />
+      )}
+
+      {/* Social Activity Modal */}
+      {activeContact && (
+        <LogSocialActivityModal
+          isOpen={isSocialModalOpen}
+          onClose={() => setIsSocialModalOpen(false)}
+          contactId={activeContact.id}
+          salesblockId={salesblockId}
+          userId={user!.id}
+          orgId={orgId}
           onSuccess={refreshActivityStatus}
         />
       )}
