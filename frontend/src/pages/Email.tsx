@@ -1,11 +1,11 @@
-export default function Home() {
+export default function Email() {
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-        Home Dashboard
+        Email
       </h1>
       <p className="text-gray-600 dark:text-gray-400">
-        Welcome to SalesBlock - Your Sales Productivity Cockpit
+        Send and track email outreach
       </p>
     </div>
   )
