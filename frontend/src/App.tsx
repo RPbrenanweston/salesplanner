@@ -14,6 +14,7 @@ import Goals from './pages/Goals'
 import Analytics from './pages/Analytics'
 import Team from './pages/Team'
 import SettingsPage from './pages/SettingsPage'
+import SalesBlockSessionPage from './pages/SalesBlockSessionPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 
@@ -46,6 +47,14 @@ function App() {
                 <AppLayout>
                   <SalesBlocks />
                 </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/salesblocks/:salesblockId/session"
+            element={
+              <ProtectedRoute>
+                <SalesBlockSessionPage />
               </ProtectedRoute>
             }
           />
