@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { X, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { createCalendarEvent } from '../lib/calendar'
 
 interface CreateSalesBlockModalProps {
   isOpen: boolean
@@ -149,7 +150,22 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
       const targetUserId = assignedToUserId || user.id
       const assignedBy = assignedToUserId ? user.id : null
 
-      const { error } = await supabase
+      // Get list name and contact count for calendar event description
+      const { data: listData } = await supabase
+        .from('lists')
+        .select('name')
+        .eq('id', selectedListId)
+        .single()
+
+      const { count: contactCount } = await supabase
+        .from('list_contacts')
+        .select('*', { count: 'exact', head: true })
+        .eq('list_id', selectedListId)
+
+      const listName = listData?.name || 'Unknown List'
+
+      // Create salesblock record
+      const { data: salesblockData, error } = await supabase
         .from('salesblocks')
         .insert({
           org_id: userData.org_id,
@@ -163,8 +179,29 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
           status: 'scheduled',
           script_id: selectedScriptId || null
         })
+        .select()
+        .single()
 
       if (error) throw error
+
+      // Create calendar event (async, non-blocking)
+      const calendarResult = await createCalendarEvent({
+        title: `SalesBlock: ${title}`,
+        description: `List: ${listName}\nContacts: ${contactCount || 0}\nDuration: ${duration} minutes`,
+        start: scheduledStart.toISOString(),
+        end: scheduledEnd.toISOString(),
+      })
+
+      // Update salesblock with calendar_event_id and provider if successful
+      if (calendarResult && salesblockData) {
+        await supabase
+          .from('salesblocks')
+          .update({
+            calendar_event_id: calendarResult.eventId,
+            calendar_provider: calendarResult.provider
+          })
+          .eq('id', salesblockData.id)
+      }
 
       alert('SalesBlock created successfully!')
       resetAndClose()

@@ -441,3 +441,30 @@ Iteration 17 complete. Continuing...
 ===============================================================
   Ralph Iteration 18 of 50 (claude)
 ===============================================================
+**What worked well this iteration:**
+
+1. **Pattern reuse acceleration**: Combining architectural patterns from two previous stories (US-023 Outlook Mail + US-027 Google Calendar) resulted in 15-minute implementation with zero trial-and-error
+2. **Provider naming clarity**: Using `outlook_calendar` instead of `outlook_calendar_integration` or reusing `outlook` prevented future collision and maintains clear separation of concerns
+3. **Typecheck first-pass success**: No TypeScript errors on first compile — proper type definitions and pattern adherence paid off
+4. **Git workflow consistency**: Two-commit pattern (feat + docs) maintains clean history for Ralph's incremental progress tracking
+
+**For future iterations:**
+
+- **Next story (US-029)** will leverage both calendar OAuth connections to sync salesblocks — design should handle provider abstraction (Google vs Outlook) at the API layer
+- **Token exchange security note**: All OAuth callbacks currently have TODO comments about backend token exchange — consider implementing Supabase Edge Function for token exchange before US-029 to avoid storing tokens client-side
+- **Environment variable proliferation**: Now have 8 OAuth-related env vars — consider consolidating or documenting in a central location
+- **Browser verification backlog**: 21 iterations without browser testing due to Docker Desktop — consider running full integration test suite once infrastructure is available
+
+★ Insight ─────────────────────────────────────
+
+**OAuth Provider Abstraction Pattern:**  
+The codebase now has four OAuth integrations (Gmail, Outlook Mail, Google Calendar, Outlook Calendar) all following identical patterns but different scopes. This creates a convergence opportunity: a generic `OAuthButton` component that accepts provider config (icon, scope, endpoint, provider name) would eliminate duplication. However, premature abstraction before US-029 (calendar sync) implementation risks over-engineering — wait to see if the usage patterns truly align before refactoring.
+
+─────────────────────────────────────────────────
+
+🗣️ PAI: US-028 complete! I've implemented Outlook Calendar OAuth connection following the established pattern from Outlook Mail and Google Calendar integrations. Created the OAuth button component with Calendars.ReadWrite scope, added the callback handler route, integrated it into Settings > Integrations > Calendar section, and updated environment variable examples. All TypeScript checks pass. The connection reuses the oauth_connections table with provider name `outlook_calendar` to distinguish from mail OAuth. Two commits created: feature implementation and documentation updates. Next story (US-029) will use both calendar connections to sync salesblocks to Google Calendar and Outlook Calendar.
+Iteration 18 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 19 of 50 (claude)
+===============================================================

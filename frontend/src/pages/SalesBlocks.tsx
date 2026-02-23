@@ -4,6 +4,7 @@ import { Plus, Play, Edit, X, Users, User } from 'lucide-react'
 import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { deleteCalendarEvent } from '../lib/calendar'
 
 type TabType = 'upcoming' | 'in_progress' | 'completed' | 'all'
 type ViewType = 'my' | 'team'
@@ -17,6 +18,8 @@ interface SalesBlock {
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
   list_id: string
   user_id: string
+  calendar_event_id?: string | null
+  calendar_provider?: 'google_calendar' | 'outlook_calendar' | null
   list?: { name: string }
   // For completed blocks stats
   contact_count?: number
@@ -175,12 +178,26 @@ export default function SalesBlocks() {
     if (!confirm('Are you sure you want to cancel this salesblock?')) return
 
     try {
+      // Fetch salesblock to get calendar_event_id and provider
+      const { data: salesblock } = await supabase
+        .from('salesblocks')
+        .select('calendar_event_id, calendar_provider')
+        .eq('id', salesblockId)
+        .single()
+
+      // Update status to cancelled
       const { error } = await supabase
         .from('salesblocks')
         .update({ status: 'cancelled' })
         .eq('id', salesblockId)
 
       if (error) throw error
+
+      // Delete calendar event if exists
+      if (salesblock?.calendar_event_id && salesblock?.calendar_provider) {
+        await deleteCalendarEvent(salesblock.calendar_event_id, salesblock.calendar_provider)
+      }
+
       loadSalesblocks()
     } catch (error) {
       console.error('Error cancelling salesblock:', error)
