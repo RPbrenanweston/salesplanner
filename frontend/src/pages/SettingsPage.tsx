@@ -73,6 +73,27 @@ export default function SettingsPage() {
   const [availableTeams, setAvailableTeams] = useState<{ id: string; name: string }[]>([])
   const [sendingInvite, setSendingInvite] = useState(false)
 
+  // Hierarchy management state
+  const [divisions, setDivisions] = useState<{
+    id: string
+    name: string
+    org_id: string
+  }[]>([])
+  const [teams, setTeams] = useState<{
+    id: string
+    name: string
+    division_id: string | null
+    org_id: string
+  }[]>([])
+  const [loadingHierarchy, setLoadingHierarchy] = useState(false)
+  const [editingDivisionId, setEditingDivisionId] = useState<string | null>(null)
+  const [editingDivisionName, setEditingDivisionName] = useState('')
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null)
+  const [editingTeamName, setEditingTeamName] = useState('')
+  const [newDivisionName, setNewDivisionName] = useState('')
+  const [newTeamName, setNewTeamName] = useState('')
+  const [newTeamDivisionId, setNewTeamDivisionId] = useState<string | null>(null)
+
   // Load organization data
   useEffect(() => {
     const loadOrgData = async () => {
@@ -196,6 +217,63 @@ export default function SettingsPage() {
 
     loadTeamData()
   }, [user, activeTab, userRole])
+
+  // Load hierarchy data for Organization tab
+  useEffect(() => {
+    const loadHierarchyData = async () => {
+      if (!user || activeTab !== 'organization') return
+
+      setLoadingHierarchy(true)
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('org_id')
+          .eq('id', user.id)
+          .single()
+
+        if (!userData?.org_id) return
+
+        // Load divisions
+        const { data: divisionsData } = await supabase
+          .from('divisions')
+          .select('id, name, org_id')
+          .eq('org_id', userData.org_id)
+          .order('name')
+
+        if (divisionsData) {
+          setDivisions(divisionsData)
+        }
+
+        // Load teams
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('id, name, division_id, org_id')
+          .eq('org_id', userData.org_id)
+          .order('name')
+
+        if (teamsData) {
+          setTeams(teamsData)
+        }
+
+        // Load team members for user reassignment
+        const { data: members } = await supabase
+          .from('users')
+          .select('id, email, display_name, role, team_id')
+          .eq('org_id', userData.org_id)
+          .order('display_name')
+
+        if (members) {
+          setTeamMembers(members)
+        }
+      } catch (error) {
+        console.error('Error loading hierarchy data:', error)
+      } finally {
+        setLoadingHierarchy(false)
+      }
+    }
+
+    loadHierarchyData()
+  }, [user, activeTab])
 
   // Load billing data for Billing tab
   useEffect(() => {
@@ -584,6 +662,172 @@ export default function SettingsPage() {
     }
   }
 
+  // Hierarchy management handlers
+  const handleCreateDivision = async () => {
+    if (!newDivisionName.trim() || !orgId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('divisions')
+        .insert({ org_id: orgId, name: newDivisionName.trim() })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setDivisions([...divisions, data])
+      setNewDivisionName('')
+      alert('Division created successfully')
+    } catch (error) {
+      console.error('Error creating division:', error)
+      alert('Failed to create division. Please try again.')
+    }
+  }
+
+  const handleRenameDivision = async (divisionId: string, newName: string) => {
+    if (!newName.trim()) return
+
+    try {
+      const { error } = await supabase
+        .from('divisions')
+        .update({ name: newName.trim() })
+        .eq('id', divisionId)
+
+      if (error) throw error
+
+      setDivisions(divisions.map(d => d.id === divisionId ? { ...d, name: newName.trim() } : d))
+      setEditingDivisionId(null)
+      setEditingDivisionName('')
+    } catch (error) {
+      console.error('Error renaming division:', error)
+      alert('Failed to rename division. Please try again.')
+    }
+  }
+
+  const handleDeleteDivision = async (divisionId: string) => {
+    if (!confirm('Delete this division? Teams in this division will be unassigned but not deleted.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('divisions')
+        .delete()
+        .eq('id', divisionId)
+
+      if (error) throw error
+
+      setDivisions(divisions.filter(d => d.id !== divisionId))
+      // Update teams that were in this division (division_id will be set to null by ON DELETE SET NULL)
+      setTeams(teams.map(t => t.division_id === divisionId ? { ...t, division_id: null } : t))
+      alert('Division deleted')
+    } catch (error) {
+      console.error('Error deleting division:', error)
+      alert('Failed to delete division. Please try again.')
+    }
+  }
+
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim() || !orgId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .insert({
+          org_id: orgId,
+          name: newTeamName.trim(),
+          division_id: newTeamDivisionId,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setTeams([...teams, data])
+      setNewTeamName('')
+      setNewTeamDivisionId(null)
+      alert('Team created successfully')
+    } catch (error) {
+      console.error('Error creating team:', error)
+      alert('Failed to create team. Please try again.')
+    }
+  }
+
+  const handleRenameTeam = async (teamId: string, newName: string) => {
+    if (!newName.trim()) return
+
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .update({ name: newName.trim() })
+        .eq('id', teamId)
+
+      if (error) throw error
+
+      setTeams(teams.map(t => t.id === teamId ? { ...t, name: newName.trim() } : t))
+      setEditingTeamId(null)
+      setEditingTeamName('')
+    } catch (error) {
+      console.error('Error renaming team:', error)
+      alert('Failed to rename team. Please try again.')
+    }
+  }
+
+  const handleDeleteTeam = async (teamId: string) => {
+    if (!confirm('Delete this team? Users in this team will be unassigned but not deleted.')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamId)
+
+      if (error) throw error
+
+      setTeams(teams.filter(t => t.id !== teamId))
+      // Update users that were in this team
+      setTeamMembers(teamMembers.map(m => m.team_id === teamId ? { ...m, team_id: null } : m))
+      alert('Team deleted')
+    } catch (error) {
+      console.error('Error deleting team:', error)
+      alert('Failed to delete team. Please try again.')
+    }
+  }
+
+  const handleAssignTeamToDivision = async (teamId: string, divisionId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('teams')
+        .update({ division_id: divisionId })
+        .eq('id', teamId)
+
+      if (error) throw error
+
+      setTeams(teams.map(t => t.id === teamId ? { ...t, division_id: divisionId } : t))
+    } catch (error) {
+      console.error('Error assigning team to division:', error)
+      alert('Failed to assign team. Please try again.')
+    }
+  }
+
+  const handleReassignUser = async (userId: string, newTeamId: string | null) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ team_id: newTeamId })
+        .eq('id', userId)
+
+      if (error) throw error
+
+      setTeamMembers(teamMembers.map(m => m.id === userId ? { ...m, team_id: newTeamId } : m))
+    } catch (error) {
+      console.error('Error reassigning user:', error)
+      alert('Failed to reassign user. Please try again.')
+    }
+  }
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
@@ -671,7 +915,7 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'organization' && (
-        <div className="max-w-2xl">
+        <div className="max-w-4xl">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Organization Settings
           </h2>
@@ -690,7 +934,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Logo Upload */}
-          <div>
+          <div className="mb-8">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Organization Logo
             </label>
@@ -746,6 +990,259 @@ export default function SettingsPage() {
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Hierarchy Management */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Organizational Hierarchy
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Configure divisions and teams to organize your sales organization. Users can be assigned to teams.
+            </p>
+
+            {loadingHierarchy ? (
+              <div className="text-gray-500 dark:text-gray-400">Loading hierarchy...</div>
+            ) : (
+              <div className="space-y-6">
+                {/* Divisions Section */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+                    Divisions ({divisions.length})
+                  </h4>
+
+                  {divisions.map((division) => (
+                    <div key={division.id} className="mb-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                      {editingDivisionId === division.id ? (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={editingDivisionName}
+                            onChange={(e) => setEditingDivisionName(e.target.value)}
+                            className="flex-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleRenameDivision(division.id, editingDivisionName)}
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingDivisionId(null)
+                              setEditingDivisionName('')
+                            }}
+                            className="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {division.name}
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => {
+                                setEditingDivisionId(division.id)
+                                setEditingDivisionName(division.name)
+                              }}
+                              className="px-2 py-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              Rename
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDivision(division.id)}
+                              className="px-2 py-1 text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Teams in this division */}
+                      <div className="mt-2 ml-4 space-y-1">
+                        {teams.filter(t => t.division_id === division.id).map(team => (
+                          <div key={team.id} className="text-xs text-gray-600 dark:text-gray-400">
+                            • {team.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Create Division Form */}
+                  <div className="mt-4 flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={newDivisionName}
+                      onChange={(e) => setNewDivisionName(e.target.value)}
+                      placeholder="New division name"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                    <button
+                      onClick={handleCreateDivision}
+                      disabled={!newDivisionName.trim()}
+                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Add Division
+                    </button>
+                  </div>
+                </div>
+
+                {/* Teams Section */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+                    Teams ({teams.length})
+                  </h4>
+
+                  {teams.map((team) => (
+                    <div key={team.id} className="mb-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                      {editingTeamId === team.id ? (
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={editingTeamName}
+                            onChange={(e) => setEditingTeamName(e.target.value)}
+                            className="flex-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleRenameTeam(team.id, editingTeamName)}
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingTeamId(null)
+                              setEditingTeamName('')
+                            }}
+                            className="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {team.name}
+                          </span>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => {
+                                setEditingTeamId(team.id)
+                                setEditingTeamName(team.name)
+                              }}
+                              className="px-2 py-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                              Rename
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTeam(team.id)}
+                              className="px-2 py-1 text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Division Assignment */}
+                      <div className="flex items-center space-x-2">
+                        <label className="text-xs text-gray-600 dark:text-gray-400">
+                          Division:
+                        </label>
+                        <select
+                          value={team.division_id || ''}
+                          onChange={(e) => handleAssignTeamToDivision(team.id, e.target.value || null)}
+                          className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">No division</option>
+                          {divisions.map(div => (
+                            <option key={div.id} value={div.id}>
+                              {div.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Create Team Form */}
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={newTeamName}
+                        onChange={(e) => setNewTeamName(e.target.value)}
+                        placeholder="New team name"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <select
+                        value={newTeamDivisionId || ''}
+                        onChange={(e) => setNewTeamDivisionId(e.target.value || null)}
+                        className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">No division</option>
+                        {divisions.map(div => (
+                          <option key={div.id} value={div.id}>
+                            {div.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleCreateTeam}
+                        disabled={!newTeamName.trim()}
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Add Team
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* User Reassignment Section */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+                    User Team Assignments ({teamMembers.length})
+                  </h4>
+
+                  <div className="space-y-2">
+                    {teamMembers.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-600 rounded-md">
+                        <div>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {member.display_name}
+                          </span>
+                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                            ({member.role.toUpperCase()})
+                          </span>
+                        </div>
+                        <select
+                          value={member.team_id || ''}
+                          onChange={(e) => handleReassignUser(member.id, e.target.value || null)}
+                          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">No team</option>
+                          {teams.map(team => (
+                            <option key={team.id} value={team.id}>
+                              {team.name}
+                              {team.division_id && divisions.find(d => d.id === team.division_id)
+                                ? ` (${divisions.find(d => d.id === team.division_id)!.name})`
+                                : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
