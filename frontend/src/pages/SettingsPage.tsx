@@ -7,7 +7,7 @@ import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import OutlookCalendarOAuthButton from '../components/OutlookCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
 
-type Tab = 'profile' | 'organization' | 'integrations' | 'pipeline'
+type Tab = 'profile' | 'organization' | 'integrations' | 'pipeline' | 'billing'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('profile')
@@ -34,6 +34,18 @@ export default function SettingsPage() {
   }[]>([])
   const [loadingStages, setLoadingStages] = useState(false)
   const [savingStages, setSavingStages] = useState(false)
+
+  // Billing state
+  const [billingData, setBillingData] = useState<{
+    currentPlan: string | null
+    nextBillingDate: string | null
+    stripeCustomerId: string | null
+  }>({
+    currentPlan: null,
+    nextBillingDate: null,
+    stripeCustomerId: null,
+  })
+  const [loadingBilling, setLoadingBilling] = useState(false)
 
   // Load organization data
   useEffect(() => {
@@ -98,6 +110,65 @@ export default function SettingsPage() {
     }
 
     loadPipelineStages()
+  }, [user, activeTab])
+
+  // Load billing data for Billing tab
+  useEffect(() => {
+    const loadBillingData = async () => {
+      if (!user || activeTab !== 'billing') return
+
+      setLoadingBilling(true)
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('org_id, role, subscription_status')
+          .eq('id', user.id)
+          .single()
+
+        if (!userData?.org_id) return
+
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('stripe_customer_id')
+          .eq('id', userData.org_id)
+          .single()
+
+        if (orgData?.stripe_customer_id) {
+          // Fetch subscription data from Stripe via Edge Function
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-billing-info`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+
+          if (response.ok) {
+            const billing = await response.json()
+            setBillingData({
+              currentPlan: `${userData.role.toUpperCase()} - ${userData.subscription_status}`,
+              nextBillingDate: billing.nextBillingDate,
+              stripeCustomerId: orgData.stripe_customer_id,
+            })
+          }
+        } else {
+          setBillingData({
+            currentPlan: 'Free Trial',
+            nextBillingDate: null,
+            stripeCustomerId: null,
+          })
+        }
+      } catch (error) {
+        console.error('Error loading billing data:', error)
+      } finally {
+        setLoadingBilling(false)
+      }
+    }
+
+    loadBillingData()
   }, [user, activeTab])
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,6 +351,57 @@ export default function SettingsPage() {
     }
   }
 
+  const handleOpenCustomerPortal = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-portal-session`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) throw new Error('Failed to create portal session')
+
+      const { url } = await response.json()
+      window.location.href = url
+    } catch (error) {
+      console.error('Error opening customer portal:', error)
+      alert('Failed to open billing portal. Please try again.')
+    }
+  }
+
+  const handleCancelSubscription = async () => {
+    if (!confirm('Are you sure you want to cancel your subscription? Access will continue until the end of the current billing period.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-subscription`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) throw new Error('Failed to cancel subscription')
+
+      alert('Subscription cancelled. You will retain access until the end of your billing period.')
+      // Reload billing data
+      setActiveTab('billing')
+    } catch (error) {
+      console.error('Error cancelling subscription:', error)
+      alert('Failed to cancel subscription. Please try again.')
+    }
+  }
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
@@ -328,6 +450,16 @@ export default function SettingsPage() {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
             Pipeline
+          </button>
+          <button
+            onClick={() => setActiveTab('billing')}
+            className={`${
+              activeTab === 'billing'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+          >
+            Billing
           </button>
         </nav>
       </div>
@@ -577,6 +709,88 @@ export default function SettingsPage() {
                 </p>
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'billing' && (
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Billing & Subscription
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Manage your subscription, payment method, and billing information.
+          </p>
+
+          {loadingBilling ? (
+            <div className="text-gray-500 dark:text-gray-400">Loading billing data...</div>
+          ) : (
+            <div className="space-y-6">
+              {/* Current Plan */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Current Plan
+                </h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                      {billingData.currentPlan || 'Free Trial'}
+                    </p>
+                    {billingData.nextBillingDate && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Next billing date: {new Date(billingData.nextBillingDate).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Method & Portal */}
+              {billingData.stripeCustomerId && (
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                    Payment Method
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Update your payment method, view invoices, and manage billing details in the Stripe Customer Portal.
+                  </p>
+                  <button
+                    onClick={handleOpenCustomerPortal}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Manage Payment Method
+                  </button>
+                </div>
+              )}
+
+              {/* Cancel Subscription */}
+              {billingData.stripeCustomerId && billingData.currentPlan !== 'Free Trial' && (
+                <div className="border border-red-200 dark:border-red-900 rounded-lg p-6 bg-red-50 dark:bg-red-900/10">
+                  <h3 className="text-lg font-medium text-red-900 dark:text-red-200 mb-2">
+                    Cancel Subscription
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                    Cancelling your subscription will downgrade your account to read-only access at the end of your current billing period.
+                  </p>
+                  <button
+                    onClick={handleCancelSubscription}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Cancel Subscription
+                  </button>
+                </div>
+              )}
+
+              {/* Team Billing Note */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-gray-50 dark:bg-gray-800/50">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Team Plans
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Team plans are billed per seat based on role (SDR: $3.50/wk, AE: $4.50/wk, Manager: $5.50/wk). Minimum 2 users required for team plans.
+                </p>
+              </div>
+            </div>
           )}
         </div>
       )}
