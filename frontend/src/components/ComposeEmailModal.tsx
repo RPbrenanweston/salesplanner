@@ -144,28 +144,31 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
       throw new Error(errorData.error?.message || 'Failed to send email via Gmail');
     }
 
-    return response.json();
+    const result = await response.json();
+
+    // Return thread ID for reply tracking
+    return { threadId: result.threadId };
   };
 
   const sendViaOutlook = async (accessToken: string) => {
+    // First, save to Sent Items to get conversation ID
     const message = {
-      message: {
-        subject: subject,
-        body: {
-          contentType: 'Text',
-          content: body,
-        },
-        toRecipients: [
-          {
-            emailAddress: {
-              address: to,
-            },
-          },
-        ],
+      subject: subject,
+      body: {
+        contentType: 'Text',
+        content: body,
       },
+      toRecipients: [
+        {
+          emailAddress: {
+            address: to,
+          },
+        },
+      ],
     };
 
-    const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+    // Create draft and send
+    const createResponse = await fetch('https://graph.microsoft.com/v1.0/me/messages', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -174,16 +177,34 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
       body: JSON.stringify(message),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
+    if (!createResponse.ok) {
+      const errorData = await createResponse.json();
+      throw new Error(errorData.error?.message || 'Failed to create email via Outlook');
+    }
+
+    const createdMessage = await createResponse.json();
+
+    // Send the draft
+    const sendResponse = await fetch(
+      `https://graph.microsoft.com/v1.0/me/messages/${createdMessage.id}/send`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!sendResponse.ok) {
+      const errorData = await sendResponse.json();
       throw new Error(errorData.error?.message || 'Failed to send email via Outlook');
     }
 
-    // Outlook sendMail returns 202 with no body
-    return {};
+    // Return conversation ID for reply tracking
+    return { conversationId: createdMessage.conversationId };
   };
 
-  const logActivity = async () => {
+  const logActivity = async (threadId?: string, conversationId?: string) => {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const { data: dbUser } = await supabase
@@ -199,6 +220,8 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
         type: 'email',
         outcome: 'other',
         notes: subject,
+        thread_id: threadId || null,
+        conversation_id: conversationId || null,
         created_at: new Date().toISOString(),
       });
     } catch (err) {
@@ -223,14 +246,19 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
     setIsSending(true);
 
     try {
+      let threadId: string | undefined;
+      let conversationId: string | undefined;
+
       if (oauthConnection.provider === 'gmail') {
-        await sendViaGmail(oauthConnection.access_token);
+        const result = await sendViaGmail(oauthConnection.access_token);
+        threadId = result.threadId;
       } else if (oauthConnection.provider === 'outlook') {
-        await sendViaOutlook(oauthConnection.access_token);
+        const result = await sendViaOutlook(oauthConnection.access_token);
+        conversationId = result.conversationId;
       }
 
-      // Log activity after successful send
-      await logActivity();
+      // Log activity after successful send with thread/conversation ID for reply tracking
+      await logActivity(threadId, conversationId);
 
       // Increment times_used on template if one was used
       if (selectedTemplateId) {
