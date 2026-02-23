@@ -35,8 +35,14 @@ export default function SignIn() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-white">
-            Sign in to SalesBlock
+          {/* Logo/Branding */}
+          <div className="flex justify-center mb-6">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              SalesBlock.io
+            </div>
+          </div>
+          <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-white">
+            Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             Or{' '}
