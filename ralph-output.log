@@ -468,3 +468,26 @@ Iteration 18 complete. Continuing...
 ===============================================================
   Ralph Iteration 19 of 50 (claude)
 ===============================================================
+━━━ 📚 LEARN ━━━ 7/7
+
+**KEY LEARNINGS:**
+
+1. **Provider Storage Pattern**: Storing `calendar_provider` alongside `calendar_event_id` eliminates API guesswork on deletion — no need to attempt both Google and Outlook APIs
+2. **Dual Calendar API Abstraction**: Single wrapper function (`createCalendarEvent`) that checks for connection and routes to appropriate API keeps caller code clean
+3. **Non-blocking Calendar Sync**: Calendar event creation happens after salesblock record inserted; if calendar fails, salesblock still succeeds (availability over strict consistency)
+4. **Timezone Handling**: Both Google and Outlook Calendar APIs accept `timeZone` field; use `Intl.DateTimeFormat().resolvedOptions().timeZone` for automatic local timezone detection
+5. **API Structure Differences**: Google uses "summary"/"description", Outlook uses "subject"/"body" (object with contentType); abstraction layer normalizes these differences
+6. **Update Feature Gap**: US-029 AC includes "when rescheduled: updates calendar event" but `handleEdit` is still a TODO placeholder in SalesBlocks.tsx — future iteration needed
+7. **Calendar Connection Precedence**: Check Google Calendar first, then fall back to Outlook Calendar; whichever is connected wins (no multi-calendar support yet)
+
+**NEXT ITERATION ENHANCEMENT OPPORTUNITIES:**
+- Implement `handleEdit` modal with reschedule support + `updateCalendarEvent()` call
+- Consider adding calendar provider indicator in UI (which calendar was used)
+- Add error handling UI for calendar sync failures (currently silent fail with console.error)
+
+🗣️ **PAI:** US-029 calendar sync complete! SalesBlocks now create Google/Outlook calendar events on creation, delete them on cancellation. Provider tracking ensures clean deletion. Typecheck passes. Edit/reschedule feature deferred to future iteration. Ready for next story.
+Iteration 19 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 20 of 50 (claude)
+===============================================================

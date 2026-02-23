@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home } from 'lucide-react';
+import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home, Calendar } from 'lucide-react';
 import LogActivityModal from '../components/LogActivityModal';
 import LogSocialActivityModal from '../components/LogSocialActivityModal';
 import ComposeEmailModal from '../components/ComposeEmailModal';
+import BookMeetingModal from '../components/BookMeetingModal';
 
 interface Contact {
   id: string;
@@ -55,6 +56,7 @@ export default function SalesBlockSessionPage() {
   const [activityModalOpen, setActivityModalOpen] = useState(false);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [activityType, setActivityType] = useState<'call' | 'email' | 'note'>('call');
 
   // Call script panel state
@@ -606,16 +608,25 @@ export default function SalesBlockSessionPage() {
                 </div>
               )}
 
-              {/* Send Email Button */}
+              {/* Quick Actions */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Quick Actions</h3>
-                <button
-                  onClick={() => setIsEmailModalOpen(true)}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Mail className="w-5 h-5" />
-                  <span>Send Email</span>
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setIsEmailModalOpen(true)}
+                    className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Mail className="w-5 h-5" />
+                    <span>Send Email</span>
+                  </button>
+                  <button
+                    onClick={() => setIsMeetingModalOpen(true)}
+                    className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Calendar className="w-5 h-5" />
+                    <span>Book Meeting</span>
+                  </button>
+                </div>
               </div>
 
               {/* Activity Buttons */}
@@ -744,6 +755,20 @@ export default function SalesBlockSessionPage() {
           contact={activeContact}
           onSuccess={() => {
             setIsEmailModalOpen(false);
+            refreshActivityStatus();
+          }}
+        />
+      )}
+
+      {/* Book Meeting Modal */}
+      {activeContact && (
+        <BookMeetingModal
+          isOpen={isMeetingModalOpen}
+          onClose={() => setIsMeetingModalOpen(false)}
+          contact={activeContact}
+          salesblockId={salesblockId}
+          onSuccess={() => {
+            setIsMeetingModalOpen(false);
             refreshActivityStatus();
           }}
         />

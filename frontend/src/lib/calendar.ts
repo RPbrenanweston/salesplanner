@@ -331,3 +331,216 @@ async function deleteOutlookCalendarEvent(
     return false;
   }
 }
+
+// ============================================================================
+// Free/Busy and Availability Functions
+// ============================================================================
+
+export interface TimeSlot {
+  start: string; // ISO 8601
+  end: string;   // ISO 8601
+}
+
+/**
+ * Get free/busy information from calendar for the next N days
+ */
+export async function getFreeBusySlots(daysAhead: number = 7): Promise<TimeSlot[] | null> {
+  const connection = await getCalendarConnection();
+  if (!connection) {
+    console.warn('No calendar connection found');
+    return null;
+  }
+
+  const timeMin = new Date();
+  const timeMax = new Date();
+  timeMax.setDate(timeMax.getDate() + daysAhead);
+
+  if (connection.provider === 'google_calendar') {
+    return getGoogleFreeBusy(connection.accessToken, timeMin.toISOString(), timeMax.toISOString());
+  } else {
+    return getOutlookFreeBusy(connection.accessToken, timeMin.toISOString(), timeMax.toISOString());
+  }
+}
+
+async function getGoogleFreeBusy(
+  accessToken: string,
+  timeMin: string,
+  timeMax: string
+): Promise<TimeSlot[]> {
+  try {
+    const response = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        timeMin,
+        timeMax,
+        items: [{ id: 'primary' }],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Google FreeBusy API error:', await response.text());
+      return [];
+    }
+
+    const data = await response.json();
+    const busySlots: TimeSlot[] = data.calendars?.primary?.busy || [];
+
+    // Convert busy slots to free slots
+    return convertBusyToFreeSlots(busySlots, timeMin, timeMax);
+  } catch (error) {
+    console.error('Failed to fetch Google FreeBusy:', error);
+    return [];
+  }
+}
+
+async function getOutlookFreeBusy(
+  accessToken: string,
+  timeMin: string,
+  timeMax: string
+): Promise<TimeSlot[]> {
+  try {
+    const response = await fetch(
+      `https://graph.microsoft.com/v1.0/me/calendarview?startDateTime=${encodeURIComponent(
+        timeMin
+      )}&endDateTime=${encodeURIComponent(timeMax)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Prefer: 'outlook.timezone="' + Intl.DateTimeFormat().resolvedOptions().timeZone + '"',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error('Outlook CalendarView API error:', await response.text());
+      return [];
+    }
+
+    const data = await response.json();
+    const busySlots: TimeSlot[] = (data.value || []).map((event: any) => ({
+      start: event.start.dateTime,
+      end: event.end.dateTime,
+    }));
+
+    return convertBusyToFreeSlots(busySlots, timeMin, timeMax);
+  } catch (error) {
+    console.error('Failed to fetch Outlook FreeBusy:', error);
+    return [];
+  }
+}
+
+/**
+ * Convert busy slots to free slots during business hours (9am-5pm Mon-Fri)
+ */
+function convertBusyToFreeSlots(
+  busySlots: TimeSlot[],
+  timeMin: string,
+  timeMax: string
+): TimeSlot[] {
+  const freeSlots: TimeSlot[] = [];
+  const start = new Date(timeMin);
+  const end = new Date(timeMax);
+
+  // Generate business hours slots for each weekday
+  const currentDate = new Date(start);
+  currentDate.setHours(0, 0, 0, 0);
+
+  while (currentDate < end) {
+    const dayOfWeek = currentDate.getDay();
+
+    // Skip weekends
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      const dayStart = new Date(currentDate);
+      dayStart.setHours(9, 0, 0, 0);
+      const dayEnd = new Date(currentDate);
+      dayEnd.setHours(17, 0, 0, 0);
+
+      // Check if this business hour slot overlaps with any busy slot
+      const slotStart = dayStart.getTime();
+      const slotEnd = dayEnd.getTime();
+
+      let currentFreeStart = slotStart;
+
+      // Sort busy slots by start time
+      const sortedBusy = busySlots
+        .filter((busy) => {
+          const busyStart = new Date(busy.start).getTime();
+          const busyEnd = new Date(busy.end).getTime();
+          return busyEnd > slotStart && busyStart < slotEnd;
+        })
+        .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+
+      // Find free gaps between busy slots
+      for (const busy of sortedBusy) {
+        const busyStart = Math.max(new Date(busy.start).getTime(), slotStart);
+        const busyEnd = Math.min(new Date(busy.end).getTime(), slotEnd);
+
+        if (currentFreeStart < busyStart) {
+          // Free slot before this busy period
+          freeSlots.push({
+            start: new Date(currentFreeStart).toISOString(),
+            end: new Date(busyStart).toISOString(),
+          });
+        }
+
+        currentFreeStart = Math.max(currentFreeStart, busyEnd);
+      }
+
+      // Add remaining free time after last busy slot
+      if (currentFreeStart < slotEnd) {
+        freeSlots.push({
+          start: new Date(currentFreeStart).toISOString(),
+          end: new Date(slotEnd).toISOString(),
+        });
+      }
+    }
+
+    // Move to next day
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return freeSlots;
+}
+
+/**
+ * Format free slots as human-readable text for email insertion
+ */
+export function formatAvailabilityText(slots: TimeSlot[], maxSlots: number = 6): string {
+  if (slots.length === 0) {
+    return 'No availability found in the next 7 days.';
+  }
+
+  const slotTexts: string[] = [];
+
+  for (let i = 0; i < Math.min(slots.length, maxSlots); i++) {
+    const slot = slots[i];
+    const start = new Date(slot.start);
+    const end = new Date(slot.end);
+
+    // Format: "Monday, Jan 15 - 9:00 AM to 12:00 PM"
+    const dateStr = start.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    });
+    const startTime = start.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const endTime = end.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    slotTexts.push(`${dateStr} - ${startTime} to ${endTime}`);
+  }
+
+  return slotTexts.join('\n');
+}

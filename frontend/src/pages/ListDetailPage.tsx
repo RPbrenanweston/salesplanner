@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2 } from 'lucide-react';
+import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import ComposeEmailModal from '../components/ComposeEmailModal';
 import LogSocialActivityModal from '../components/LogSocialActivityModal';
+import BookMeetingModal from '../components/BookMeetingModal';
 
 interface Contact {
   id: string;
@@ -41,6 +42,7 @@ export default function ListDetailPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
+  const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [orgId, setOrgId] = useState<string>('');
 
@@ -229,6 +231,11 @@ export default function ListDetailPage() {
   const handleSocialClick = (contact: Contact) => {
     setSelectedContact(contact);
     setIsSocialModalOpen(true);
+  };
+
+  const handleMeetingClick = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsMeetingModalOpen(true);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -422,6 +429,13 @@ export default function ListDetailPage() {
                           <Mail className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleMeetingClick(contact)}
+                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+                          title="Book meeting"
+                        >
+                          <Calendar className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleSocialClick(contact)}
                           className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300"
                           title="Log social activity"
@@ -469,6 +483,20 @@ export default function ListDetailPage() {
           orgId={orgId}
           onSuccess={() => {
             setIsSocialModalOpen(false);
+            loadContacts(); // Refresh to update last activity
+          }}
+        />
+      )}
+
+      {/* Book Meeting Modal */}
+      {selectedContact && (
+        <BookMeetingModal
+          isOpen={isMeetingModalOpen}
+          onClose={() => setIsMeetingModalOpen(false)}
+          contact={selectedContact}
+          salesblockId={null}
+          onSuccess={() => {
+            setIsMeetingModalOpen(false);
             loadContacts(); // Refresh to update last activity
           }}
         />

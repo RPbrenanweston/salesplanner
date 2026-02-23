@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Mail } from 'lucide-react';
+import { X, Mail, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { getFreeBusySlots, formatAvailabilityText } from '../lib/calendar';
 
 interface ComposeEmailModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
   const [oauthConnection, setOauthConnection] = useState<OAuthConnection | null>(null);
+  const [isInsertingAvailability, setIsInsertingAvailability] = useState(false);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -281,6 +283,29 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
     }
   };
 
+  const handleInsertAvailability = async () => {
+    setIsInsertingAvailability(true);
+    setError('');
+
+    try {
+      const slots = await getFreeBusySlots(7);
+      if (!slots || slots.length === 0) {
+        setError('No calendar connection or no availability found.');
+        return;
+      }
+
+      const availabilityText = formatAvailabilityText(slots, 6);
+      const insertText = `\n\nHere are some times that work for me:\n\n${availabilityText}\n\nLet me know what works best for you!`;
+
+      setBody((prevBody) => prevBody + insertText);
+    } catch (err: any) {
+      console.error('Error inserting availability:', err);
+      setError(err.message || 'Failed to fetch availability');
+    } finally {
+      setIsInsertingAvailability(false);
+    }
+  };
+
   const resetAndClose = () => {
     setSubject('');
     setBody('');
@@ -367,9 +392,20 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Body
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Body
+              </label>
+              <button
+                type="button"
+                onClick={handleInsertAvailability}
+                disabled={isInsertingAvailability}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 disabled:opacity-50"
+              >
+                <Calendar className="w-4 h-4" />
+                {isInsertingAvailability ? 'Loading...' : 'Insert Availability'}
+              </button>
+            </div>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
