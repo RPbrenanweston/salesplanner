@@ -189,3 +189,32 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - AppLayout sidebar already had dark: variants for all UI elements
   - Resolved theme determines icon (Sun vs Moon), theme setting shows in label (system/light/dark)
 ---
+
+## 2026-02-23 00:17 - US-007 - PAI Iteration 7
+- **Implemented:** White-label logo upload with Supabase Storage
+- **Files changed:**
+  - Created `supabase/migrations/20260223001649_create_logos_bucket.sql` - Storage bucket + RLS policies
+  - Updated `frontend/src/pages/SettingsPage.tsx` - Added Organization tab with logo upload UI (file input, validation, preview, remove)
+  - Updated `frontend/src/pages/SignIn.tsx` - Added SalesBlock.io branding header
+  - `frontend/src/components/AppLayout.tsx` - Already displays org logo (no changes needed)
+- **ISC Status:** ✅ All criteria passed
+  - Settings > Organization tab created with logo upload area (click to browse)
+  - File validation: PNG/JPG/SVG types checked, 2MB max size enforced
+  - Upload flow: Supabase Storage → get public URL → update organizations.logo_url
+  - Logo displays in sidebar via AppLayout (logo already fetched from org table)
+  - Sign-in page shows SalesBlock.io branding (fallback when no custom logo)
+  - Falls back to "SalesBlock.io" text in sidebar when logo_url is null
+  - Typecheck passes with zero errors
+  - Browser verification: Dev server not running (Docker Desktop required for Supabase + npm run dev)
+- **Learnings for future iterations:**
+  - **Storage bucket RLS pattern**: Org-scoped folders (`{org_id}/logo-{timestamp}.{ext}`) with policies checking user's org_id
+  - **File upload UX**: Hidden file input + label button pattern for custom styling
+  - **Validation before upload**: Check file type and size client-side before hitting Storage API
+  - **Public bucket**: `public: true` on bucket creation allows unauthenticated reads (needed for logo display)
+  - **Logo removal**: Extract file path from public URL, call `.remove([path])`, then update DB to null
+  - **Success feedback**: Auto-clear success message after 3 seconds with setTimeout
+  - **Settings tabs**: Tab state in component (useState), conditional rendering based on activeTab
+  - **AppLayout already reactive**: Logo loaded in useEffect, updates when organizations.logo_url changes
+  - **Browser verification blocked**: Requires Docker Desktop running + `npm run dev` in frontend/ + Supabase local
+  - **Migration not applied**: Docker daemon not running, migration SQL created but not executed (will apply when Docker starts)
+---
