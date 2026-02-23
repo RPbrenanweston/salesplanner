@@ -1,301 +1,274 @@
-# Sourcing Mission Control
+# SalesBlock.io
 
-End-to-end talent sourcing platform that connects the CodeSignal agent (TypeScript) to a React frontend with backend orchestration via FastAPI. Execute searches, view scored candidates, and deploy to Railway.
+A sales execution cockpit that helps sales reps focus, execute, and close. SalesBlock combines timed focus sessions, curated contact lists, multi-channel outreach, CRM sync, and pipeline analytics into a single workflow.
 
-## Project Overview
+## Why SalesBlock?
 
-**Tech Stack:**
-- **Frontend:** React + TypeScript + Vite + React Query
-- **Backend:** FastAPI (Python 3.11+) + Pydantic
-- **Agent:** CodeSignal TypeScript agent (signal detection, confidence scoring)
-- **Database:** PostgreSQL (via Railway)
-- **Deployment:** Railway (backend container + frontend static)
+Sales reps lose hours daily switching between tools. SalesBlock eliminates context-switching by putting everything needed to execute a sales session into one place:
 
-**Features:**
-- Execute sourcing searches with keywords and RSS feed URLs
-- Real-time candidate scoring with confidence percentages
-- Signal type detection (HIRING, COMPANY, INDIVIDUAL)
-- Sortable results table with color-coded signals
-- Production-ready deployment to Railway
+- **Timed SalesBlocks** keep reps focused with 25-60 minute structured sessions
+- **Curated contact lists** with CSV import, manual entry, and Salesforce sync
+- **Multi-channel outreach** across email, phone, and social from one screen
+- **Pipeline visibility** so reps always know where their deals stand
+- **Activity tracking** that feeds into goals, analytics, and CRM automatically
 
-## Quick Start (Local Development)
+## Features
 
-### 1. Start Backend
+### Authentication & Onboarding
+- Email/password authentication with Supabase Auth
+- Organization setup with logo upload
+- Team invitations and role management
+- Password reset flow
 
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+### SalesBlocks & Sessions
+- Create timed focus sessions (25, 45, or 60 minutes)
+- Attach curated contact lists to each session
+- Live countdown timer with pause/resume
+- Log calls, emails, and social touches during sessions
+- Calendar sync (Google Calendar, Outlook) for scheduling blocks
+
+### Contacts & Lists
+- Import contacts via CSV or manual entry
+- Smart list builder with filters and segmentation
+- Contact detail pages with full activity timeline
+- Salesforce bidirectional sync for contacts
+
+### Multi-Channel Outreach
+- **Email:** Gmail and Outlook OAuth integration, compose with rich text editor, email templates, thread tracking
+- **Phone:** Call scripts with step-by-step guidance, script library management
+- **Social:** Log LinkedIn and social interactions, track social touches per contact
+
+### Pipeline & Deals
+- Kanban-style deal board with drag-and-drop stages
+- Deal detail modals with value, close date, and notes
+- Forecast rollups by stage and time period
+
+### Goals & Activity Tracking
+- Set daily/weekly/monthly activity targets (calls, emails, meetings)
+- Progress tracking with visual indicators
+- Custom KPI definitions
+
+### Analytics & Reporting
+- Session performance metrics (contacts reached, activities per block)
+- Activity trends over time with Recharts visualizations
+- Pipeline conversion analytics
+- Team leaderboards
+
+### CRM Integration
+- Salesforce OAuth connection
+- Bidirectional contact sync
+- Activity push to Salesforce (calls, emails, meetings)
+
+### Billing
+- Stripe integration with checkout sessions
+- Webhook-driven subscription management
+- Trial expiry banners and pricing page
+- Plan upgrade/downgrade flows
+
+### Team & Settings
+- Team invitation flow with email delivery
+- Organization hierarchy management
+- Settings page with tabbed navigation (Profile, Organization, Integrations, Billing)
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, TypeScript, Vite |
+| **Styling** | Tailwind CSS, Lucide Icons |
+| **State** | TanStack React Query |
+| **Rich Text** | TipTap editor |
+| **Charts** | Recharts |
+| **Drag & Drop** | @hello-pangea/dnd |
+| **CSV Parsing** | PapaParse |
+| **Backend** | Supabase (Auth, Database, Edge Functions, Storage, RLS) |
+| **Payments** | Stripe (Checkout, Webhooks, Subscriptions) |
+| **Database** | PostgreSQL via Supabase |
+| **Deployment** | Vite build, Supabase Edge Functions |
+
+## Project Structure
+
+```
+salesblock-io/
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # Reusable UI components
+│   │   │   ├── AppLayout.tsx             # Main app shell with sidebar nav
+│   │   │   ├── ProtectedRoute.tsx        # Auth guard wrapper
+│   │   │   ├── CreateSalesBlockModal.tsx  # SalesBlock creation flow
+│   │   │   ├── ComposeEmailModal.tsx      # Email composition with rich text
+│   │   │   ├── AddContactModal.tsx        # Contact creation
+│   │   │   ├── AddDealModal.tsx           # Deal creation
+│   │   │   ├── ListBuilderModal.tsx       # Smart list builder
+│   │   │   ├── ImportCSVModal.tsx         # CSV import handler
+│   │   │   ├── ScriptModal.tsx            # Call script editor
+│   │   │   ├── TemplateModal.tsx          # Email template editor
+│   │   │   ├── BookMeetingModal.tsx       # Calendar meeting scheduler
+│   │   │   ├── LogActivityModal.tsx       # Activity logging
+│   │   │   ├── RichTextEditor.tsx         # TipTap-based editor
+│   │   │   ├── TrialExpiryBanner.tsx      # Subscription status banner
+│   │   │   └── *OAuthButton.tsx           # OAuth connection buttons
+│   │   ├── pages/            # Route-level page components
+│   │   │   ├── Home.tsx                   # Dashboard
+│   │   │   ├── SalesBlocks.tsx            # SalesBlock list & management
+│   │   │   ├── SalesBlockSessionPage.tsx  # Live session execution
+│   │   │   ├── Lists.tsx                  # Contact list management
+│   │   │   ├── ListDetailPage.tsx         # Individual list view
+│   │   │   ├── ContactDetailPage.tsx      # Contact profile & timeline
+│   │   │   ├── Email.tsx                  # Email inbox & management
+│   │   │   ├── EmailTemplates.tsx         # Template library
+│   │   │   ├── Scripts.tsx                # Call script library
+│   │   │   ├── Social.tsx                 # Social activity tracking
+│   │   │   ├── Pipeline.tsx               # Deal pipeline (Kanban)
+│   │   │   ├── Goals.tsx                  # Goal setting & tracking
+│   │   │   ├── Analytics.tsx              # Performance dashboards
+│   │   │   ├── Team.tsx                   # Team management
+│   │   │   ├── SettingsPage.tsx           # App settings (tabbed)
+│   │   │   ├── PricingPage.tsx            # Plan selection & billing
+│   │   │   └── SignIn/SignUp/ForgotPassword.tsx  # Auth pages
+│   │   ├── hooks/            # Custom React hooks
+│   │   │   ├── useAuth.ts                 # Authentication state
+│   │   │   └── useTheme.ts                # Theme management
+│   │   ├── lib/              # Shared utilities
+│   │   │   ├── supabase.ts                # Supabase client
+│   │   │   ├── calendar.ts                # Calendar API helpers
+│   │   │   └── salesforce.ts              # Salesforce API helpers
+│   │   ├── App.tsx           # Root router configuration
+│   │   └── main.tsx          # Entry point
+│   ├── tailwind.config.js
+│   ├── vite.config.ts
+│   └── package.json
+├── supabase/
+│   ├── migrations/           # Database schema migrations (18 files)
+│   ├── functions/            # Edge Functions
+│   │   ├── create-checkout-session/   # Stripe checkout
+│   │   ├── handle-stripe-webhook/     # Stripe event processing
+│   │   ├── send-team-invitation/      # Email invitations
+│   │   ├── sync-activities-to-salesforce/  # CRM activity sync
+│   │   ├── track-email-replies/       # Email thread tracking
+│   │   └── _shared/                   # Shared utilities
+│   └── config.toml           # Supabase project configuration
+├── .env.example              # Environment variable template
+├── .gitignore
+└── LICENSE
 ```
 
-Backend runs at `http://localhost:8000`
-- Health check: `http://localhost:8000/api/v1/health`
-- API docs: `http://localhost:8000/docs`
+## Architecture
 
-### 2. Start Frontend
+```
+┌─────────────────────────────────────────────────────────┐
+│                     React Frontend                       │
+│  (Vite + TypeScript + Tailwind + TanStack Query)        │
+└──────────┬──────────────┬──────────────┬────────────────┘
+           │              │              │
+     Supabase Client  Stripe.js    OAuth Flows
+           │              │         (Gmail, Outlook,
+           │              │      Google Cal, Salesforce)
+           ▼              ▼              │
+┌──────────────────┐  ┌──────────┐      │
+│     Supabase     │  │  Stripe  │      │
+│  ┌────────────┐  │  │  API     │      │
+│  │    Auth    │  │  └────┬─────┘      │
+│  ├────────────┤  │       │            │
+│  │  Database  │  │       ▼            │
+│  │  (Postgres)│  │  ┌──────────────┐  │
+│  ├────────────┤  │  │    Edge      │◄─┘
+│  │  Storage   │  │  │  Functions   │
+│  ├────────────┤  │  │  (Webhooks,  │
+│  │    RLS     │  │  │   Sync,     │
+│  │  Policies  │  │  │   Emails)   │
+│  └────────────┘  │  └──────────────┘
+└──────────────────┘
+```
+
+**Key architectural decisions:**
+
+- **No custom backend server.** Supabase handles auth, database, storage, and edge functions. The frontend talks directly to Supabase via the JS client.
+- **Row Level Security (RLS)** enforces data isolation per organization at the database level.
+- **Edge Functions** handle server-side concerns: Stripe webhooks, email delivery, Salesforce sync, and email reply tracking.
+- **OAuth flows** connect Gmail, Outlook, Google Calendar, and Salesforce with token storage in Supabase.
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- A [Supabase](https://supabase.com) project
+- A [Stripe](https://stripe.com) account (for billing features)
+
+### 1. Clone and install
+
+```bash
+git clone git@github.com:RPbrenanweston/salesblock-io.git
+cd salesblock-io
+cd frontend && npm install
+```
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Fill in your Supabase and Stripe keys:
+
+```
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+### 3. Set up database
+
+Run the Supabase migrations to create the schema:
+
+```bash
+supabase db push
+```
+
+Or apply migrations individually from `supabase/migrations/`.
+
+### 4. Start development server
 
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
-Frontend runs at `http://localhost:3000`
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### 3. Test End-to-End
-
-1. Open `http://localhost:3000` in browser
-2. Navigate to Execution View
-3. Click "Execute Search" to trigger sourcing
-4. View results in Intelligence View (sortable table)
-
----
-
-## Documentation
-
-- **[API.md](API.md)** - REST API endpoints, request/response schemas, error codes
-- **[DEPLOY.md](DEPLOY.md)** - Railway deployment guide with environment variables
-- **[progress.txt](progress.txt)** - Ralph iteration history and learnings
-- **[prd.json](prd.json)** - User stories with completion status
-
----
-
-# Ralph
-
-![Ralph](ralph.webp)
-
-Ralph is an autonomous AI agent loop that runs AI coding tools ([Amp](https://ampcode.com) or [Claude Code](https://docs.anthropic.com/en/docs/claude-code)) repeatedly until all PRD items are complete. Each iteration is a fresh instance with clean context. Memory persists via git history, `progress.txt`, and `prd.json`.
-
-Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
-
-[Read my in-depth article on how I use Ralph](https://x.com/ryancarson/status/2008548371712135632)
-
-## Prerequisites
-
-- One of the following AI coding tools installed and authenticated:
-  - [Amp CLI](https://ampcode.com) (default)
-  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`npm install -g @anthropic-ai/claude-code`)
-- `jq` installed (`brew install jq` on macOS)
-- A git repository for your project
-
-## Setup
-
-### Option 1: Copy to your project
-
-Copy the ralph files into your project:
+### 5. Type checking
 
 ```bash
-# From your project root
-mkdir -p scripts/ralph
-cp /path/to/ralph/ralph.sh scripts/ralph/
-
-# Copy the prompt template for your AI tool of choice:
-cp /path/to/ralph/prompt.md scripts/ralph/prompt.md    # For Amp
-# OR
-cp /path/to/ralph/CLAUDE.md scripts/ralph/CLAUDE.md    # For Claude Code
-
-chmod +x scripts/ralph/ralph.sh
+cd frontend
+npm run typecheck
 ```
 
-### Option 2: Install skills globally (Amp)
+## Database Schema
 
-Copy the skills to your Amp or Claude config for use across all projects:
+The database is managed through 18 Supabase migrations covering:
 
-For AMP
-```bash
-cp -r skills/prd ~/.config/amp/skills/
-cp -r skills/ralph ~/.config/amp/skills/
-```
+- **Organizations & Users** — Multi-tenant org structure with RLS
+- **Contacts & Lists** — Contact records, list membership, activity logs
+- **SalesBlocks** — Session definitions, timers, calendar links
+- **Email & Templates** — OAuth connections, email templates, thread tracking
+- **Pipeline & Deals** — Deal stages, values, forecasting
+- **Goals & KPIs** — Activity targets, custom KPI definitions
+- **Billing** — Subscription status, Stripe customer IDs
+- **Team** — Invitations, roles, org hierarchy
 
-For Claude Code (manual)
-```bash
-cp -r skills/prd ~/.claude/skills/
-cp -r skills/ralph ~/.claude/skills/
-```
+All tables enforce row-level security scoped to the user's organization.
 
-### Option 3: Use as Claude Code Marketplace
+## Edge Functions
 
-Add the Ralph marketplace to Claude Code:
+| Function | Purpose |
+|----------|---------|
+| `create-checkout-session` | Creates a Stripe Checkout session for plan upgrades |
+| `handle-stripe-webhook` | Processes Stripe events (subscription created, updated, deleted) |
+| `send-team-invitation` | Sends email invitations to join an organization |
+| `sync-activities-to-salesforce` | Pushes call/email/meeting activities to Salesforce |
+| `track-email-replies` | Monitors email threads for reply detection |
 
-```bash
-/plugin marketplace add snarktank/ralph
-```
+## License
 
-Then install the skills:
-
-```bash
-/plugin install ralph-skills@ralph-marketplace
-```
-
-Available skills after installation:
-- `/prd` - Generate Product Requirements Documents
-- `/ralph` - Convert PRDs to prd.json format
-
-Skills are automatically invoked when you ask Claude to:
-- "create a prd", "write prd for", "plan this feature"
-- "convert this prd", "turn into ralph format", "create prd.json"
-
-### Configure Amp auto-handoff (recommended)
-
-Add to `~/.config/amp/settings.json`:
-
-```json
-{
-  "amp.experimental.autoHandoff": { "context": 90 }
-}
-```
-
-This enables automatic handoff when context fills up, allowing Ralph to handle large stories that exceed a single context window.
-
-## Workflow
-
-### 1. Create a PRD
-
-Use the PRD skill to generate a detailed requirements document:
-
-```
-Load the prd skill and create a PRD for [your feature description]
-```
-
-Answer the clarifying questions. The skill saves output to `tasks/prd-[feature-name].md`.
-
-### 2. Convert PRD to Ralph format
-
-Use the Ralph skill to convert the markdown PRD to JSON:
-
-```
-Load the ralph skill and convert tasks/prd-[feature-name].md to prd.json
-```
-
-This creates `prd.json` with user stories structured for autonomous execution.
-
-### 3. Run Ralph
-
-```bash
-# Using Amp (default)
-./scripts/ralph/ralph.sh [max_iterations]
-
-# Using Claude Code
-./scripts/ralph/ralph.sh --tool claude [max_iterations]
-```
-
-Default is 10 iterations. Use `--tool amp` or `--tool claude` to select your AI coding tool.
-
-Ralph will:
-1. Create a feature branch (from PRD `branchName`)
-2. Pick the highest priority story where `passes: false`
-3. Implement that single story
-4. Run quality checks (typecheck, tests)
-5. Commit if checks pass
-6. Update `prd.json` to mark story as `passes: true`
-7. Append learnings to `progress.txt`
-8. Repeat until all stories pass or max iterations reached
-
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `ralph.sh` | The bash loop that spawns fresh AI instances (supports `--tool amp` or `--tool claude`) |
-| `prompt.md` | Prompt template for Amp |
-| `CLAUDE.md` | Prompt template for Claude Code |
-| `prd.json` | User stories with `passes` status (the task list) |
-| `prd.json.example` | Example PRD format for reference |
-| `progress.txt` | Append-only learnings for future iterations |
-| `skills/prd/` | Skill for generating PRDs (works with Amp and Claude Code) |
-| `skills/ralph/` | Skill for converting PRDs to JSON (works with Amp and Claude Code) |
-| `.claude-plugin/` | Plugin manifest for Claude Code marketplace discovery |
-| `flowchart/` | Interactive visualization of how Ralph works |
-
-## Flowchart
-
-[![Ralph Flowchart](ralph-flowchart.png)](https://snarktank.github.io/ralph/)
-
-**[View Interactive Flowchart](https://snarktank.github.io/ralph/)** - Click through to see each step with animations.
-
-The `flowchart/` directory contains the source code. To run locally:
-
-```bash
-cd flowchart
-npm install
-npm run dev
-```
-
-## Critical Concepts
-
-### Each Iteration = Fresh Context
-
-Each iteration spawns a **new AI instance** (Amp or Claude Code) with clean context. The only memory between iterations is:
-- Git history (commits from previous iterations)
-- `progress.txt` (learnings and context)
-- `prd.json` (which stories are done)
-
-### Small Tasks
-
-Each PRD item should be small enough to complete in one context window. If a task is too big, the LLM runs out of context before finishing and produces poor code.
-
-Right-sized stories:
-- Add a database column and migration
-- Add a UI component to an existing page
-- Update a server action with new logic
-- Add a filter dropdown to a list
-
-Too big (split these):
-- "Build the entire dashboard"
-- "Add authentication"
-- "Refactor the API"
-
-### AGENTS.md Updates Are Critical
-
-After each iteration, Ralph updates the relevant `AGENTS.md` files with learnings. This is key because AI coding tools automatically read these files, so future iterations (and future human developers) benefit from discovered patterns, gotchas, and conventions.
-
-Examples of what to add to AGENTS.md:
-- Patterns discovered ("this codebase uses X for Y")
-- Gotchas ("do not forget to update Z when changing W")
-- Useful context ("the settings panel is in component X")
-
-### Feedback Loops
-
-Ralph only works if there are feedback loops:
-- Typecheck catches type errors
-- Tests verify behavior
-- CI must stay green (broken code compounds across iterations)
-
-### Browser Verification for UI Stories
-
-Frontend stories must include "Verify in browser using dev-browser skill" in acceptance criteria. Ralph will use the dev-browser skill to navigate to the page, interact with the UI, and confirm changes work.
-
-### Stop Condition
-
-When all stories have `passes: true`, Ralph outputs `<promise>COMPLETE</promise>` and the loop exits.
-
-## Debugging
-
-Check current state:
-
-```bash
-# See which stories are done
-cat prd.json | jq '.userStories[] | {id, title, passes}'
-
-# See learnings from previous iterations
-cat progress.txt
-
-# Check git history
-git log --oneline -10
-```
-
-## Customizing the Prompt
-
-After copying `prompt.md` (for Amp) or `CLAUDE.md` (for Claude Code) to your project, customize it for your project:
-- Add project-specific quality check commands
-- Include codebase conventions
-- Add common gotchas for your stack
-
-## Archiving
-
-Ralph automatically archives previous runs when you start a new feature (different `branchName`). Archives are saved to `archive/YYYY-MM-DD-feature-name/`.
-
-## References
-
-- [Geoffrey Huntley's Ralph article](https://ghuntley.com/ralph/)
-- [Amp documentation](https://ampcode.com/manual)
-- [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code)
+MIT
