@@ -280,3 +280,34 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Clean modal state**: Reset all state on close to ensure fresh state on next open
   - **Browser verification deferred**: Requires Docker Desktop + Supabase local + npm run dev (blocked for this iteration)
 ---
+
+## 2026-02-23 16:32 - US-010 - PAI Iteration 10
+- **Implemented:** Manual contact creation form with email validation, duplicate detection, custom fields, and optional list assignment
+- **Files changed:**
+  - Created `frontend/src/components/AddContactModal.tsx` - Full-featured add contact modal
+  - Updated `frontend/src/pages/Lists.tsx` - Added Add Contact button with Plus icon
+  - Updated `prd.json` (US-010 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Add Contact button on Lists page with green accent (Plus icon)
+  - Form includes: first_name, last_name, email (required), phone, company, title
+  - Dynamic custom fields: key-value pairs with add/remove buttons
+  - Email format validation using regex pattern
+  - Duplicate detection: queries contacts by email + org_id, shows warning with existing contact details
+  - Duplicate warning allows proceed with confirmation (second click)
+  - After contact created, shows list assignment screen with dropdown of user's lists
+  - List assignment optional (can skip)
+  - If list selected, inserts into list_contacts junction table
+  - Typecheck passes with zero errors
+  - Browser verification deferred (Docker Desktop not running)
+- **Learnings for future iterations:**
+  - **Two-step modal pattern**: Create contact → show list assignment screen (avoids cramming both into one form)
+  - **Email validation UX**: Yellow warning banner appears when email format invalid, submit button disabled
+  - **Duplicate detection pattern**: onBlur trigger checks email against DB, shows warning but allows proceed
+  - **Custom fields UI**: Dynamic array of {key, value} pairs with add/remove buttons for flexibility
+  - **List loading**: After contact created, fetches user's accessible lists (owner OR shared lists)
+  - **State management**: showListAssignment flag switches between form view and list assignment view
+  - **Reset pattern**: resetAndClose() clears all state fields to prevent stale data on next open
+  - **Error handling**: Try/catch with user-friendly alerts for DB errors
+  - **Success callback pattern**: onSuccess() called after full flow (contact created + optional list assignment)
+  - **Green vs Blue buttons**: Green for Add Contact (create action), Blue for Import CSV (batch action)
+---
