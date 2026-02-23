@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Plus, List, RefreshCw, Users } from 'lucide-react';
+import { Upload, Plus, List, RefreshCw, Users, Clock } from 'lucide-react';
 import ImportCSVModal from '../components/ImportCSVModal';
 import { AddContactModal } from '../components/AddContactModal';
 import ListBuilderModal from '../components/ListBuilderModal';
+import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal';
 import { supabase } from '../lib/supabase';
 
 interface ListRecord {
@@ -26,6 +27,7 @@ export default function Lists() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [isListBuilderOpen, setIsListBuilderOpen] = useState(false);
+  const [isCreateSalesBlockOpen, setIsCreateSalesBlockOpen] = useState(false);
   const [lists, setLists] = useState<ListRecord[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
 
@@ -123,6 +125,13 @@ export default function Lists() {
         </div>
 
         <div className="flex gap-2">
+          <button
+            onClick={() => setIsCreateSalesBlockOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+          >
+            <Clock className="w-4 h-4" />
+            Create SalesBlock
+          </button>
           <button
             onClick={() => setIsListBuilderOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
@@ -266,6 +275,15 @@ export default function Lists() {
         isOpen={isListBuilderOpen}
         onClose={() => setIsListBuilderOpen(false)}
         onSuccess={handleListCreated}
+      />
+
+      <CreateSalesBlockModal
+        isOpen={isCreateSalesBlockOpen}
+        onClose={() => setIsCreateSalesBlockOpen(false)}
+        onSuccess={() => {
+          setIsCreateSalesBlockOpen(false);
+          // No need to reload lists - salesblock creation doesn't affect list data
+        }}
       />
     </div>
   );
