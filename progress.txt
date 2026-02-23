@@ -1014,3 +1014,27 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Tab State Management**: activeTab triggers useEffect for lazy loading data only when tab becomes visible (avoid unnecessary fetches)
   - **Billing UI Pattern**: Current plan + next billing date + Customer Portal link + Cancel subscription; informational note for team pricing
 ---
+## 2026-02-23 08:11 - US-046 - PAI Iteration 35
+- **Implemented:** Organization hierarchy management in Settings > Organization tab
+- **Files changed:**
+  - Updated `frontend/src/pages/SettingsPage.tsx` - Added hierarchy state, handlers, and comprehensive UI for divisions/teams/user assignment
+  - Updated `prd.json` (US-046 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Settings > Organization tab displays hierarchy tree view with divisions and teams
+  - Create/rename/delete divisions with inline editing
+  - Create/rename/delete teams with inline editing
+  - Teams can be assigned to divisions via dropdown (or left unassigned)
+  - Users can be reassigned between teams via dropdown in User Team Assignments section
+  - Hierarchy depth configurable: flat (teams only), standard (division > teams), full (org > division > team > users)
+  - Typecheck passes with zero errors
+  - Browser verification deferred (Docker Desktop not running for Supabase local)
+- **Learnings for future iterations:**
+  - **Hierarchy UI Pattern:** Three-section layout for divisions, teams, and user assignments keeps CRUD operations organized
+  - **Inline Editing Pattern:** Click "Rename" → input field + Save/Cancel buttons for efficient editing without modals
+  - **Cascading Deletes:** ON DELETE SET NULL in schema means teams automatically unassign when division deleted, users unassign when team deleted
+  - **State Synchronization:** Local state updates after mutations prevent stale UI (setDivisions/setTeams/setTeamMembers)
+  - **Division Display in Team Dropdowns:** Show division name in parentheses when reassigning users (e.g., "Sales Team (West Division)")
+  - **Conditional Rendering:** divisions.length and teams.length provide counts in section headers
+  - **useEffect Dependency:** Load hierarchy data when activeTab === 'organization' for lazy loading
+  - **Shared Team Members State:** teamMembers loaded for both Team tab and Organization tab user reassignment
+---
