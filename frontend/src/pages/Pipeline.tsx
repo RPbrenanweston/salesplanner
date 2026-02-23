@@ -202,6 +202,31 @@ export default function Pipeline() {
     return diffDays
   }
 
+  // Forecast calculations
+  const totalPipelineValue = columns.reduce((sum, col) => sum + col.totalValue, 0)
+
+  const weightedForecast = columns.reduce((sum, col) => {
+    const stageWeightedValue = col.deals.reduce((dealSum, deal) => {
+      const probability = col.stage.probability / 100
+      return dealSum + (deal.value * probability)
+    }, 0)
+    return sum + stageWeightedValue
+  }, 0)
+
+  const dealsClosingThisMonth = columns.reduce((count, col) => {
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    const monthDeals = col.deals.filter(deal => {
+      if (!deal.close_date) return false
+      const closeDate = new Date(deal.close_date)
+      return closeDate.getMonth() === currentMonth && closeDate.getFullYear() === currentYear
+    })
+
+    return count + monthDeals.length
+  }, 0)
+
   if (loading) {
     return (
       <div className="p-8">
@@ -228,6 +253,34 @@ export default function Pipeline() {
           <Plus className="w-5 h-5" />
           Add Deal
         </button>
+      </div>
+
+      {/* Forecast Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Forecast</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="flex flex-col">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Pipeline Value</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+              {formatCurrency(totalPipelineValue)}
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Weighted Forecast</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              {formatCurrency(weightedForecast)}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              Based on stage probabilities
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Closing This Month</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {dealsClosingThisMonth} {dealsClosingThisMonth === 1 ? 'deal' : 'deals'}
+            </div>
+          </div>
+        </div>
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
