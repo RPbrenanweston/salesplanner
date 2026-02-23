@@ -5,6 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SalesBlock.io</title>
+    <script>
+      // Prevent flash of wrong theme by applying theme before React loads
+      (function() {
+        const getSystemPreference = () => {
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        };
+
+        // Try to get saved theme from localStorage (fallback if not logged in)
+        let theme = localStorage.getItem('theme');
+
+        // If no saved theme, use system preference
+        if (!theme || theme === 'system') {
+          theme = getSystemPreference();
+        }
+
+        // Apply theme immediately
+        document.documentElement.classList.add(theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

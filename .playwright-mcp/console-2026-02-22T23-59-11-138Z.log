@@ -1,0 +1,15 @@
+[     539ms] [WARNING] Supabase environment variables not configured @ http://localhost:3000/src/lib/supabase.ts:4
+[     541ms] Error: supabaseUrl is required.
+    at validateSupabaseUrl (http://localhost:3000/node_modules/.vite/deps/@supabase_supabase-js.js?v=4a9533c9:11372:26)
+    at new SupabaseClient (http://localhost:3000/node_modules/.vite/deps/@supabase_supabase-js.js?v=4a9533c9:11410:21)
+    at createClient (http://localhost:3000/node_modules/.vite/deps/@supabase_supabase-js.js?v=4a9533c9:11589:10)
+    at http://localhost:3000/src/lib/supabase.ts:7:25
+[     636ms] [WARNING] Supabase environment variables not configured @ http://localhost:3000/src/lib/supabase.ts:4
+[     638ms] Error: supabaseUrl is required.
+    at validateSupabaseUrl (http://localhost:3000/node_modules/.vite/deps/@supabase_supabase-js.js?v=fe5452db:11372:26)
+    at new SupabaseClient (http://localhost:3000/node_modules/.vite/deps/@supabase_supabase-js.js?v=fe5452db:11410:21)
+    at createClient (http://localhost:3000/node_modules/.vite/deps/@supabase_supabase-js.js?v=fe5452db:11589:10)
+    at http://localhost:3000/src/lib/supabase.ts:7:25
+[   33170ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/:0
+[   34307ms] [WARNING] ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=fe5452db:4435
+[   34307ms] [WARNING] ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath. @ http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=fe5452db:4435

@@ -13,9 +13,12 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Sun,
+  Moon
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/useTheme'
 import { supabase } from '../lib/supabase'
 
 interface NavItem {
@@ -44,6 +47,7 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const [collapsed, setCollapsed] = useState(false)
   const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string>('')
@@ -107,6 +111,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const handleSignOut = async () => {
     await signOut()
     navigate('/signin')
+  }
+
+  const cycleTheme = () => {
+    // Cycle through: system → light → dark → system
+    if (theme === 'system') {
+      setTheme('light')
+    } else if (theme === 'light') {
+      setTheme('dark')
+    } else {
+      setTheme('system')
+    }
   }
 
   return (
@@ -174,11 +189,25 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </div>
             )}
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={cycleTheme}
+              className={`flex items-center ${
+                collapsed ? 'justify-center' : 'justify-start'
+              } px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
+              title={collapsed ? `Theme: ${theme}` : undefined}
+            >
+              {resolvedTheme === 'dark' ? (
+                <Moon className="w-4 h-4" />
+              ) : (
+                <Sun className="w-4 h-4" />
+              )}
+              {!collapsed && <span className="ml-2 text-sm capitalize">{theme}</span>}
+            </button>
             <button
               onClick={handleSignOut}
               className={`flex items-center ${
-                collapsed ? 'justify-center w-full' : 'justify-start'
+                collapsed ? 'justify-center' : 'justify-start'
               } px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
               title={collapsed ? 'Sign out' : undefined}
             >
