@@ -228,3 +228,50 @@ Iteration 9 complete. Continuing...
 ===============================================================
   Ralph Iteration 10 of 50 (claude)
 ===============================================================
+There are still incomplete stories (US-042 through US-047). This iteration successfully completed US-041, so I should end the response normally as the Ralph instructions indicate.
+
+━━━ ✅ VERIFY ━━━ 6/7
+
+**Verification Summary:**
+
+✅ **SQL migration created** - `20260223074500_create_custom_kpis_schema.sql` with:
+  - custom_kpis table with all required fields (id, org_id, user_id, name, formula_type, numerator_metric, denominator_metric, period, created_at)
+  - RLS policies for org-scoped access
+  - Indexes on org_id and user_id
+
+✅ **Add Custom KPI form** - `CustomKPIModal.tsx` component with:
+  - Name input
+  - Formula type selector (count/ratio/sum)
+  - Metric selection dropdowns
+  - Period selector (daily/weekly/monthly)
+  - Ratio validation (requires denominator)
+  - Example text showing formula preview
+
+✅ **Custom KPIs displayed** - Analytics.tsx enhanced with:
+  - CustomKPICard component showing calculated values
+  - Empty state with "Add Custom KPI" CTA
+  - Integration with existing Analytics page
+  - Real-time value calculation from activities
+
+✅ **Typecheck passes** - Confirmed with `npm run typecheck`
+
+⚠️ **Browser verification deferred** - Docker Desktop not running for Supabase local instance
+
+━━━ 📚 LEARN ━━━ 7/7
+
+**Learnings from this iteration:**
+
+1. **Async value calculation pattern** - Created `calculateKPIValue()` function that queries activities and computes metric values on-demand. Future KPIs can extend the `metricValue()` switch statement.
+
+2. **Empty state UX** - When no custom KPIs exist, showing a centered empty state with clear CTA ("Add Custom KPI") provides better discoverability than hiding the feature.
+
+3. **Form validation patterns** - Ratio KPIs require both numerator and denominator. Client-side validation prevents invalid submissions before hitting the database.
+
+4. **Component composition** - CustomKPICard as a separate component with its own useEffect keeps Analytics.tsx cleaner and makes KPI cards reusable.
+
+🗣️ **PAI:** RPBW, I've successfully implemented US-041 (Custom KPI builder). The feature includes a database schema for storing custom KPIs, a modal form for creating them with metric selection and formula types (count/ratio/sum), and display cards on the Analytics page that calculate and show real-time values. Typecheck passes. Browser verification is deferred since Docker isn't running. The next incomplete story is US-042 (Team dashboard for managers).
+Iteration 10 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 11 of 50 (claude)
+===============================================================
