@@ -958,3 +958,33 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Browser verification deferred**: Docker Desktop not running for Supabase local instance (same as previous iterations)
 ---
 
+## 2026-02-23 19:00 - US-043 - PAI Iteration 33
+- **Implemented:** Stripe pricing page and checkout with trial management
+- **Files changed:**
+  - Created `frontend/src/pages/PricingPage.tsx`
+  - Created `frontend/src/components/TrialExpiryBanner.tsx`
+  - Updated `frontend/src/components/AppLayout.tsx` (added trial banner)
+  - Updated `frontend/src/App.tsx` (added /pricing route)
+  - Updated `frontend/.env.example` (added VITE_STRIPE_PUBLISHABLE_KEY)
+  - Updated `frontend/package.json` (added stripe, @stripe/stripe-js)
+  - Created `supabase/functions/create-checkout-session/index.ts`
+  - Created `supabase/migrations/20260223190000_add_subscription_fields.sql`
+  - Updated `prd.json` (US-043 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Pricing page displays three tiers: SDR ($3.50/wk), AE ($4.50/wk), Manager ($5.50/wk)
+  - Billing period toggle with weekly, monthly, annual options
+  - Annual pricing shows "Save 15%" badge
+  - Stripe Checkout Session created via Edge Function
+  - 14-day free trial with no credit card required
+  - Trial expiry banner appears 7 days before expiry
+  - Trial expiry restricts access with red banner and "Subscribe Now" CTA
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - Stripe Edge Function requires STRIPE_SECRET_KEY environment variable
+  - Subscription metadata includes org_id, user_id, role for webhook handling
+  - Trial period configured via subscription_data.trial_period_days in Stripe Checkout
+  - PRICE_IDS object maps role + billing period to Stripe Price IDs (placeholders need replacement)
+  - subscription_status enum: trial, active, past_due, canceled, inactive
+  - TrialExpiryBanner checks trial_ends_at and shows warnings at 7 days or less
+  - Trial banner is dismissible until expiry, then becomes permanent red banner
+---
