@@ -40,6 +40,23 @@ interface TypeBreakdown {
   value: number;
 }
 
+interface ConversionMetrics {
+  totalCalls: number;
+  connects: number;
+  meetings: number;
+  totalEmails: number;
+  replies: number;
+  callToConnectRate: number;
+  connectToMeetingRate: number;
+  emailToReplyRate: number;
+}
+
+interface PreviousPeriodComparison {
+  callToConnectChange: number;
+  connectToMeetingChange: number;
+  emailToReplyChange: number;
+}
+
 export default function Analytics() {
   const { user } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange>('this_week');
@@ -53,6 +70,21 @@ export default function Analytics() {
   });
   const [dailyData, setDailyData] = useState<DailyActivity[]>([]);
   const [typeBreakdown, setTypeBreakdown] = useState<TypeBreakdown[]>([]);
+  const [conversionMetrics, setConversionMetrics] = useState<ConversionMetrics>({
+    totalCalls: 0,
+    connects: 0,
+    meetings: 0,
+    totalEmails: 0,
+    replies: 0,
+    callToConnectRate: 0,
+    connectToMeetingRate: 0,
+    emailToReplyRate: 0,
+  });
+  const [previousPeriod, setPreviousPeriod] = useState<PreviousPeriodComparison>({
+    callToConnectChange: 0,
+    connectToMeetingChange: 0,
+    emailToReplyChange: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -121,13 +153,25 @@ export default function Analytics() {
       // Query activities in date range
       const { data: activities, error } = await supabase
         .from('activities')
-        .select('id, type, created_at')
+        .select('id, type, outcome, replied_at, created_at')
         .eq('user_id', user.id)
         .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString())
         .order('created_at', { ascending: true });
 
       if (error) throw error;
+
+      // Query previous period for comparison
+      const periodDuration = end.getTime() - start.getTime();
+      const prevEnd = new Date(start.getTime() - 1);
+      const prevStart = new Date(start.getTime() - periodDuration);
+
+      const { data: prevActivities } = await supabase
+        .from('activities')
+        .select('id, type, outcome, replied_at')
+        .eq('user_id', user.id)
+        .gte('created_at', prevStart.toISOString())
+        .lte('created_at', prevEnd.toISOString());
 
       // Calculate metrics
       const calls = activities?.filter((a) => a.type === 'call').length || 0;
@@ -180,6 +224,56 @@ export default function Analytics() {
         { name: 'Social', value: social },
         { name: 'Meetings', value: meetings },
       ]);
+
+      // Calculate conversion metrics
+      const callActivities = activities?.filter((a) => a.type === 'call') || [];
+      const emailActivities = activities?.filter((a) => a.type === 'email') || [];
+
+      const connects = callActivities.filter(
+        (a) => a.outcome === 'connect' || a.outcome === 'conversation' || a.outcome === 'meeting_booked'
+      ).length;
+
+      const meetingsBooked = callActivities.filter((a) => a.outcome === 'meeting_booked').length;
+
+      const emailReplies = emailActivities.filter((a) => a.replied_at !== null).length;
+
+      const callToConnectRate = calls > 0 ? (connects / calls) * 100 : 0;
+      const connectToMeetingRate = connects > 0 ? (meetingsBooked / connects) * 100 : 0;
+      const emailToReplyRate = emails > 0 ? (emailReplies / emails) * 100 : 0;
+
+      setConversionMetrics({
+        totalCalls: calls,
+        connects,
+        meetings: meetingsBooked,
+        totalEmails: emails,
+        replies: emailReplies,
+        callToConnectRate,
+        connectToMeetingRate,
+        emailToReplyRate,
+      });
+
+      // Calculate previous period conversions for comparison
+      if (prevActivities) {
+        const prevCalls = prevActivities.filter((a) => a.type === 'call');
+        const prevEmails = prevActivities.filter((a) => a.type === 'email');
+
+        const prevConnects = prevCalls.filter(
+          (a) => a.outcome === 'connect' || a.outcome === 'conversation' || a.outcome === 'meeting_booked'
+        ).length;
+
+        const prevMeetings = prevCalls.filter((a) => a.outcome === 'meeting_booked').length;
+        const prevReplies = prevEmails.filter((a) => a.replied_at !== null).length;
+
+        const prevCallToConnect = prevCalls.length > 0 ? (prevConnects / prevCalls.length) * 100 : 0;
+        const prevConnectToMeeting = prevConnects > 0 ? (prevMeetings / prevConnects) * 100 : 0;
+        const prevEmailToReply = prevEmails.length > 0 ? (prevReplies / prevEmails.length) * 100 : 0;
+
+        setPreviousPeriod({
+          callToConnectChange: callToConnectRate - prevCallToConnect,
+          connectToMeetingChange: connectToMeetingRate - prevConnectToMeeting,
+          emailToReplyChange: emailToReplyRate - prevEmailToReply,
+        });
+      }
     } catch (err) {
       console.error('Error loading analytics:', err);
     } finally {
@@ -354,7 +448,7 @@ export default function Analytics() {
       </div>
 
       {/* Activity Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Stacked Bar Chart */}
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -421,6 +515,168 @@ export default function Analytics() {
               />
             </PieChart>
           </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Conversion Funnel */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Conversion Funnel</h2>
+
+        {/* Funnel Stages */}
+        <div className="space-y-4">
+          {/* Calls to Connects */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Calls → Connects
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    {conversionMetrics.callToConnectRate.toFixed(1)}%
+                  </span>
+                  {previousPeriod.callToConnectChange !== 0 && (
+                    <span
+                      className={`text-xs font-medium ${
+                        previousPeriod.callToConnectChange > 0
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}
+                    >
+                      {previousPeriod.callToConnectChange > 0 ? '+' : ''}
+                      {previousPeriod.callToConnectChange.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>{conversionMetrics.totalCalls} calls</span>
+                <span>→</span>
+                <span>{conversionMetrics.connects} connects</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(conversionMetrics.callToConnectRate, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Connects to Meetings */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Connects → Meetings
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    {conversionMetrics.connectToMeetingRate.toFixed(1)}%
+                  </span>
+                  {previousPeriod.connectToMeetingChange !== 0 && (
+                    <span
+                      className={`text-xs font-medium ${
+                        previousPeriod.connectToMeetingChange > 0
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}
+                    >
+                      {previousPeriod.connectToMeetingChange > 0 ? '+' : ''}
+                      {previousPeriod.connectToMeetingChange.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>{conversionMetrics.connects} connects</span>
+                <span>→</span>
+                <span>{conversionMetrics.meetings} meetings</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-green-600 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(conversionMetrics.connectToMeetingRate, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Emails to Replies */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Emails → Replies
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    {conversionMetrics.emailToReplyRate.toFixed(1)}%
+                  </span>
+                  {previousPeriod.emailToReplyChange !== 0 && (
+                    <span
+                      className={`text-xs font-medium ${
+                        previousPeriod.emailToReplyChange > 0
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}
+                    >
+                      {previousPeriod.emailToReplyChange > 0 ? '+' : ''}
+                      {previousPeriod.emailToReplyChange.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>{conversionMetrics.totalEmails} emails</span>
+                <span>→</span>
+                <span>{conversionMetrics.replies} replies</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-orange-600 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(conversionMetrics.emailToReplyRate, 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Calls to Meetings (End-to-End) */}
+          <div className="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Calls → Meetings (End-to-End)
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    {conversionMetrics.totalCalls > 0
+                      ? ((conversionMetrics.meetings / conversionMetrics.totalCalls) * 100).toFixed(1)
+                      : 0}
+                    %
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <span>{conversionMetrics.totalCalls} calls</span>
+                <span>→</span>
+                <span>{conversionMetrics.meetings} meetings</span>
+              </div>
+              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-purple-600 h-2 rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(
+                      conversionMetrics.totalCalls > 0
+                        ? (conversionMetrics.meetings / conversionMetrics.totalCalls) * 100
+                        : 0,
+                      100
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
