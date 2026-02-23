@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home } from 'lucide-react';
 import LogActivityModal from '../components/LogActivityModal';
 
 interface Contact {
@@ -26,9 +26,21 @@ interface SalesBlock {
   list_id: string;
 }
 
+interface SessionStats {
+  totalContacts: number;
+  contactsWorked: number;
+  calls: number;
+  emails: number;
+  social: number;
+  meetings: number;
+  connects: number;
+  conversations: number;
+}
+
 export default function SalesBlockSessionPage() {
   const { salesblockId } = useParams<{ salesblockId: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [salesblock, setSalesblock] = useState<SalesBlock | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -43,6 +55,11 @@ export default function SalesBlockSessionPage() {
 
   // Call script panel state
   const [scriptExpanded, setScriptExpanded] = useState(false);
+
+  // Completion state
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
+  const [sessionNotes, setSessionNotes] = useState('');
 
   // Load user's org_id
   useEffect(() => {
@@ -153,14 +170,26 @@ export default function SalesBlockSessionPage() {
     startSession();
   }, [salesblockId, salesblock]);
 
-  // Timer interval (counts up from 0)
+  // Timer interval (counts up from 0, triggers completion on expiry)
   useEffect(() => {
+    if (isCompleted) return; // Don't run timer if already completed
+
     const interval = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
+      setElapsedSeconds((prev) => {
+        const newElapsed = prev + 1;
+
+        // Check if timer expired
+        if (salesblock && newElapsed >= salesblock.duration_minutes * 60) {
+          handleEndSession();
+          return newElapsed;
+        }
+
+        return newElapsed;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [salesblock, isCompleted]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -211,6 +240,107 @@ export default function SalesBlockSessionPage() {
     setContacts(contactsWithActivity);
   };
 
+  const handleEndSession = async () => {
+    if (!salesblockId) return;
+
+    try {
+      // Calculate session stats
+      const stats = await calculateSessionStats();
+
+      // Update salesblock status
+      const { error } = await supabase
+        .from('salesblocks')
+        .update({
+          status: 'completed',
+          actual_end: new Date().toISOString(),
+        })
+        .eq('id', salesblockId);
+
+      if (error) throw error;
+
+      setSessionStats(stats);
+      setIsCompleted(true);
+    } catch (error) {
+      console.error('Error ending session:', error);
+      alert('Failed to end session');
+    }
+  };
+
+  const calculateSessionStats = async (): Promise<SessionStats> => {
+    if (!salesblockId) {
+      return {
+        totalContacts: contacts.length,
+        contactsWorked: 0,
+        calls: 0,
+        emails: 0,
+        social: 0,
+        meetings: 0,
+        connects: 0,
+        conversations: 0,
+      };
+    }
+
+    // Fetch all activities for this salesblock
+    const { data: activities, error } = await supabase
+      .from('activities')
+      .select('type, outcome, contact_id')
+      .eq('salesblock_id', salesblockId);
+
+    if (error) {
+      console.error('Error fetching activities:', error);
+      return {
+        totalContacts: contacts.length,
+        contactsWorked: 0,
+        calls: 0,
+        emails: 0,
+        social: 0,
+        meetings: 0,
+        connects: 0,
+        conversations: 0,
+      };
+    }
+
+    // Calculate stats
+    const uniqueContacts = new Set(activities?.map((a) => a.contact_id)).size;
+    const calls = activities?.filter((a) => a.type === 'call').length || 0;
+    const emails = activities?.filter((a) => a.type === 'email').length || 0;
+    const social = activities?.filter((a) => a.type === 'social').length || 0;
+    const meetings = activities?.filter((a) => a.outcome === 'meeting_booked').length || 0;
+    const connects = activities?.filter((a) => a.outcome === 'connect' || a.outcome === 'conversation').length || 0;
+    const conversations = activities?.filter((a) => a.outcome === 'conversation').length || 0;
+
+    return {
+      totalContacts: contacts.length,
+      contactsWorked: uniqueContacts,
+      calls,
+      emails,
+      social,
+      meetings,
+      connects,
+      conversations,
+    };
+  };
+
+  const handleSaveNotes = async () => {
+    if (!salesblockId) return;
+
+    try {
+      const { error } = await supabase
+        .from('salesblocks')
+        .update({ notes: sessionNotes })
+        .eq('id', salesblockId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving notes:', error);
+    }
+  };
+
+  const handleBackToHome = async () => {
+    await handleSaveNotes();
+    navigate('/');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -227,14 +357,153 @@ export default function SalesBlockSessionPage() {
     );
   }
 
+  // Summary Screen (shown after completion)
+  if (isCompleted && sessionStats) {
+    const contactWorkedPercentage =
+      sessionStats.totalContacts > 0
+        ? Math.round((sessionStats.contactsWorked / sessionStats.totalContacts) * 100)
+        : 0;
+
+    const callsToConnects =
+      sessionStats.calls > 0 ? Math.round((sessionStats.connects / sessionStats.calls) * 100) : 0;
+
+    const connectsToMeetings =
+      sessionStats.connects > 0 ? Math.round((sessionStats.meetings / sessionStats.connects) * 100) : 0;
+
+    return (
+      <div className="flex flex-col h-full bg-white dark:bg-gray-900 p-8 overflow-y-auto">
+        <div className="max-w-4xl mx-auto w-full">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Session Complete</h1>
+          <h2 className="text-xl text-gray-600 dark:text-gray-300 mb-8">{salesblock.title}</h2>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-blue-50 dark:bg-blue-900 p-6 rounded-lg">
+              <p className="text-sm text-blue-600 dark:text-blue-300 font-semibold mb-1">Contacts Worked</p>
+              <p className="text-3xl font-bold text-blue-700 dark:text-blue-200">
+                {sessionStats.contactsWorked}
+              </p>
+              <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
+                of {sessionStats.totalContacts} ({contactWorkedPercentage}%)
+              </p>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-900 p-6 rounded-lg">
+              <p className="text-sm text-green-600 dark:text-green-300 font-semibold mb-1">Calls Made</p>
+              <p className="text-3xl font-bold text-green-700 dark:text-green-200">{sessionStats.calls}</p>
+            </div>
+
+            <div className="bg-purple-50 dark:bg-purple-900 p-6 rounded-lg">
+              <p className="text-sm text-purple-600 dark:text-purple-300 font-semibold mb-1">Emails Sent</p>
+              <p className="text-3xl font-bold text-purple-700 dark:text-purple-200">{sessionStats.emails}</p>
+            </div>
+
+            <div className="bg-orange-50 dark:bg-orange-900 p-6 rounded-lg">
+              <p className="text-sm text-orange-600 dark:text-orange-300 font-semibold mb-1">Social Touches</p>
+              <p className="text-3xl font-bold text-orange-700 dark:text-orange-200">{sessionStats.social}</p>
+            </div>
+
+            <div className="bg-pink-50 dark:bg-pink-900 p-6 rounded-lg">
+              <p className="text-sm text-pink-600 dark:text-pink-300 font-semibold mb-1">Meetings Booked</p>
+              <p className="text-3xl font-bold text-pink-700 dark:text-pink-200">{sessionStats.meetings}</p>
+            </div>
+
+            <div className="bg-indigo-50 dark:bg-indigo-900 p-6 rounded-lg">
+              <p className="text-sm text-indigo-600 dark:text-indigo-300 font-semibold mb-1">Duration</p>
+              <p className="text-3xl font-bold text-indigo-700 dark:text-indigo-200">
+                {Math.round(elapsedSeconds / 60)} min
+              </p>
+            </div>
+          </div>
+
+          {/* Conversion Ratios */}
+          <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Conversion Ratios</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Contacts Worked / Total</p>
+                <div className="flex items-center space-x-3">
+                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                    <div
+                      className="bg-blue-600 h-3 rounded-full transition-all"
+                      style={{ width: `${contactWorkedPercentage}%` }}
+                    />
+                  </div>
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">{contactWorkedPercentage}%</span>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Calls to Connects</p>
+                <div className="flex items-center space-x-3">
+                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                    <div
+                      className="bg-green-600 h-3 rounded-full transition-all"
+                      style={{ width: `${callsToConnects}%` }}
+                    />
+                  </div>
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">{callsToConnects}%</span>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Connects to Meetings</p>
+                <div className="flex items-center space-x-3">
+                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                    <div
+                      className="bg-pink-600 h-3 rounded-full transition-all"
+                      style={{ width: `${connectsToMeetings}%` }}
+                    />
+                  </div>
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">{connectsToMeetings}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Session Notes */}
+          <div className="mb-8">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Session Notes
+            </label>
+            <textarea
+              value={sessionNotes}
+              onChange={(e) => setSessionNotes(e.target.value)}
+              placeholder="Add any observations or follow-up items from this session..."
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={4}
+            />
+          </div>
+
+          {/* Back to Home */}
+          <button
+            onClick={handleBackToHome}
+            className="flex items-center justify-center space-x-2 w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Home className="w-5 h-5" />
+            <span>Back to Home</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">
       {/* Timer Bar */}
       <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{salesblock.title}</h2>
-          <div className="text-sm text-gray-600 dark:text-gray-300">
-            {formatTime(elapsedSeconds)} / {salesblock.duration_minutes} min
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600 dark:text-gray-300">
+              {formatTime(elapsedSeconds)} / {salesblock.duration_minutes} min
+            </div>
+            <button
+              onClick={handleEndSession}
+              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+            >
+              End Session
+            </button>
           </div>
         </div>
         <div className="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-2">
