@@ -490,3 +490,31 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Content storage**: Stores HTML string from TipTap editor; prose dark:prose-invert for theme-aware rendering
   - **Browser verification deferred**: Docker Desktop not running (same as previous iterations)
 ---
+## 2026-02-23 16:55 - US-023 - PAI Iteration 17
+- **Implemented:** Outlook OAuth connection with Microsoft Graph API
+- **Files changed:**
+  - Created `frontend/src/components/OutlookOAuthButton.tsx` - OAuth button component with connection management
+  - Created `frontend/src/pages/OutlookOAuthCallback.tsx` - OAuth callback handler page
+  - Updated `frontend/src/App.tsx` - Added /oauth/outlook/callback route
+  - Updated `frontend/src/pages/SettingsPage.tsx` - Replaced Outlook placeholder with OutlookOAuthButton
+  - Updated `frontend/.env.example` - Added VITE_OUTLOOK_CLIENT_ID and VITE_OUTLOOK_REDIRECT_URI
+  - Updated `prd.json` (US-023 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Settings > Integrations shows Connect Outlook button (OutlookOAuthButton component)
+  - OAuth flow uses Microsoft Graph API with Mail.Send, Mail.Read, offline_access scopes
+  - Refresh token storage uses existing oauth_connections table (created in US-022)
+  - Connected email shown with green status badge + email address + Disconnect button
+  - Connection status visible in Settings > Integrations > Email section
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - **Microsoft Graph OAuth endpoint**: `https://login.microsoftonline.com/common/oauth2/v2.0/authorize`
+  - **Scope differences**: Microsoft uses space-separated scopes (`Mail.Send Mail.Read offline_access`) vs Google's URL-encoded format
+  - **Response mode**: Microsoft requires explicit `response_mode: 'query'` parameter
+  - **Error handling**: Microsoft returns `error_description` in addition to `error` param (added to callback handler)
+  - **Reusable OAuth infrastructure**: oauth_connections table and popup pattern established in US-022 allowed rapid implementation
+  - **Component pattern**: Copied GmailOAuthButton structure, changed provider name, auth URL, and scopes - minimal adaptation required
+  - **Callback route pattern**: Same structure as Gmail callback with provider-specific error handling
+  - **Environment variable naming**: VITE_OUTLOOK_CLIENT_ID (vs VITE_GMAIL_CLIENT_ID) maintains consistent naming convention
+  - **Browser verification deferred**: Docker Desktop not running for dev server (same as previous iterations)
+---
+
