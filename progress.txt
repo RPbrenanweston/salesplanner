@@ -369,3 +369,33 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Activity indexing**: created_at index enables fast timeline queries; contact_id index for per-contact activity lookup
   - **Migration not applied**: Docker daemon not running (same as previous iterations), SQL file created but not executed
 ---
+## 2026-02-23 07:59 - US-014 - PAI Iteration 13
+- **Implemented:** SalesBlock creation form with list selection, auto-generated title, date/time picker, duration dropdown, and manager assignment
+- **Files changed:**
+  - Created `frontend/src/components/CreateSalesBlockModal.tsx` - Full-featured SalesBlock creation modal
+  - Updated `frontend/src/pages/Lists.tsx` - Added Create SalesBlock button with orange accent
+  - Updated `frontend/src/pages/SalesBlocks.tsx` - Added Create SalesBlock button and modal integration
+  - Updated `prd.json` (US-014 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Create SalesBlock button on Lists page (orange) and SalesBlocks page (blue)
+  - Form includes: list selection dropdown, title (auto-generated from list name + date), date picker, time picker, duration dropdown (15/25/30/45/60 min)
+  - Title auto-generation: `{listName} - {formattedDate}` whenever list or date changes
+  - Date picker with min validation (cannot select past dates)
+  - Creates salesblock record with status: 'scheduled', calculates scheduled_end from scheduled_start + duration
+  - Manager role check: loads team members if user is manager
+  - Manager assignment: "Assign To" dropdown visible only to managers with team members
+  - assigned_by field populated when manager assigns to team member (null when self-assigned)
+  - Typecheck passes with zero errors
+  - Browser verification deferred (Docker Desktop not running for dev server)
+- **Learnings for future iterations:**
+  - **Auto-generated title pattern**: Use useEffect with dependencies [selectedListId, scheduledDate, lists] to auto-populate title field
+  - **Date/time combination**: Combine separate date and time inputs into single ISO timestamp using `new Date(${date}T${time})`
+  - **Duration calculation**: scheduled_end = new Date(scheduledStart.getTime() + parseInt(duration) * 60000) for milliseconds math
+  - **Manager-only features**: Check user role from DB, conditionally render UI based on isManager state
+  - **Team member loading**: Query users table filtering by team_id, exclude self from list (neq('id', user.id))
+  - **Optional assignment**: Empty assignedToUserId = self-assignment (assigned_by: null), non-empty = manager assignment (assigned_by: user.id)
+  - **Modal reset pattern**: resetAndClose() resets all form fields including preSelectedListId to ensure clean state on reopen
+  - **Pre-selected list support**: preSelectedListId prop allows opening modal from List detail page with pre-filled list (for future US-012 "Start SalesBlock" button)
+  - **Success callback**: onSuccess() called after successful creation to refresh parent component data
+  - **Button colors**: Orange for Create SalesBlock (distinct from blue Import/List actions), maintains visual hierarchy
+---

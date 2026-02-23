@@ -245,7 +245,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Calendar preview placeholder — filled when calendar integration done."
     },
     {
