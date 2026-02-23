@@ -3,6 +3,7 @@ import { X, Calendar, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { createCalendarEvent } from '../lib/calendar';
+import { markActivityForSync } from '../lib/salesforce';
 
 interface BookMeetingModalProps {
   isOpen: boolean;
@@ -80,7 +81,7 @@ export default function BookMeetingModal({
         .eq('id', userData.user?.id)
         .single();
 
-      await supabase.from('activities').insert({
+      const { data: activityData, error: activityError } = await supabase.from('activities').insert({
         org_id: dbUser?.org_id,
         contact_id: contact.id,
         user_id: userData.user?.id,
@@ -89,7 +90,14 @@ export default function BookMeetingModal({
         outcome: 'meeting_booked',
         notes: `Meeting scheduled: ${title}${description ? ` - ${description}` : ''}`,
         created_at: new Date().toISOString(),
-      });
+      }).select('id').single();
+
+      if (activityError) throw activityError;
+
+      // Mark for Salesforce sync if auto-push enabled
+      if (activityData?.id) {
+        markActivityForSync(activityData.id);
+      }
 
       onSuccess?.();
       resetAndClose();

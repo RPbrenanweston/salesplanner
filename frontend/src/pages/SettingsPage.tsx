@@ -20,6 +20,10 @@ export default function SettingsPage() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadSuccess, setUploadSuccess] = useState(false)
 
+  // Salesforce auto-push toggle state
+  const [sfAutoPush, setSfAutoPush] = useState(false)
+  const [sfAutoPushLoading, setSfAutoPushLoading] = useState(false)
+
   // Load organization data
   useEffect(() => {
     const loadOrgData = async () => {
@@ -37,13 +41,14 @@ export default function SettingsPage() {
 
       const { data: orgData } = await supabase
         .from('organizations')
-        .select('name, logo_url')
+        .select('name, logo_url, sf_auto_push_activities')
         .eq('id', userData.org_id)
         .single()
 
       if (orgData) {
         setOrgName(orgData.name || '')
         setLogoUrl(orgData.logo_url)
+        setSfAutoPush(orgData.sf_auto_push_activities || false)
       }
     }
 
@@ -149,6 +154,52 @@ export default function SettingsPage() {
       setUploadError('Failed to remove logo. Please try again.')
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleSfAutoPushToggle = async () => {
+    if (!orgId) return
+
+    setSfAutoPushLoading(true)
+    try {
+      const newValue = !sfAutoPush
+
+      const { error } = await supabase
+        .from('organizations')
+        .update({ sf_auto_push_activities: newValue })
+        .eq('id', orgId)
+
+      if (error) throw error
+
+      setSfAutoPush(newValue)
+    } catch (error) {
+      console.error('Failed to update SF auto-push setting:', error)
+      alert('Failed to update auto-push setting. Please try again.')
+    } finally {
+      setSfAutoPushLoading(false)
+    }
+  }
+
+  const handleSyncNow = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-activities-to-salesforce`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) throw new Error('Sync failed')
+
+      const result = await response.json()
+      alert(`Sync completed: ${result.synced} synced, ${result.failed} failed`)
+    } catch (error) {
+      console.error('Manual sync error:', error)
+      alert('Manual sync failed. Please try again.')
     }
   }
 
@@ -324,6 +375,45 @@ export default function SettingsPage() {
             </h3>
             <div className="space-y-4">
               <SalesforceOAuthButton />
+
+              {/* Salesforce Activity Sync Settings */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                      Auto-push Activities to Salesforce
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      Automatically create Salesforce Tasks when you log activities in SalesBlock
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSfAutoPushToggle}
+                    disabled={sfAutoPushLoading}
+                    className={`${
+                      sfAutoPush ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50`}
+                  >
+                    <span
+                      className={`${
+                        sfAutoPush ? 'translate-x-6' : 'translate-x-1'
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                    />
+                  </button>
+                </div>
+
+                <div className="mt-4 flex items-center space-x-2">
+                  <button
+                    onClick={handleSyncNow}
+                    className="px-3 py-1 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
+                  >
+                    Sync Now
+                  </button>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Manually sync pending activities
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { markActivityForSync } from '../lib/salesforce';
 
 interface LogSocialActivityModalProps {
   isOpen: boolean;
@@ -78,7 +79,7 @@ export default function LogSocialActivityModal({
         user_notes: notes.trim() || null,
       });
 
-      const { error } = await supabase.from('activities').insert({
+      const { data, error } = await supabase.from('activities').insert({
         org_id: orgId,
         contact_id: contactId,
         user_id: userId,
@@ -87,9 +88,14 @@ export default function LogSocialActivityModal({
         outcome: 'other',
         notes: structuredNotes,
         created_at: isoTimestamp,
-      });
+      }).select('id').single();
 
       if (error) throw error;
+
+      // Mark for Salesforce sync if auto-push enabled
+      if (data?.id) {
+        markActivityForSync(data.id);
+      }
 
       onSuccess();
       resetAndClose();

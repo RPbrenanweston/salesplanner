@@ -3,6 +3,7 @@ import { X, Mail, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { getFreeBusySlots, formatAvailabilityText } from '../lib/calendar';
+import { markActivityForSync } from '../lib/salesforce';
 
 interface ComposeEmailModalProps {
   isOpen: boolean;
@@ -215,7 +216,7 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
         .eq('id', userData.user?.id)
         .single();
 
-      await supabase.from('activities').insert({
+      const { data, error } = await supabase.from('activities').insert({
         org_id: dbUser?.org_id,
         contact_id: contact.id,
         user_id: userData.user?.id,
@@ -225,7 +226,14 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
         thread_id: threadId || null,
         conversation_id: conversationId || null,
         created_at: new Date().toISOString(),
-      });
+      }).select('id').single();
+
+      if (error) throw error;
+
+      // Mark for Salesforce sync if auto-push enabled
+      if (data?.id) {
+        markActivityForSync(data.id);
+      }
     } catch (err) {
       console.error('Error logging activity:', err);
       // Don't throw - email was sent successfully

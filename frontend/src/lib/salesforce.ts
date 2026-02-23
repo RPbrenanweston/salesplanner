@@ -187,3 +187,57 @@ export async function getSalesforceConnection(): Promise<{
     instance_url: instanceUrl,
   };
 }
+
+/**
+ * Check if Salesforce auto-push activities is enabled for the current user's org
+ */
+export async function isSalesforceAutoPushEnabled(): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('org_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!userData?.org_id) return false
+
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('sf_auto_push_activities')
+      .eq('id', userData.org_id)
+      .single()
+
+    return orgData?.sf_auto_push_activities || false
+  } catch (error) {
+    console.error('Error checking SF auto-push setting:', error)
+    return false
+  }
+}
+
+/**
+ * Mark activity as pending sync to Salesforce (called after activity insert)
+ * Non-blocking: logs errors but doesn't throw
+ */
+export async function markActivityForSync(activityId: string): Promise<void> {
+  try {
+    const autoPushEnabled = await isSalesforceAutoPushEnabled()
+    if (!autoPushEnabled) return // Skip if auto-push disabled
+
+    const connection = await getSalesforceConnection()
+    if (!connection) return // Skip if no SF connection
+
+    // Update activity to pending sync status
+    await supabase
+      .from('activities')
+      .update({ sync_status: 'pending' })
+      .eq('id', activityId)
+
+    console.log(`Activity ${activityId} marked for Salesforce sync`)
+  } catch (error) {
+    console.error('Error marking activity for sync:', error)
+    // Non-blocking: don't throw error, just log
+  }
+}
