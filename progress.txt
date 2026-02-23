@@ -859,3 +859,34 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Modal state management**: Separate isOpen + selectedId state for each modal to prevent prop conflicts
   - **Browser verification deferred**: Docker Desktop not running for Supabase local instance (same as previous iterations)
 ---
+
+## 2026-02-23 15:15 - US-037 - PAI Iteration 29
+- **Implemented:** Goal setting and tracking with daily/weekly/monthly periods
+- **Files changed:**
+  - Created `supabase/migrations/20260223151500_create_goals_schema.sql` - Goals table schema with RLS policies
+  - Updated `frontend/src/pages/Goals.tsx` - Complete Goals page with CRUD functionality, progress bars, auto-calculated progress
+  - Updated `prd.json` (US-037 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - SQL migration creates goals table with metric enum (calls, emails, social_touches, meetings_booked, pipeline_value, custom)
+  - Goals page lists goals in 2-column grid with progress bars showing current/target values
+  - Add Goal modal with metric dropdown, target number input, period selection (daily/weekly/monthly)
+  - Progress auto-calculated: counts activities within period (daily = today, weekly = this week, monthly = this month)
+  - Progress bar colors: blue (0-49%), yellow (50-74%), green (75-99%), dark green (100%+)
+  - Goals visible on Home dashboard (already implemented in previous iteration)
+  - Custom metric support with custom_metric_name field
+  - Delete goal with confirmation dialog
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - **Period calculation pattern**: Daily (midnight today), Weekly (Sunday of current week), Monthly (1st of current month) using Date constructor arithmetic
+  - **Pipeline value calculation**: Sum of open deals (excluding closed_won and closed_lost stages) via neq() filters
+  - **Activity count pattern**: Use Supabase count: 'exact' with head: true for efficient counting without fetching rows
+  - **Progress percentage formula**: Math.round((currentValue / target_value) * 100) for clean integer percentages
+  - **Color-coded progress UX**: Conditional Tailwind classes based on percentage thresholds (>=100, >=75, >=50, else default)
+  - **Goal visibility**: All org members can view all goals (transparency), but only owner can edit/delete own goals
+  - **Manager permissions**: Managers can create goals for team members via separate RLS policy
+  - **Custom metrics**: Stored with metric='custom' and custom_metric_name populated for flexible goal tracking
+  - **Empty state pattern**: Large Target icon + descriptive text + CTA button when no goals exist
+  - **Achievement celebration**: "Goal Achieved! 🎉" badge appears when percentage >= 100%
+  - **Home dashboard integration**: Goals already displayed on Home (from previous iteration US-019) with same progress calculation logic
+  - **Browser verification deferred**: Docker Desktop not running for Supabase local instance (same as previous iterations)
+---

@@ -7,7 +7,7 @@ import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import OutlookCalendarOAuthButton from '../components/OutlookCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
 
-type Tab = 'profile' | 'organization' | 'integrations'
+type Tab = 'profile' | 'organization' | 'integrations' | 'pipeline'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('profile')
@@ -23,6 +23,17 @@ export default function SettingsPage() {
   // Salesforce auto-push toggle state
   const [sfAutoPush, setSfAutoPush] = useState(false)
   const [sfAutoPushLoading, setSfAutoPushLoading] = useState(false)
+
+  // Pipeline stages state
+  const [pipelineStages, setPipelineStages] = useState<{
+    id: string
+    name: string
+    position: number
+    probability: number
+    color: string
+  }[]>([])
+  const [loadingStages, setLoadingStages] = useState(false)
+  const [savingStages, setSavingStages] = useState(false)
 
   // Load organization data
   useEffect(() => {
@@ -54,6 +65,40 @@ export default function SettingsPage() {
 
     loadOrgData()
   }, [user])
+
+  // Load pipeline stages for Pipeline tab
+  useEffect(() => {
+    const loadPipelineStages = async () => {
+      if (!user || activeTab !== 'pipeline') return
+
+      setLoadingStages(true)
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('org_id')
+          .eq('id', user.id)
+          .single()
+
+        if (!userData?.org_id) return
+
+        const { data: stages } = await supabase
+          .from('pipeline_stages')
+          .select('id, name, position, probability, color')
+          .eq('org_id', userData.org_id)
+          .order('position')
+
+        if (stages) {
+          setPipelineStages(stages)
+        }
+      } catch (error) {
+        console.error('Error loading pipeline stages:', error)
+      } finally {
+        setLoadingStages(false)
+      }
+    }
+
+    loadPipelineStages()
+  }, [user, activeTab])
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -203,6 +248,38 @@ export default function SettingsPage() {
     }
   }
 
+  const handleProbabilityChange = (stageId: string, newProbability: number) => {
+    setPipelineStages(stages =>
+      stages.map(stage =>
+        stage.id === stageId
+          ? { ...stage, probability: newProbability }
+          : stage
+      )
+    )
+  }
+
+  const handleSaveProbabilities = async () => {
+    setSavingStages(true)
+    try {
+      // Update each stage's probability
+      const updates = pipelineStages.map(stage =>
+        supabase
+          .from('pipeline_stages')
+          .update({ probability: stage.probability })
+          .eq('id', stage.id)
+      )
+
+      await Promise.all(updates)
+
+      alert('Stage probabilities updated successfully')
+    } catch (error) {
+      console.error('Error saving probabilities:', error)
+      alert('Failed to save probabilities. Please try again.')
+    } finally {
+      setSavingStages(false)
+    }
+  }
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
@@ -241,6 +318,16 @@ export default function SettingsPage() {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
             Integrations
+          </button>
+          <button
+            onClick={() => setActiveTab('pipeline')}
+            className={`${
+              activeTab === 'pipeline'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+          >
+            Pipeline
           </button>
         </nav>
       </div>
@@ -416,6 +503,81 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'pipeline' && (
+        <div className="max-w-2xl">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Pipeline Stages
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Configure probability percentages for each pipeline stage. These values are used to calculate weighted revenue forecasts.
+          </p>
+
+          {loadingStages ? (
+            <div className="text-gray-500 dark:text-gray-400">Loading stages...</div>
+          ) : (
+            <>
+              <div className="space-y-4 mb-6">
+                {pipelineStages.map((stage) => (
+                  <div
+                    key={stage.id}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: stage.color }}
+                        />
+                        <h3 className="font-medium text-gray-900 dark:text-white">
+                          {stage.name}
+                        </h3>
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        {stage.probability}% probability
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={stage.probability}
+                        onChange={(e) => handleProbabilityChange(stage.id, parseInt(e.target.value))}
+                        className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={stage.probability}
+                        onChange={(e) => handleProbabilityChange(stage.id, parseInt(e.target.value) || 0)}
+                        className="w-20 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleSaveProbabilities}
+                  disabled={savingStages}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {savingStages ? 'Saving...' : 'Save Changes'}
+                </button>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Changes will apply to forecast calculations immediately
+                </p>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
