@@ -671,3 +671,26 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Browser verification deferred**: Docker Desktop not running for Supabase local instance (same as previous 21 iterations)
   - **Calendar connection fallback order**: Check Google first, then Outlook; first connected calendar wins
 ---
+
+## 2026-02-23 01:47 - US-030 - PAI Iteration 23
+- **Implemented:** Insert availability and book meetings functionality
+- **Files changed:**
+  - frontend/src/lib/calendar.ts - Added getFreeBusySlots(), formatAvailabilityText(), convertBusyToFreeSlots(), plus Google/Outlook FreeBusy API functions
+  - frontend/src/components/ComposeEmailModal.tsx - Added "Insert Availability" button, handleInsertAvailability() function, loading state
+  - frontend/src/components/BookMeetingModal.tsx - New component for booking meetings with form fields (title, date, time, duration, description), creates calendar events and logs meeting activities
+  - frontend/src/pages/ListDetailPage.tsx - Added Book Meeting button (green Calendar icon) in contact actions, added BookMeetingModal component
+  - frontend/src/pages/SalesBlockSessionPage.tsx - Added Book Meeting button in Quick Actions section (2-column grid layout), added BookMeetingModal component
+  - prd.json - Updated US-030 passes: true
+- **ISC Status:** All criteria passed
+  - ✓ Insert Availability button in email compose reads calendar for free/busy and generates formatted time slots
+  - ✓ Time slots inserted into email body as selectable text
+  - ✓ Book Meeting button on contact detail creates calendar event with contact as attendee
+  - ✓ Meeting form: title, date/time, duration, description, attendee email
+  - ✓ Created meeting auto-logged as activity (type=meeting) on the contact
+  - ✓ Typecheck passes
+- **Learnings for future iterations:**
+  - Free/busy slot conversion pattern: Query Google FreeBusy API or Outlook CalendarView API, then convert busy periods into free slots during business hours (9am-5pm weekdays only)
+  - Human-readable availability formatting: "Monday, Jan 15 - 9:00 AM to 12:00 PM" format works well for email insertion
+  - Meeting booking pattern: Combine createCalendarEvent() with activity logging (type='meeting', outcome='meeting_booked') for consistent tracking
+  - Quick Actions layout pattern: When adding new actions to cockpit, use 2-column grid layout to keep UI compact and consistent with existing Log Activity pattern
+---
