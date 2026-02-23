@@ -24,7 +24,7 @@ export default function BookMeetingModal({
   salesblockId,
   onSuccess,
 }: BookMeetingModalProps) {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -65,7 +65,7 @@ export default function BookMeetingModal({
       const scheduledEnd = new Date(scheduledStart.getTime() + parseInt(duration) * 60000);
 
       // Create calendar event
-      const calendarEventResult = await createCalendarEvent({
+      await createCalendarEvent({
         title,
         description: description || `Meeting with ${contact.first_name} ${contact.last_name} (${contact.email})`,
         start: scheduledStart.toISOString(),
