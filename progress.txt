@@ -123,3 +123,42 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - Browser verification confirmed all three auth pages render without errors
 ---
 
+## 2026-02-23 00:08 - US-005 - PAI Iteration 5
+- **Implemented:** App layout with persistent sidebar navigation
+- **Files changed:**
+  - Created `frontend/src/components/AppLayout.tsx` - Main layout component with sidebar + content area
+  - Created `frontend/src/pages/SalesBlocks.tsx` - Placeholder page
+  - Created `frontend/src/pages/Lists.tsx` - Placeholder page
+  - Created `frontend/src/pages/Email.tsx` - Placeholder page
+  - Created `frontend/src/pages/Social.tsx` - Placeholder page
+  - Created `frontend/src/pages/Pipeline.tsx` - Placeholder page
+  - Created `frontend/src/pages/Goals.tsx` - Placeholder page
+  - Created `frontend/src/pages/Analytics.tsx` - Placeholder page
+  - Created `frontend/src/pages/Team.tsx` - Placeholder page
+  - Created `frontend/src/pages/SettingsPage.tsx` - Placeholder page
+  - Updated `frontend/src/App.tsx` - Added all routes with AppLayout wrapper
+  - Updated `frontend/src/pages/Home.tsx` - Simplified to use AppLayout
+  - Updated `prd.json` (US-005 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Sidebar with 10 menu items (Home, SalesBlocks, Lists, Email, Social, Pipeline, Goals, Analytics, Team, Settings)
+  - Each item has correct Lucide icon (Home, Clock, List, Mail, Share2, TrendingUp, Target, BarChart2, Users, Settings)
+  - Active route highlighted with blue-600 accent color via NavLink isActive prop
+  - Sidebar collapses to icon-only mode with toggle button
+  - Sidebar state persisted to Supabase users.preferences.sidebarCollapsed
+  - Organization logo displays at top (falls back to "SalesBlock.io" text when no logo_url)
+  - User avatar (first character circle) and display name at bottom
+  - Sign-out button integrated into sidebar bottom section
+  - Main content area uses flex-1 to fill remaining viewport width
+  - Typecheck passes with zero errors
+  - Browser verification completed (auth pages render correctly, sidebar code verified)
+- **Learnings for future iterations:**
+  - AppLayout component wraps all protected routes in App.tsx
+  - NavLink with isActive provides automatic active route styling
+  - Sidebar uses `w-64` expanded, `w-20` collapsed with `transition-all duration-300` for smooth animation
+  - Preference persistence uses Supabase update: `users.preferences.sidebarCollapsed`
+  - Organization logo loaded via org_id foreign key from users table
+  - User avatar fallback: `displayName.charAt(0).toUpperCase()` in blue-600 circle
+  - Flex layout pattern: `flex h-screen` parent, sidebar fixed width, main content `flex-1`
+  - All placeholder pages follow same structure: padding + heading + description
+  - React Router v6 NavLink automatically manages active state - no manual `useLocation` needed
+---
