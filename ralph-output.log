@@ -254,3 +254,18 @@ Iteration 9 complete. Continuing...
 ===============================================================
   Ralph Iteration 10 of 50 (claude)
 ===============================================================
+✅ **VERIFY:** US-020 complete, all acceptance criteria met:
+- ✅ call_scripts table created with RLS
+- ✅ Scripts page lists all scripts  
+- ✅ TipTap rich text editor for create/edit
+- ✅ Delete with confirmation
+- ✅ Shared scripts visible to team
+- ✅ Scripts selectable in CreateSalesBlockModal
+- ✅ Typecheck passes
+
+🗣️ PAI: US-020 (Call scripts CRUD) complete! I implemented a full-featured script management system with a TipTap rich text editor. Scripts can be created, edited, deleted, and optionally shared with the team. They're now selectable when creating a SalesBlock. The rich text editor includes formatting controls (bold, italic, lists, undo/redo). 27 stories remain in the PRD.
+Iteration 10 complete. Continuing...
+
+===============================================================
+  Ralph Iteration 11 of 50 (claude)
+===============================================================

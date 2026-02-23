@@ -16,6 +16,7 @@ import Team from './pages/Team'
 import SettingsPage from './pages/SettingsPage'
 import SalesBlockSessionPage from './pages/SalesBlockSessionPage'
 import Scripts from './pages/Scripts'
+import EmailTemplates from './pages/EmailTemplates'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 
@@ -155,6 +156,16 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <Scripts />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/templates"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <EmailTemplates />
                 </AppLayout>
               </ProtectedRoute>
             }
