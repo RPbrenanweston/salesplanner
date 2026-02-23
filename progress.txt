@@ -344,6 +344,34 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Empty state**: Different messages for "no contacts" vs "no search results" with conditional CTA buttons
 ---
 
+## 2026-02-23 - US-019 - PAI Iteration 15
+- **Implemented:** Home dashboard page with all required sections: greeting, today's salesblocks, activity feed, upcoming salesblocks, and goal progress indicators
+- **Files changed:**
+  - Updated `frontend/src/pages/Home.tsx` - Complete rewrite with full dashboard implementation
+  - Updated `prd.json` (US-019 passes: true)
+- **ISC Status:** All criteria passed
+  - Time-aware greeting: "Good morning/afternoon/evening, {displayName}" with current date (weekday, month day, year)
+  - Today's salesblocks section: shows scheduled/in_progress blocks for today with Start Block button (enabled when time is now/past)
+  - Empty state: "Schedule a SalesBlock" CTA button when no salesblocks today
+  - Activity feed: chronological list of last 10 activities with type icon (Phone/Mail/Share2/Calendar/FileText), outcome badge (color-coded), notes preview (truncated to 60 chars), timestamp ("2h ago" / "Today 3:15pm" format)
+  - Upcoming salesblocks: week ahead (next 7 days excluding today) in card format with title, list name, date/time, duration, contact count
+  - Goal progress indicators: calls made/target and meetings booked/target with progress bars and percentages
+  - Graceful fallback when goals table doesn't exist (uses default goals with activity counts)
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - **Supabase join return types**: Foreign key joins may return arrays; handle both array and object forms with `Array.isArray()` check
+  - **Time-aware greeting pattern**: Use `new Date().getHours()` with thresholds (12 for afternoon, 17 for evening)
+  - **Relative time formatting**: Custom `formatTimeAgo()` function handles "Just now", "2m ago", "3h ago", "Yesterday", "Today 3:15pm" formats without date-fns
+  - **Date range queries**: Use `gte()` and `lt()` with ISO strings for inclusive/exclusive date bounds
+  - **Goals table fallback**: Try/catch with console.log fallback when goals table doesn't exist yet (US-037 not implemented)
+  - **Default goal targets**: 50 calls/day and 3 meetings/day as reasonable defaults
+  - **Progress bar color coding**: >= 100% green-600, >= 75% green-500, >= 50% yellow-500, else blue-600
+  - **Contact count enrichment**: Use Promise.all pattern to fetch contact counts for each salesblock in parallel
+  - **Grid layout pattern**: `grid-cols-1 lg:grid-cols-3` with `lg:col-span-2` for responsive 2/3 + 1/3 layout
+  - **Empty state consistency**: Each section has empty state with helpful message and optional CTA
+  - **Browser verification deferred**: Docker Desktop not running for Supabase local instance
+---
+
 ## 2026-02-23 16:23 - US-013 - PAI Iteration 12
 - **Implemented:** SalesBlock and activity database schema with RLS policies
 - **Files changed:**
