@@ -613,3 +613,32 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Orange accent for social**: Log Social buttons use orange-600 to distinguish from blue (email) and gray (other actions)
   - **Browser verification deferred**: Docker Desktop not running for dev server (same as previous iterations)
 ---
+
+## 2026-02-23 01:29 - US-028 - PAI Iteration 21
+- **Implemented:** Outlook Calendar OAuth connection with Microsoft Graph API
+- **Files changed:**
+  - Created `frontend/src/components/OutlookCalendarOAuthButton.tsx` - OAuth button component with connection management
+  - Created `frontend/src/pages/OutlookCalendarOAuthCallback.tsx` - OAuth callback handler page
+  - Updated `frontend/src/App.tsx` - Added /oauth/outlook-calendar/callback route
+  - Updated `frontend/src/pages/SettingsPage.tsx` - Replaced Outlook Calendar placeholder with OutlookCalendarOAuthButton
+  - Updated `frontend/.env.example` - Added VITE_OUTLOOK_CALENDAR_CLIENT_ID and VITE_OUTLOOK_CALENDAR_REDIRECT_URI
+  - Updated `prd.json` (US-028 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Settings > Integrations shows Connect Outlook Calendar button (OutlookCalendarOAuthButton component)
+  - OAuth flow uses Microsoft Graph API with Calendars.ReadWrite and offline_access scopes
+  - Refresh token storage uses existing oauth_connections table (provider: 'outlook_calendar')
+  - Connected email shown with green status badge + email address + Disconnect button
+  - Connection status visible in Settings > Integrations > Calendar section
+  - Typecheck passes with zero errors
+- **Learnings for future iterations:**
+  - **Pattern reuse convergence**: Combined US-023 Outlook Mail OAuth (Microsoft Graph endpoint, popup flow, response_mode) with US-027 Google Calendar OAuth (calendar UI pattern, Settings integration) for rapid implementation
+  - **Provider naming**: Used `outlook_calendar` (not `outlook`) in oauth_connections.provider to distinguish from mail OAuth connection
+  - **Scope differences**: Calendar uses `Calendars.ReadWrite offline_access` vs Mail's `Mail.Send Mail.Read offline_access`
+  - **Component pattern**: Copied OutlookOAuthButton structure, changed icon (Calendar instead of Mail), scope, provider name, and description text
+  - **Route naming**: `/oauth/outlook-calendar/callback` (hyphenated) matches Google Calendar convention for consistency
+  - **Environment variable pattern**: VITE_OUTLOOK_CALENDAR_CLIENT_ID follows established naming convention (provider + resource + suffix)
+  - **Callback handler**: Identical structure to OutlookOAuthCallback except route path and TODO comment reference (US-028 vs US-023)
+  - **Settings integration**: Replaced placeholder div with component import + usage, removed "Coming soon" opacity-50 styling
+  - **Browser verification deferred**: Docker Desktop not running for dev server (same as previous iterations)
+  - **Future enhancement**: US-029 will use this OAuth connection to sync salesblocks to Outlook Calendar via Microsoft Graph Events API
+---
