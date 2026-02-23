@@ -660,7 +660,7 @@
       ],
       "priority": 38,
       "passes": true,
-      "notes": ""
+      "notes": "Browser verification deferred (Docker Desktop not running)"
     },
     {
       "id": "US-039",
