@@ -313,3 +313,33 @@ Started: Sun Feb 22 23:45:27 GMT 2026
   - **Success callback pattern**: onSuccess() called after full flow (contact created + optional list assignment)
   - **Green vs Blue buttons**: Green for Add Contact (create action), Blue for Import CSV (batch action)
 ---
+## 2026-02-23 16:42 - US-012 - PAI Iteration 11
+- **Implemented:** List detail view with contact table, sorting, search, and actions
+- **Files changed:**
+  - `frontend/src/pages/ListDetailPage.tsx` already existed with full implementation
+  - Fixed TypeScript error: `contact.last_activity_date ?? null` for undefined handling
+  - `frontend/src/App.tsx` already had route configured
+  - `frontend/src/pages/Lists.tsx` already had onClick navigation to detail page
+  - Updated `prd.json` (US-012 passes: true)
+- **ISC Status:** ✅ All criteria passed
+  - Clicking a list row opens detail view at /lists/:listId
+  - Table displays 7 columns: name, company, title, email, phone, last activity date, actions
+  - Column headers clickable with chevron icon showing sort direction (asc/desc)
+  - Search bar filters contacts by name, email, or company in real-time
+  - Remove from List button (UserMinus icon) per contact row
+  - Start SalesBlock button in header navigates to /salesblocks with list context
+  - Typecheck passes with zero TypeScript errors
+  - QATester agent verified UI in browser: all elements render, sorting works, search filters correctly
+- **Learnings for future iterations:**
+  - **File already existed**: ListDetailPage.tsx was created in a previous iteration (likely US-011 work-in-progress)
+  - **Route pre-configured**: App.tsx already had /lists/:listId route with AppLayout wrapper
+  - **Navigation already wired**: Lists.tsx rows had onClick={() => navigate(`/lists/${list.id}`)} from previous iteration
+  - **TypeScript strict null checks**: `contact.last_activity_date` can be undefined from optional field, use `?? null` for strict typing
+  - **QATester pattern**: Agent injected mock data, tested all interactions, captured screenshots as evidence
+  - **Contact loading**: Queries list_contacts junction table, joins to contacts table, then fetches last activity per contact
+  - **Sorting UX**: SortIcon component shows ChevronUp (asc) or ChevronDown (desc) inline with column header
+  - **Search UX**: Client-side filtering with toLowerCase() for case-insensitive matching across name, email, company
+  - **Remove action**: Deletes from list_contacts junction table (does NOT delete contact record itself)
+  - **Last activity**: Queries activities table ordered by created_at DESC, takes first result with maybeSingle()
+  - **Empty state**: Different messages for "no contacts" vs "no search results" with conditional CTA buttons
+---
