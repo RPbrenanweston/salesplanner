@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { Phone, Mail, ChevronRight, SkipForward, Check } from 'lucide-react';
+import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import LogActivityModal from '../components/LogActivityModal';
 
 interface Contact {
   id: string;
@@ -34,6 +35,35 @@ export default function SalesBlockSessionPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [orgId, setOrgId] = useState<string>('');
+
+  // Activity modal state
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [activityType, setActivityType] = useState<'call' | 'email' | 'social' | 'note'>('call');
+
+  // Call script panel state
+  const [scriptExpanded, setScriptExpanded] = useState(false);
+
+  // Load user's org_id
+  useEffect(() => {
+    if (!user) return;
+
+    async function loadOrgId() {
+      const { data, error } = await supabase
+        .from('users')
+        .select('org_id')
+        .eq('id', user!.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading org_id:', error);
+      } else if (data) {
+        setOrgId(data.org_id);
+      }
+    }
+
+    loadOrgId();
+  }, [user]);
 
   // Load salesblock and contacts
   useEffect(() => {
@@ -160,6 +190,27 @@ export default function SalesBlockSessionPage() {
     setContacts(newContacts);
   };
 
+  const openActivityModal = (type: 'call' | 'email' | 'social' | 'note') => {
+    setActivityType(type);
+    setActivityModalOpen(true);
+  };
+
+  const refreshActivityStatus = async () => {
+    // Re-fetch activity status for all contacts
+    const contactsWithActivity = await Promise.all(
+      contacts.map(async (contact) => {
+        const { count } = await supabase
+          .from('activities')
+          .select('id', { count: 'exact', head: true })
+          .eq('contact_id', contact.id);
+
+        return { ...contact, hasActivity: (count ?? 0) > 0 };
+      })
+    );
+
+    setContacts(contactsWithActivity);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -278,6 +329,69 @@ export default function SalesBlockSessionPage() {
                 </div>
               )}
 
+              {/* Activity Buttons */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Log Activity</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => openActivityModal('call')}
+                    className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <PhoneCall className="w-5 h-5" />
+                    <span>Log Call</span>
+                  </button>
+                  <button
+                    onClick={() => openActivityModal('email')}
+                    className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <Send className="w-5 h-5" />
+                    <span>Log Email</span>
+                  </button>
+                  <button
+                    onClick={() => openActivityModal('social')}
+                    className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <Share2 className="w-5 h-5" />
+                    <span>Log Social</span>
+                  </button>
+                  <button
+                    onClick={() => openActivityModal('note')}
+                    className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FileText className="w-5 h-5" />
+                    <span>Log Note</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Call Script Panel */}
+              <div className="mb-6">
+                <button
+                  onClick={() => setScriptExpanded(!scriptExpanded)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Call Script</span>
+                  {scriptExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  )}
+                </button>
+                {scriptExpanded && (
+                  <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                      {/* Placeholder: Future integration with call_scripts table */}
+                      Hi, this is [Your Name] from [Company]. I'm reaching out because we help companies like{' '}
+                      {activeContact.company || '[Company]'} with [Value Proposition].
+                      {'\n\n'}
+                      I wanted to see if you have a few minutes to discuss how we could help you with [Specific Pain Point]?
+                      {'\n\n'}
+                      [Listen for response and move to qualification questions...]
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Navigation Buttons */}
               <div className="flex space-x-3 mt-8">
                 <button
@@ -305,6 +419,20 @@ export default function SalesBlockSessionPage() {
           )}
         </div>
       </div>
+
+      {/* Activity Logging Modal */}
+      {activeContact && (
+        <LogActivityModal
+          isOpen={activityModalOpen}
+          onClose={() => setActivityModalOpen(false)}
+          contactId={activeContact.id}
+          salesblockId={salesblockId!}
+          userId={user!.id}
+          orgId={orgId}
+          activityType={activityType}
+          onSuccess={refreshActivityStatus}
+        />
+      )}
     </div>
   );
 }
