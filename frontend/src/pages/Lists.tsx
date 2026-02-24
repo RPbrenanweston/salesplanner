@@ -52,7 +52,10 @@ export default function Lists() {
     setIsLoadingLists(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.warn('loadLists: No authenticated user found');
+        return;
+      }
 
       // Fetch lists with owner info
       const { data: listsData, error } = await supabase
@@ -69,27 +72,57 @@ export default function Lists() {
         `)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching lists from Supabase:', error);
+        throw error;
+      }
 
-      // For each list, count contacts
+      console.log(`loadLists: Fetched ${listsData?.length ?? 0} lists from Supabase`);
+
+      // For each list, count contacts and get owner — each sub-query is wrapped
+      // individually so one failure doesn't kill the entire list display
       const listsWithCounts = await Promise.all(
         (listsData || []).map(async (list) => {
-          const { count } = await supabase
-            .from('list_contacts')
-            .select('contact_id', { count: 'exact', head: true })
-            .eq('list_id', list.id);
+          let contactCount = 0;
+          let ownerName = 'Unknown';
 
-          // Get owner name
-          const { data: ownerData } = await supabase
-            .from('users')
-            .select('display_name')
-            .eq('id', list.owner_id)
-            .single();
+          // Get contact count — wrapped individually
+          try {
+            const { count, error: countError } = await supabase
+              .from('list_contacts')
+              .select('contact_id', { count: 'exact', head: true })
+              .eq('list_id', list.id);
+
+            if (countError) {
+              console.error(`Error counting contacts for list ${list.id}:`, countError);
+            } else {
+              contactCount = count || 0;
+            }
+          } catch (countErr) {
+            console.error(`Exception counting contacts for list ${list.id}:`, countErr);
+          }
+
+          // Get owner name — wrapped individually
+          try {
+            const { data: ownerData, error: ownerError } = await supabase
+              .from('users')
+              .select('display_name')
+              .eq('id', list.owner_id)
+              .single();
+
+            if (ownerError) {
+              console.error(`Error fetching owner for list ${list.id}:`, ownerError);
+            } else {
+              ownerName = ownerData?.display_name || 'Unknown';
+            }
+          } catch (ownerErr) {
+            console.error(`Exception fetching owner for list ${list.id}:`, ownerErr);
+          }
 
           return {
             ...list,
-            contact_count: count || 0,
-            owner_name: ownerData?.display_name || 'Unknown',
+            contact_count: contactCount,
+            owner_name: ownerName,
           };
         })
       );

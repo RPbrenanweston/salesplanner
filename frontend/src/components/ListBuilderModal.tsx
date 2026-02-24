@@ -169,13 +169,17 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get user's org_id
-      const { data: userData } = await supabase
+      // Get user's org_id — check error explicitly
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('org_id')
         .eq('id', user.id)
         .single();
 
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        throw new Error(`Could not load user data: ${userError.message}`);
+      }
       if (!userData) throw new Error('User data not found');
 
       // Prepare filter criteria as JSONB
@@ -202,11 +206,18 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
           })
           .eq('id', existingList.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating list:', updateError);
+          throw updateError;
+        }
         listId = existingList.id;
 
         // Remove old list_contacts, then re-populate
-        await supabase.from('list_contacts').delete().eq('list_id', listId);
+        const { error: deleteError } = await supabase
+          .from('list_contacts')
+          .delete()
+          .eq('list_id', listId);
+        if (deleteError) console.error('Error clearing list_contacts:', deleteError);
       } else {
         // INSERT new list
         const { data: newList, error: listError } = await supabase
@@ -222,7 +233,11 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
           .select()
           .single();
 
-        if (listError) throw listError;
+        if (listError) {
+          console.error('Error inserting list:', listError);
+          throw listError;
+        }
+        if (!newList) throw new Error('List was not created — no data returned');
         listId = newList.id;
       }
 
@@ -258,7 +273,8 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
         }
       });
 
-      const { data: matchingContacts } = await contactQuery;
+      const { data: matchingContacts, error: contactError } = await contactQuery;
+      if (contactError) console.error('Error fetching matching contacts:', contactError);
 
       // Insert into junction table
       if (matchingContacts && matchingContacts.length > 0) {
@@ -268,14 +284,21 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
           position: index,
         }));
 
-        await supabase.from('list_contacts').insert(junctionRecords);
+        const { error: junctionError } = await supabase
+          .from('list_contacts')
+          .insert(junctionRecords);
+        if (junctionError) console.error('Error populating list_contacts:', junctionError);
       }
 
       onSuccess();
       onClose();
     } catch (err: unknown) {
       console.error('Error saving list:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save list');
+      const message = err instanceof Error ? err.message :
+        (typeof err === 'object' && err !== null && 'message' in err)
+          ? String((err as { message: string }).message)
+          : 'Failed to save list';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
