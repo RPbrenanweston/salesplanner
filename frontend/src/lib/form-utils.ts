@@ -53,7 +53,6 @@ export interface UseFormResult<T> {
   // Form management
   handleSubmit: (e: React.FormEvent) => Promise<void>
   reset: () => void
-  setFieldsTouched: (fields: (keyof T)[]) => void
 }
 
 /**
@@ -91,7 +90,6 @@ export function useForm<T extends Record<string, any>>({
 }: UseFormConfig<T>): UseFormResult<T> {
   const [values, setValues] = useState<T>(initialValues)
   const [errors, setErrors] = useState<FormErrors>({})
-  const [touched, setTouched] = useState<Set<keyof T>>(new Set())
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   /**
@@ -111,9 +109,6 @@ export function useForm<T extends Record<string, any>>({
           [field as string]: undefined,
         }))
       }
-
-      // Mark field as touched
-      setTouched((prev) => new Set([...prev, field]))
     },
     [errors]
   )
@@ -140,11 +135,6 @@ export function useForm<T extends Record<string, any>>({
       ...prev,
       [field as string]: undefined,
     }))
-    setTouched((prev) => {
-      const next = new Set(prev)
-      next.delete(field)
-      return next
-    })
   }, [initialValues])
 
   /**
@@ -153,15 +143,8 @@ export function useForm<T extends Record<string, any>>({
   const reset = useCallback(() => {
     setValues(initialValues)
     setErrors({})
-    setTouched(new Set())
   }, [initialValues])
 
-  /**
-   * Mark fields as touched
-   */
-  const setFieldsTouched = useCallback((fields: (keyof T)[]) => {
-    setTouched((prev) => new Set([...prev, ...fields]))
-  }, [])
 
   /**
    * Validate form values
@@ -184,9 +167,6 @@ export function useForm<T extends Record<string, any>>({
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
-
-      // Mark all fields as touched
-      setTouched(new Set(Object.keys(values) as (keyof T)[]))
 
       // Validate
       const validationErrors = await validateForm()
@@ -230,7 +210,6 @@ export function useForm<T extends Record<string, any>>({
     resetField,
     handleSubmit,
     reset,
-    setFieldsTouched,
   }
 }
 

@@ -45,9 +45,6 @@ interface ModalProps {
   /** Custom className for modal container */
   className?: string
 
-  /** Optional form element for keyboard shortcuts */
-  form?: string
-
   /** Whether to show close button */
   showCloseButton?: boolean
 }
@@ -81,7 +78,6 @@ export function Modal({
   closeOnBackdropClick = true,
   closeLabel = 'Close',
   className,
-  form,
   showCloseButton = true,
 }: ModalProps) {
   // Handle escape key to close modal
