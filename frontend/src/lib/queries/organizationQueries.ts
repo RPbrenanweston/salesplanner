@@ -8,6 +8,8 @@ import { supabase } from '../supabase'
 import { logApiError } from '../errors'
 import type { Organization } from '../../types'
 
+export type { Organization }
+
 /**
  * Fetch organization logo URL
  */

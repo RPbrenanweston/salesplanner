@@ -2,74 +2,109 @@
  * Call script and email template data fetching functions
  */
 import { supabase } from '../supabase'
+import { logApiError } from '../errors'
 import type { CallScript, EmailTemplate } from '../../types'
 
+export type { CallScript, EmailTemplate }
+
+/**
+ * Fetch call scripts accessible to the user
+ */
 export async function fetchCallScripts(userId?: string): Promise<CallScript[]> {
-  let query = supabase
-    .from('call_scripts')
-    .select('id, name, content, owner_id, is_shared, org_id')
+  try {
+    let query = supabase
+      .from('call_scripts')
+      .select('id, name, content, owner_id, is_shared, org_id')
 
-  if (userId) {
-    query = query.or(`owner_id.eq.${userId},is_shared.eq.true`)
-  }
+    if (userId) {
+      query = query.or(`owner_id.eq.${userId},is_shared.eq.true`)
+    }
 
-  const { data, error } = await query.order('name')
+    const { data, error } = await query.order('name')
 
-  if (error) {
-    console.error('Error fetching call scripts:', error)
+    if (error) {
+      logApiError('fetchCallScripts', error, { userId })
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    logApiError('fetchCallScripts', error, { userId })
     return []
   }
-
-  return data || []
 }
 
+/**
+ * Fetch a single call script
+ */
 export async function fetchCallScript(scriptId: string): Promise<CallScript | null> {
-  const { data, error } = await supabase
-    .from('call_scripts')
-    .select('*')
-    .eq('id', scriptId)
-    .single()
+  try {
+    const { data, error } = await supabase
+      .from('call_scripts')
+      .select('*')
+      .eq('id', scriptId)
+      .single()
 
-  if (error) {
-    console.error('Error fetching call script:', error)
+    if (error) {
+      logApiError('fetchCallScript', error, { scriptId })
+      return null
+    }
+
+    return data
+  } catch (error) {
+    logApiError('fetchCallScript', error, { scriptId })
     return null
   }
-
-  return data
 }
 
+/**
+ * Fetch email templates accessible to the user
+ */
 export async function fetchEmailTemplates(userId?: string): Promise<EmailTemplate[]> {
-  let query = supabase
-    .from('email_templates')
-    .select('id, name, subject, body, owner_id, is_shared, org_id, times_used, reply_count')
+  try {
+    let query = supabase
+      .from('email_templates')
+      .select('id, name, subject, body, owner_id, is_shared, org_id, times_used, reply_count')
 
-  if (userId) {
-    query = query.or(`owner_id.eq.${userId},is_shared.eq.true`)
-  }
+    if (userId) {
+      query = query.or(`owner_id.eq.${userId},is_shared.eq.true`)
+    }
 
-  const { data, error } = await query.order('name')
+    const { data, error } = await query.order('name')
 
-  if (error) {
-    console.error('Error fetching email templates:', error)
+    if (error) {
+      logApiError('fetchEmailTemplates', error, { userId })
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    logApiError('fetchEmailTemplates', error, { userId })
     return []
   }
-
-  return data || []
 }
 
+/**
+ * Fetch a single email template
+ */
 export async function fetchEmailTemplate(templateId: string): Promise<EmailTemplate | null> {
-  const { data, error } = await supabase
-    .from('email_templates')
-    .select('*')
-    .eq('id', templateId)
-    .single()
+  try {
+    const { data, error } = await supabase
+      .from('email_templates')
+      .select('*')
+      .eq('id', templateId)
+      .single()
 
-  if (error) {
-    console.error('Error fetching email template:', error)
+    if (error) {
+      logApiError('fetchEmailTemplate', error, { templateId })
+      return null
+    }
+
+    return data
+  } catch (error) {
+    logApiError('fetchEmailTemplate', error, { templateId })
     return null
   }
-
-  return data
 }
 
 export async function createCallScript(

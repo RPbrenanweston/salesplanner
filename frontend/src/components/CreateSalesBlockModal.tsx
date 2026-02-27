@@ -5,7 +5,6 @@ import { useAuth } from '../hooks/useAuth'
 import { useUserLists, useCallScripts, useUserTeamInfo, useTeamMembers, useUserProfile } from '../hooks'
 import { createCalendarEvent } from '../lib/calendar'
 import { DURATION, SALESBLOCK_STATUS, USER_ROLE } from '../lib/constants'
-import type { ContactList, CallScript, TeamMember } from '../types'
 
 interface CreateSalesBlockModalProps {
   isOpen: boolean

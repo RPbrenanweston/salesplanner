@@ -4,6 +4,8 @@
 import { supabase } from '../supabase'
 import type { ContactList } from '../../types'
 
+export type { ContactList }
+
 export async function fetchUserLists(userId: string): Promise<ContactList[]> {
   const { data, error } = await supabase
     .from('lists')

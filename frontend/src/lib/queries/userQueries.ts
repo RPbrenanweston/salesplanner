@@ -6,7 +6,7 @@
  */
 import { supabase } from '../supabase'
 import { logApiError } from '../errors'
-import type { User, TeamMember } from '../../types'
+import type { User } from '../../types'
 
 export type UserProfile = User
 export type UserTeamInfo = Pick<User, 'role' | 'team_id'>

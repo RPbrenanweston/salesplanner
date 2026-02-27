@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { DURATION, SUBSCRIPTION_STATUS, ROUTES } from '../lib/constants';
+import { DURATION, SUBSCRIPTION_STATUS } from '../lib/constants';
+import { ROUTES } from '../lib/routes';
 
 export default function TrialExpiryBanner() {
   const [showBanner, setShowBanner] = useState(false);
