@@ -23,6 +23,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import { useUserProfile, useOrganizationLogo } from '../hooks'
 import { updateUserPreferences } from '../lib/queries/userQueries'
+import { ROUTES } from '../lib/routes'
 import TrialExpiryBanner from './TrialExpiryBanner'
 
 interface NavItem {
@@ -32,18 +33,18 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { name: 'Home', path: '/', icon: Home },
-  { name: 'SalesBlocks', path: '/salesblocks', icon: Clock },
-  { name: 'Lists', path: '/lists', icon: List },
-  { name: 'Scripts', path: '/scripts', icon: FileText },
-  { name: 'Templates', path: '/templates', icon: MailTemplate },
-  { name: 'Email', path: '/email', icon: Mail },
-  { name: 'Social', path: '/social', icon: Share2 },
-  { name: 'Pipeline', path: '/pipeline', icon: TrendingUp },
-  { name: 'Goals', path: '/goals', icon: Target },
-  { name: 'Analytics', path: '/analytics', icon: BarChart2 },
-  { name: 'Team', path: '/team', icon: Users },
-  { name: 'Settings', path: '/settings', icon: Settings },
+  { name: 'Home', path: ROUTES.HOME, icon: Home },
+  { name: 'SalesBlocks', path: ROUTES.SALESBLOCKS, icon: Clock },
+  { name: 'Lists', path: ROUTES.LISTS, icon: List },
+  { name: 'Scripts', path: ROUTES.SCRIPTS, icon: FileText },
+  { name: 'Templates', path: ROUTES.TEMPLATES, icon: MailTemplate },
+  { name: 'Email', path: ROUTES.EMAIL, icon: Mail },
+  { name: 'Social', path: ROUTES.SOCIAL, icon: Share2 },
+  { name: 'Pipeline', path: ROUTES.PIPELINE, icon: TrendingUp },
+  { name: 'Goals', path: ROUTES.GOALS, icon: Target },
+  { name: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart2 },
+  { name: 'Team', path: ROUTES.TEAM, icon: Users },
+  { name: 'Settings', path: ROUTES.SETTINGS, icon: Settings },
 ]
 
 interface AppLayoutProps {
@@ -81,7 +82,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const handleSignOut = async () => {
     await signOut()
-    navigate('/signin')
+    navigate(ROUTES.SIGNIN)
   }
 
   const cycleTheme = () => {

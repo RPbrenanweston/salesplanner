@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { useUserLists, useCallScripts, useUserTeamInfo, useTeamMembers, useUserProfile } from '../hooks'
 import { createCalendarEvent } from '../lib/calendar'
+import { DURATION, SALESBLOCK_STATUS, USER_ROLE } from '../lib/constants'
 import type { ContactList, CallScript, TeamMember } from '../types'
 
 interface CreateSalesBlockModalProps {
@@ -24,7 +25,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
   const { data: teamMembers = [] } = useTeamMembers(userTeamInfo?.team_id ?? null, user?.id)
   const { data: userProfile } = useUserProfile(user?.id)
 
-  const isManager = userTeamInfo?.role === 'manager'
+  const isManager = userTeamInfo?.role === USER_ROLE.MANAGER
 
   // Form fields
   const [selectedListId, setSelectedListId] = useState(preSelectedListId || '')
@@ -32,7 +33,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
   const [title, setTitle] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
-  const [duration, setDuration] = useState('30')
+  const [duration, setDuration] = useState(String(DURATION.DEFAULT_SALESBLOCK_MINUTES))
   const [assignedToUserId, setAssignedToUserId] = useState('') // Empty = assign to self
 
   // Auto-generate title when list or date changes
@@ -84,7 +85,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
           scheduled_start: scheduledStart.toISOString(),
           scheduled_end: scheduledEnd.toISOString(),
           duration_minutes: parseInt(duration),
-          status: 'scheduled',
+          status: SALESBLOCK_STATUS.SCHEDULED,
           script_id: selectedScriptId || null
         })
         .select()
@@ -128,7 +129,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
     setTitle('')
     setScheduledDate('')
     setScheduledTime('')
-    setDuration('30')
+    setDuration(String(DURATION.DEFAULT_SALESBLOCK_MINUTES))
     setAssignedToUserId('')
     onClose()
   }
