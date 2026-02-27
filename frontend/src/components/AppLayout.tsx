@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -21,7 +21,8 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
-import { supabase } from '../lib/supabase'
+import { useUserProfile, useOrganizationLogo } from '../hooks'
+import { updateUserPreferences } from '../lib/queries/userQueries'
 import TrialExpiryBanner from './TrialExpiryBanner'
 
 interface NavItem {
@@ -54,40 +55,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { user, signOut } = useAuth()
   const { theme, resolvedTheme, setTheme } = useTheme()
   const [collapsed, setCollapsed] = useState(false)
-  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null)
-  const [displayName, setDisplayName] = useState<string>('')
 
-  // Load user preferences and org data
-  useEffect(() => {
-    async function loadUserData() {
-      if (!user) return
+  // Fetch user profile using the new hook (handles caching)
+  const { data: userProfile } = useUserProfile(user?.id)
 
-      // Fetch user record to get preferences, org_id, display_name
-      const { data: userData } = await supabase
-        .from('users')
-        .select('preferences, org_id, display_name')
-        .eq('id', user.id)
-        .single()
+  // Fetch org logo using the new hook (handles caching)
+  const { data: orgLogoUrl } = useOrganizationLogo(userProfile?.org_id)
 
-      if (userData) {
-        setCollapsed(userData.preferences?.sidebarCollapsed ?? false)
-        setDisplayName(userData.display_name || user.email || '')
-
-        // Fetch organization logo
-        const { data: orgData } = await supabase
-          .from('organizations')
-          .select('logo_url')
-          .eq('id', userData.org_id)
-          .single()
-
-        if (orgData?.logo_url) {
-          setOrgLogoUrl(orgData.logo_url)
-        }
-      }
-    }
-
-    loadUserData()
-  }, [user])
+  // Set sidebar collapsed state from user preferences
+  if (userProfile?.preferences?.sidebarCollapsed !== collapsed) {
+    setCollapsed(userProfile?.preferences?.sidebarCollapsed ?? false)
+  }
 
   const toggleSidebar = async () => {
     const newCollapsed = !collapsed
@@ -95,21 +73,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
     if (user) {
       // Persist preference to Supabase
-      const { data: userData } = await supabase
-        .from('users')
-        .select('preferences')
-        .eq('id', user.id)
-        .single()
-
-      const updatedPreferences = {
-        ...(userData?.preferences || {}),
+      await updateUserPreferences(user.id, {
         sidebarCollapsed: newCollapsed,
-      }
-
-      await supabase
-        .from('users')
-        .update({ preferences: updatedPreferences })
-        .eq('id', user.id)
+      })
     }
   }
 
@@ -181,16 +147,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {!collapsed && (
               <div className="flex items-center min-w-0">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                  {displayName.charAt(0).toUpperCase()}
+                  {(userProfile?.display_name || user?.email || '').charAt(0).toUpperCase()}
                 </div>
                 <span className="ml-2 text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {displayName}
+                  {userProfile?.display_name || user?.email || ''}
                 </span>
               </div>
             )}
             {collapsed && (
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                {displayName.charAt(0).toUpperCase()}
+                {(userProfile?.display_name || user?.email || '').charAt(0).toUpperCase()}
               </div>
             )}
           </div>
