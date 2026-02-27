@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Phone,
-  Mail,
-  Share2,
-  Calendar,
-  FileText,
   Play,
   Plus,
   Clock,
-  Target
+  Target,
+  FileText,
+  Calendar
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal'
+import { formatDate, formatTimeAgo, formatDateTime, getGreeting } from '../lib/time'
+import { getActivityIcon, getOutcomeBadgeClass, formatOutcome, truncateNotes } from '../lib/formatters'
+import { canStartBlock } from '../lib/salesblock'
+import { getGoalLabel } from '../lib/goals'
 
 interface SalesBlock {
   id: string
@@ -311,134 +312,6 @@ export default function Home() {
     return count || 0
   }
 
-  const getGoalLabel = (goal: Goal): string => {
-    const metricLabels: Record<string, string> = {
-      calls: 'Calls Made',
-      emails: 'Emails Sent',
-      social_touches: 'Social Touches',
-      meetings_booked: 'Meetings Booked',
-      pipeline_value: 'Pipeline Value',
-      custom: goal.custom_metric_name || 'Custom',
-    }
-    const periodLabel = goal.period.charAt(0).toUpperCase() + goal.period.slice(1)
-    return `${metricLabels[goal.metric] || goal.metric} (${periodLabel})`
-  }
-
-  const getGreeting = (): string => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 17) return 'Good afternoon'
-    return 'Good evening'
-  }
-
-  const formatDate = (): string => {
-    return new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    })
-  }
-
-  const formatTimeAgo = (dateString: string): string => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return `${diffDays}d ago`
-
-    // Format as "Today 3:15pm" or date
-    const isToday = date.toDateString() === now.toDateString()
-    if (isToday) {
-      return `Today ${date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })}`
-    }
-
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    })
-  }
-
-  const formatDateTime = (dateString: string): string => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    })
-  }
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'call':
-        return <Phone className="w-4 h-4" />
-      case 'email':
-        return <Mail className="w-4 h-4" />
-      case 'social':
-        return <Share2 className="w-4 h-4" />
-      case 'meeting':
-        return <Calendar className="w-4 h-4" />
-      case 'note':
-        return <FileText className="w-4 h-4" />
-      default:
-        return <Clock className="w-4 h-4" />
-    }
-  }
-
-  const getOutcomeBadgeClass = (outcome: string): string => {
-    const successOutcomes = ['connect', 'conversation', 'meeting_booked']
-    const neutralOutcomes = ['no_answer', 'voicemail', 'follow_up']
-    const negativeOutcomes = ['not_interested']
-
-    if (successOutcomes.includes(outcome)) {
-      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-    }
-    if (negativeOutcomes.includes(outcome)) {
-      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-    }
-    if (neutralOutcomes.includes(outcome)) {
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-    }
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-  }
-
-  const formatOutcome = (outcome: string): string => {
-    return outcome
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  }
-
-  const truncateNotes = (notes: string | null, maxLength: number = 60): string => {
-    if (!notes) return ''
-    if (notes.length <= maxLength) return notes
-    return notes.substring(0, maxLength) + '...'
-  }
-
-  const canStartBlock = (sb: SalesBlock): boolean => {
-    if (sb.status !== 'scheduled') return false
-    const now = new Date()
-    const scheduledStart = new Date(sb.scheduled_start)
-    // Can start if scheduled time is now or in the past
-    return scheduledStart <= now
-  }
 
   const handleStartBlock = (salesblockId: string) => {
     navigate(`/salesblocks/${salesblockId}/session`)
