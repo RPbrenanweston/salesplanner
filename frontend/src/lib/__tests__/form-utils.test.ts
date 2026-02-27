@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import {
   useForm,
@@ -130,7 +130,6 @@ describe('Form Utilities', () => {
       )
 
       await act(async () => {
-        const form = document.createElement('form')
         const event = new Event('submit', { bubbles: true })
         Object.defineProperty(event, 'preventDefault', { value: () => {} })
         await result.current.handleSubmit(event as any)
@@ -161,7 +160,6 @@ describe('Form Utilities', () => {
       })
 
       await act(async () => {
-        const form = document.createElement('form')
         const event = new Event('submit', { bubbles: true })
         Object.defineProperty(event, 'preventDefault', { value: () => {} })
         await result.current.handleSubmit(event as any)
@@ -231,7 +229,6 @@ describe('Form Utilities', () => {
       )
 
       await act(async () => {
-        const form = document.createElement('form')
         const event = new Event('submit', { bubbles: true })
         Object.defineProperty(event, 'preventDefault', { value: () => {} })
         await result.current.handleSubmit(event as any)
@@ -259,7 +256,6 @@ describe('Form Utilities', () => {
       })
 
       await act(async () => {
-        const form = document.createElement('form')
         const event = new Event('submit', { bubbles: true })
         Object.defineProperty(event, 'preventDefault', { value: () => {} })
         await result.current.handleSubmit(event as any)
