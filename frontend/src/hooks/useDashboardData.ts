@@ -111,6 +111,9 @@ export function useDashboardData(): UseDashboardDataReturn {
         .from('activities')
         .select(`
           id,
+          org_id,
+          contact_id,
+          user_id,
           type,
           outcome,
           notes,
@@ -129,6 +132,9 @@ export function useDashboardData(): UseDashboardDataReturn {
           const contactData = Array.isArray(a.contact) ? a.contact[0] : a.contact
           return {
             id: a.id,
+            org_id: a.org_id,
+            contact_id: a.contact_id,
+            user_id: a.user_id,
             type: a.type,
             outcome: a.outcome,
             notes: a.notes,

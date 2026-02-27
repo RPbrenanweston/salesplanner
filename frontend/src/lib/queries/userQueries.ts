@@ -6,7 +6,7 @@
  */
 import { supabase } from '../supabase'
 import { logApiError } from '../errors'
-import type { User } from '../../types'
+import type { User, TeamMember } from '../../types'
 
 export type UserProfile = User
 export type UserTeamInfo = Pick<User, 'role' | 'team_id'>
@@ -18,7 +18,7 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile | nu
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('display_name, email, org_id, preferences, role, team_id')
+      .select('id, display_name, email, org_id, preferences, role, team_id')
       .eq('id', userId)
       .maybeSingle()
 
@@ -60,7 +60,7 @@ export async function fetchUserTeamInfo(userId: string): Promise<UserTeamInfo | 
 /**
  * Fetch team members for a given team
  */
-export async function fetchTeamMembers(teamId: string, excludeUserId?: string): Promise<UserProfile[]> {
+export async function fetchTeamMembers(teamId: string, excludeUserId?: string): Promise<TeamMember[]> {
   try {
     let query = supabase
       .from('users')

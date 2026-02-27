@@ -97,7 +97,7 @@ export interface Goal {
   metric: 'calls' | 'emails' | 'social_touches' | 'meetings_booked' | 'pipeline_value' | 'custom'
   target_value: number
   period: 'daily' | 'weekly' | 'monthly'
-  custom_metric_name?: string
+  custom_metric_name: string | null
   created_at?: string
 }
 

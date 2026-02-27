@@ -21,7 +21,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
   const { data: lists = [] } = useUserLists(isOpen && user?.id ? user.id : undefined)
   const { data: scripts = [] } = useCallScripts(isOpen ? user?.id : undefined)
   const { data: userTeamInfo } = useUserTeamInfo(isOpen && user?.id ? user.id : undefined)
-  const { data: teamMembers = [] } = useTeamMembers(userTeamInfo?.team_id ?? null, user?.id)
+  const { data: teamMembers } = useTeamMembers(userTeamInfo?.team_id ?? null, user?.id)
   const { data: userProfile } = useUserProfile(user?.id)
 
   const isManager = userTeamInfo?.role === USER_ROLE.MANAGER
@@ -248,7 +248,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
           </div>
 
           {/* Assign To (manager only) */}
-          {isManager && teamMembers.length > 0 && (
+          {isManager && Array.isArray(teamMembers) && teamMembers.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Assign To
@@ -259,7 +259,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">Myself</option>
-                {teamMembers.map(member => (
+                {teamMembers.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.display_name} ({member.email})
                   </option>

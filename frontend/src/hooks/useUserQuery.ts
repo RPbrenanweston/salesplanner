@@ -9,6 +9,7 @@ import {
   UserProfile,
   UserTeamInfo,
 } from '../lib/queries/userQueries'
+import type { TeamMember } from '../types'
 
 export function useUserProfile(userId: string | undefined) {
   return useQuery<UserProfile | null>({
@@ -29,7 +30,7 @@ export function useUserTeamInfo(userId: string | undefined) {
 }
 
 export function useTeamMembers(teamId: string | undefined | null, excludeUserId?: string) {
-  return useQuery<UserProfile[]>({
+  return useQuery<TeamMember[]>({
     queryKey: ['team-members', teamId, excludeUserId],
     queryFn: () => (teamId ? fetchTeamMembers(teamId, excludeUserId) : []),
     enabled: !!teamId,

@@ -9,7 +9,7 @@ export type { ContactList }
 export async function fetchUserLists(userId: string): Promise<ContactList[]> {
   const { data, error } = await supabase
     .from('lists')
-    .select('id, name, description, owner_id, is_shared')
+    .select('id, org_id, name, description, owner_id, is_shared')
     .or(`owner_id.eq.${userId},is_shared.eq.true`)
     .order('name')
 
