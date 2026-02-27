@@ -4,30 +4,9 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from './useAuth'
 import { supabase } from '../lib/supabase'
+import type { SalesBlock, Activity } from '../types'
 
-export interface SalesBlock {
-  id: string
-  title: string
-  scheduled_start: string
-  scheduled_end: string
-  duration_minutes: number
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
-  list_id: string
-  list?: { name: string }
-  contact_count?: number
-}
-
-export interface Activity {
-  id: string
-  type: 'call' | 'email' | 'social' | 'meeting' | 'note'
-  outcome: string
-  notes: string | null
-  created_at: string
-  contact?: {
-    first_name: string
-    last_name: string
-  }
-}
+export type { SalesBlock, Activity }
 
 interface UseDashboardDataReturn {
   userDisplayName: string

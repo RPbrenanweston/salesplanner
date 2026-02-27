@@ -2,24 +2,10 @@
  * User-related data fetching functions
  */
 import { supabase } from '../supabase'
+import type { User, TeamMember } from '../../types'
 
-export interface UserProfile {
-  id?: string
-  display_name: string
-  email?: string
-  org_id: string
-  preferences?: {
-    sidebarCollapsed?: boolean
-    theme?: 'light' | 'dark'
-  }
-  role?: 'sdr' | 'ae' | 'manager'
-  team_id?: string
-}
-
-export interface UserTeamInfo {
-  role: 'sdr' | 'ae' | 'manager'
-  team_id: string | null
-}
+export type UserProfile = User
+export type UserTeamInfo = Pick<User, 'role' | 'team_id'>
 
 export async function fetchUserProfile(userId: string): Promise<UserProfile | null> {
   const { data, error } = await supabase

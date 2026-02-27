@@ -2,15 +2,7 @@
  * Organization-related data fetching functions
  */
 import { supabase } from '../supabase'
-
-export interface Organization {
-  id: string
-  name: string
-  logo_url: string | null
-  settings?: Record<string, any>
-  stripe_customer_id?: string
-  created_at?: string
-}
+import type { Organization } from '../../types'
 
 export async function fetchOrganizationLogo(orgId: string): Promise<string | null> {
   const { data, error } = await supabase

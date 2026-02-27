@@ -5,21 +5,9 @@ import { useState, useEffect } from 'react'
 import { useAuth } from './useAuth'
 import { supabase } from '../lib/supabase'
 import { getGoalLabel } from '../lib/goals'
+import type { Goal, GoalProgress } from '../types'
 
-export interface Goal {
-  id: string
-  metric: string
-  target_value: number
-  period: 'daily' | 'weekly' | 'monthly'
-  custom_metric_name: string | null
-}
-
-export interface GoalProgress {
-  metric: string
-  label: string
-  current: number
-  target: number
-}
+export type { Goal, GoalProgress }
 
 interface UseGoalProgressReturn {
   goalProgress: GoalProgress[]

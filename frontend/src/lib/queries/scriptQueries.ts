@@ -2,31 +2,7 @@
  * Call script and email template data fetching functions
  */
 import { supabase } from '../supabase'
-
-export interface CallScript {
-  id: string
-  org_id: string
-  name: string
-  content: string
-  owner_id: string
-  is_shared: boolean
-  created_at?: string
-  updated_at?: string
-}
-
-export interface EmailTemplate {
-  id: string
-  org_id: string
-  name: string
-  subject: string
-  body: string
-  owner_id: string
-  is_shared: boolean
-  times_used?: number
-  reply_count?: number
-  created_at?: string
-  updated_at?: string
-}
+import type { CallScript, EmailTemplate } from '../../types'
 
 export async function fetchCallScripts(userId?: string): Promise<CallScript[]> {
   let query = supabase

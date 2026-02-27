@@ -2,17 +2,7 @@
  * Contact list data fetching functions
  */
 import { supabase } from '../supabase'
-
-export interface ContactList {
-  id: string
-  name: string
-  description?: string
-  owner_id: string
-  is_shared: boolean
-  filter_criteria?: Record<string, any>
-  created_at?: string
-  updated_at?: string
-}
+import type { ContactList } from '../../types'
 
 export async function fetchUserLists(userId: string): Promise<ContactList[]> {
   const { data, error } = await supabase
