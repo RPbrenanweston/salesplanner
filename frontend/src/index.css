@@ -1,3 +1,117 @@
+/**
+ * Global styles using Tailwind CSS
+ *
+ * This file configures the three layers of Tailwind CSS:
+ * 1. @tailwind base - Reset and normalize styles
+ * 2. @tailwind components - Component-level styles
+ * 3. @tailwind utilities - Utility-first styles
+ *
+ * STYLING APPROACH:
+ * ================
+ * This project uses Tailwind CSS for all styling. Styles are written inline
+ * in components using Tailwind's utility classes, not in separate CSS files.
+ *
+ * Why Tailwind?
+ * - Utility-first: Reduces decision fatigue on naming classes
+ * - Small bundle: Only includes used styles
+ * - Dark mode: Built-in support for light/dark themes
+ * - Responsive: Mobile-first responsive design utilities
+ * - Maintainable: No class name conflicts, easy to find styles
+ *
+ * DARK MODE PATTERN:
+ * ==================
+ * Use the 'dark:' prefix for dark mode styles:
+ *
+ * Example:
+ *   className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+ *
+ * The dark: prefix automatically applies when:
+ * - User prefers dark mode in OS settings (prefers-color-scheme: dark)
+ * - User selects dark mode in app settings (useTheme hook)
+ *
+ * RESPONSIVE DESIGN:
+ * ==================
+ * Use responsive prefixes for mobile-first design:
+ *
+ * Breakpoints:
+ *   - sm: 640px
+ *   - md: 768px
+ *   - lg: 1024px
+ *   - xl: 1280px
+ *   - 2xl: 1536px
+ *
+ * Example:
+ *   className="text-sm md:text-base lg:text-lg grid-cols-1 md:grid-cols-2"
+ *
+ * CUSTOM CONFIGURATION:
+ * ====================
+ * Tailwind is configured in:
+ * - tailwind.config.js: Theme extensions, plugin configuration
+ *
+ * Common customizations in tailwind.config.js:
+ * - Extend colors for brand colors
+ * - Add custom spacing values
+ * - Configure plugins (forms, typography, etc.)
+ *
+ * FILE ORGANIZATION:
+ * ==================
+ * This single index.css file is the entry point for all styles.
+ * All styling should be done through:
+ * 1. Tailwind utility classes in component JSX
+ * 2. Custom CSS only for truly unique styles (rare)
+ *
+ * NO SEPARATE CSS FILES:
+ * Avoid creating separate .css or .module.css files for components.
+ * Instead, keep styles inline with components using Tailwind classes.
+ *
+ * EXAMPLES:
+ * =========
+ *
+ * ✅ Good: Tailwind utilities in component
+ * <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+ *   <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+ *     Title
+ *   </h1>
+ * </div>
+ *
+ * ❌ Bad: Separate CSS file
+ * // styles.css
+ * .card { background: white; border-radius: 0.5rem; }
+ *
+ * ❌ Bad: Inline styles
+ * <div style={{ backgroundColor: 'white', borderRadius: '0.5rem' }}>
+ *
+ * PERFORMANCE:
+ * =============
+ * - Tailwind CSS is tree-shaken: Only classes used in code are included
+ * - No unused CSS bloat
+ * - Build process scans all files for class names
+ *
+ * ACCESSIBILITY:
+ * ===============
+ * Important accessibility-related Tailwind features:
+ *   - Focus states: focus:ring-2, focus:outline-blue-500
+ *   - Disabled states: disabled:opacity-50, disabled:cursor-not-allowed
+ *   - Screen readers: sr-only (visually hidden but accessible)
+ *   - Color contrast: Tailwind colors have accessible contrast ratios
+ *
+ * Example:
+ *   className="
+ *     focus:ring-2 focus:ring-blue-500 focus:outline-none
+ *     disabled:opacity-50 disabled:cursor-not-allowed
+ *     hover:bg-gray-100 dark:hover:bg-gray-700
+ *   "
+ *
+ * TROUBLESHOOTING:
+ * ================
+ * If a style isn't applying:
+ * 1. Check class name is spelled correctly
+ * 2. Check dark: prefix if expecting dark mode
+ * 3. Check responsive prefix (sm:, md:, lg:) if expecting breakpoint
+ * 4. Run build to ensure Tailwind scans files for class names
+ * 5. Check browser DevTools to see applied styles
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

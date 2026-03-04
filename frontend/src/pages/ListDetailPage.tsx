@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { ROUTES, getSalesBlocksRoute } from '../lib/routes';
 import ListBuilderModal from '../components/ListBuilderModal';
 import ComposeEmailModal from '../components/ComposeEmailModal';
 import LogSocialActivityModal from '../components/LogSocialActivityModal';
@@ -224,8 +225,7 @@ export default function ListDetailPage() {
 
   const handleStartSalesBlock = () => {
     // Navigate to create salesblock with this list pre-selected
-    // For now, just navigate to SalesBlocks page (US-014 will implement full create flow)
-    navigate('/salesblocks', { state: { preselectedListId: listId } });
+    navigate(getSalesBlocksRoute(listId));
   };
 
   const handleEmailClick = (contact: Contact) => {
@@ -275,7 +275,7 @@ export default function ListDetailPage() {
       {/* Header */}
       <div className="mb-6">
         <button
-          onClick={() => navigate('/lists')}
+          onClick={() => navigate(ROUTES.LISTS)}
           className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
         >
           <ArrowLeft className="w-4 h-4" />

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { X, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useUserLists, useCallScripts, useUserTeamInfo, useTeamMembers, useUserProfile } from '../hooks'
 import { createCalendarEvent } from '../lib/calendar'
+import { DURATION, SALESBLOCK_STATUS, USER_ROLE } from '../lib/constants'
 
 interface CreateSalesBlockModalProps {
   isOpen: boolean
@@ -11,29 +13,18 @@ interface CreateSalesBlockModalProps {
   preSelectedListId?: string // Optional: pre-select a list (e.g., from List detail page)
 }
 
-interface List {
-  id: string
-  name: string
-}
-
-interface TeamMember {
-  id: string
-  display_name: string
-  email: string
-}
-
-interface CallScript {
-  id: string
-  name: string
-}
-
 export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedListId }: CreateSalesBlockModalProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [lists, setLists] = useState<List[]>([])
-  const [scripts, setScripts] = useState<CallScript[]>([])
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
-  const [isManager, setIsManager] = useState(false)
+
+  // Data hooks (handles caching + loading)
+  const { data: lists = [] } = useUserLists(isOpen && user?.id ? user.id : undefined)
+  const { data: scripts = [] } = useCallScripts(isOpen ? user?.id : undefined)
+  const { data: userTeamInfo } = useUserTeamInfo(isOpen && user?.id ? user.id : undefined)
+  const { data: teamMembers } = useTeamMembers(userTeamInfo?.team_id ?? null, user?.id)
+  const { data: userProfile } = useUserProfile(user?.id)
+
+  const isManager = userTeamInfo?.role === USER_ROLE.MANAGER
 
   // Form fields
   const [selectedListId, setSelectedListId] = useState(preSelectedListId || '')
@@ -41,17 +32,8 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
   const [title, setTitle] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
-  const [duration, setDuration] = useState('30')
+  const [duration, setDuration] = useState(String(DURATION.DEFAULT_SALESBLOCK_MINUTES))
   const [assignedToUserId, setAssignedToUserId] = useState('') // Empty = assign to self
-
-  // Load user's lists, scripts, and check if manager
-  useEffect(() => {
-    if (isOpen && user) {
-      loadLists()
-      loadScripts()
-      checkManagerStatus()
-    }
-  }, [isOpen, user])
 
   // Auto-generate title when list or date changes
   useEffect(() => {
@@ -65,70 +47,9 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
     }
   }, [selectedListId, scheduledDate, lists])
 
-  async function loadLists() {
-    const { data, error } = await supabase
-      .from('lists')
-      .select('id, name')
-      .or(`owner_id.eq.${user?.id},is_shared.eq.true`)
-      .order('name')
-
-    if (error) {
-      console.error('Error loading lists:', error)
-    } else {
-      setLists(data || [])
-      if (preSelectedListId) {
-        setSelectedListId(preSelectedListId)
-      }
-    }
-  }
-
-  async function loadScripts() {
-    const { data, error } = await supabase
-      .from('call_scripts')
-      .select('id, name')
-      .order('name')
-
-    if (error) {
-      console.error('Error loading scripts:', error)
-    } else {
-      setScripts(data || [])
-    }
-  }
-
-  async function checkManagerStatus() {
-    const { data, error } = await supabase
-      .from('users')
-      .select('role, team_id')
-      .eq('id', user?.id)
-      .single()
-
-    if (error) {
-      console.error('Error checking manager status:', error)
-      return
-    }
-
-    const isManagerRole = data.role === 'manager'
-    setIsManager(isManagerRole)
-
-    // If manager, load team members
-    if (isManagerRole && data.team_id) {
-      const { data: members, error: membersError } = await supabase
-        .from('users')
-        .select('id, display_name, email')
-        .eq('team_id', data.team_id)
-        .neq('id', user?.id) // Exclude self
-
-      if (membersError) {
-        console.error('Error loading team members:', membersError)
-      } else {
-        setTeamMembers(members || [])
-      }
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!user || !selectedListId || !scheduledDate || !scheduledTime) return
+    if (!user || !selectedListId || !scheduledDate || !scheduledTime || !userProfile?.org_id) return
 
     setLoading(true)
 
@@ -137,38 +58,25 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
       const scheduledStart = new Date(`${scheduledDate}T${scheduledTime}`)
       const scheduledEnd = new Date(scheduledStart.getTime() + parseInt(duration) * 60000)
 
-      // Get org_id from user
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('org_id')
-        .eq('id', user.id)
-        .single()
-
-      if (userError) throw userError
-
       // Determine user_id and assigned_by
       const targetUserId = assignedToUserId || user.id
       const assignedBy = assignedToUserId ? user.id : null
 
-      // Get list name and contact count for calendar event description
-      const { data: listData } = await supabase
-        .from('lists')
-        .select('name')
-        .eq('id', selectedListId)
-        .single()
+      // Get list name for calendar event description
+      const selectedList = lists.find(l => l.id === selectedListId)
+      const listName = selectedList?.name || 'Unknown List'
 
+      // Get contact count for calendar event description
       const { count: contactCount } = await supabase
         .from('list_contacts')
         .select('*', { count: 'exact', head: true })
         .eq('list_id', selectedListId)
 
-      const listName = listData?.name || 'Unknown List'
-
       // Create salesblock record
       const { data: salesblockData, error } = await supabase
         .from('salesblocks')
         .insert({
-          org_id: userData.org_id,
+          org_id: userProfile.org_id,
           list_id: selectedListId,
           user_id: targetUserId,
           assigned_by: assignedBy,
@@ -176,7 +84,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
           scheduled_start: scheduledStart.toISOString(),
           scheduled_end: scheduledEnd.toISOString(),
           duration_minutes: parseInt(duration),
-          status: 'scheduled',
+          status: SALESBLOCK_STATUS.SCHEDULED,
           script_id: selectedScriptId || null
         })
         .select()
@@ -220,7 +128,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
     setTitle('')
     setScheduledDate('')
     setScheduledTime('')
-    setDuration('30')
+    setDuration(String(DURATION.DEFAULT_SALESBLOCK_MINUTES))
     setAssignedToUserId('')
     onClose()
   }
@@ -340,7 +248,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
           </div>
 
           {/* Assign To (manager only) */}
-          {isManager && teamMembers.length > 0 && (
+          {isManager && Array.isArray(teamMembers) && teamMembers.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Assign To
@@ -351,7 +259,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">Myself</option>
-                {teamMembers.map(member => (
+                {teamMembers.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.display_name} ({member.email})
                   </option>

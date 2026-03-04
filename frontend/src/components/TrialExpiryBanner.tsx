@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DURATION, SUBSCRIPTION_STATUS } from '../lib/constants';
+import { ROUTES } from '../lib/routes';
 
 export default function TrialExpiryBanner() {
   const [showBanner, setShowBanner] = useState(false);
@@ -27,7 +29,7 @@ export default function TrialExpiryBanner() {
       if (!userData) return;
 
       // Only show for trial users
-      if (userData.subscription_status !== 'trial') {
+      if (userData.subscription_status !== SUBSCRIPTION_STATUS.TRIAL) {
         setShowBanner(false);
         return;
       }
@@ -44,8 +46,8 @@ export default function TrialExpiryBanner() {
 
       setDaysRemaining(diffDays);
 
-      // Show banner if trial is expiring soon (7 days or less) or expired
-      if (diffDays <= 7) {
+      // Show banner if trial is expiring soon (TRIAL_EXPIRY_WARNING_DAYS or less) or expired
+      if (diffDays <= DURATION.TRIAL_EXPIRY_WARNING_DAYS) {
         setShowBanner(true);
         setTrialExpired(diffDays <= 0);
       }
@@ -55,7 +57,7 @@ export default function TrialExpiryBanner() {
   };
 
   const handleUpgrade = () => {
-    navigate('/pricing');
+    navigate(ROUTES.PRICING);
   };
 
   const handleDismiss = () => {

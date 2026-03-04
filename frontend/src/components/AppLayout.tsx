@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -21,7 +21,9 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
-import { supabase } from '../lib/supabase'
+import { useUserProfile, useOrganizationLogo } from '../hooks'
+import { updateUserPreferences } from '../lib/queries/userQueries'
+import { ROUTES } from '../lib/routes'
 import TrialExpiryBanner from './TrialExpiryBanner'
 
 interface NavItem {
@@ -31,18 +33,18 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { name: 'Home', path: '/', icon: Home },
-  { name: 'SalesBlocks', path: '/salesblocks', icon: Clock },
-  { name: 'Lists', path: '/lists', icon: List },
-  { name: 'Scripts', path: '/scripts', icon: FileText },
-  { name: 'Templates', path: '/templates', icon: MailTemplate },
-  { name: 'Email', path: '/email', icon: Mail },
-  { name: 'Social', path: '/social', icon: Share2 },
-  { name: 'Pipeline', path: '/pipeline', icon: TrendingUp },
-  { name: 'Goals', path: '/goals', icon: Target },
-  { name: 'Analytics', path: '/analytics', icon: BarChart2 },
-  { name: 'Team', path: '/team', icon: Users },
-  { name: 'Settings', path: '/settings', icon: Settings },
+  { name: 'Home', path: ROUTES.HOME, icon: Home },
+  { name: 'SalesBlocks', path: ROUTES.SALESBLOCKS, icon: Clock },
+  { name: 'Lists', path: ROUTES.LISTS, icon: List },
+  { name: 'Scripts', path: ROUTES.SCRIPTS, icon: FileText },
+  { name: 'Templates', path: ROUTES.TEMPLATES, icon: MailTemplate },
+  { name: 'Email', path: ROUTES.EMAIL, icon: Mail },
+  { name: 'Social', path: ROUTES.SOCIAL, icon: Share2 },
+  { name: 'Pipeline', path: ROUTES.PIPELINE, icon: TrendingUp },
+  { name: 'Goals', path: ROUTES.GOALS, icon: Target },
+  { name: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart2 },
+  { name: 'Team', path: ROUTES.TEAM, icon: Users },
+  { name: 'Settings', path: ROUTES.SETTINGS, icon: Settings },
 ]
 
 interface AppLayoutProps {
@@ -54,40 +56,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const { user, signOut } = useAuth()
   const { theme, resolvedTheme, setTheme } = useTheme()
   const [collapsed, setCollapsed] = useState(false)
-  const [orgLogoUrl, setOrgLogoUrl] = useState<string | null>(null)
-  const [displayName, setDisplayName] = useState<string>('')
 
-  // Load user preferences and org data
-  useEffect(() => {
-    async function loadUserData() {
-      if (!user) return
+  // Fetch user profile using the new hook (handles caching)
+  const { data: userProfile } = useUserProfile(user?.id)
 
-      // Fetch user record to get preferences, org_id, display_name
-      const { data: userData } = await supabase
-        .from('users')
-        .select('preferences, org_id, display_name')
-        .eq('id', user.id)
-        .single()
+  // Fetch org logo using the new hook (handles caching)
+  const { data: orgLogoUrl } = useOrganizationLogo(userProfile?.org_id)
 
-      if (userData) {
-        setCollapsed(userData.preferences?.sidebarCollapsed ?? false)
-        setDisplayName(userData.display_name || user.email || '')
-
-        // Fetch organization logo
-        const { data: orgData } = await supabase
-          .from('organizations')
-          .select('logo_url')
-          .eq('id', userData.org_id)
-          .single()
-
-        if (orgData?.logo_url) {
-          setOrgLogoUrl(orgData.logo_url)
-        }
-      }
-    }
-
-    loadUserData()
-  }, [user])
+  // Set sidebar collapsed state from user preferences
+  if (userProfile?.preferences?.sidebarCollapsed !== collapsed) {
+    setCollapsed(userProfile?.preferences?.sidebarCollapsed ?? false)
+  }
 
   const toggleSidebar = async () => {
     const newCollapsed = !collapsed
@@ -95,27 +74,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
     if (user) {
       // Persist preference to Supabase
-      const { data: userData } = await supabase
-        .from('users')
-        .select('preferences')
-        .eq('id', user.id)
-        .single()
-
-      const updatedPreferences = {
-        ...(userData?.preferences || {}),
+      await updateUserPreferences(user.id, {
         sidebarCollapsed: newCollapsed,
-      }
-
-      await supabase
-        .from('users')
-        .update({ preferences: updatedPreferences })
-        .eq('id', user.id)
+      })
     }
   }
 
   const handleSignOut = async () => {
     await signOut()
-    navigate('/signin')
+    navigate(ROUTES.SIGNIN)
   }
 
   const cycleTheme = () => {
@@ -181,16 +148,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {!collapsed && (
               <div className="flex items-center min-w-0">
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                  {displayName.charAt(0).toUpperCase()}
+                  {(userProfile?.display_name || user?.email || '').charAt(0).toUpperCase()}
                 </div>
                 <span className="ml-2 text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {displayName}
+                  {userProfile?.display_name || user?.email || ''}
                 </span>
               </div>
             )}
             {collapsed && (
               <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                {displayName.charAt(0).toUpperCase()}
+                {(userProfile?.display_name || user?.email || '').charAt(0).toUpperCase()}
               </div>
             )}
           </div>
