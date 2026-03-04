@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Daily Briefing</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7f0df2",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#191022",
+                        "accent-cyan": "#0bda73", // Keeping the cyan-ish green from the original component for 'Velocity Void' highlights
+                        "surface-dark": "#2a1b36",
+                        "surface-darker": "#1f1229",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                    boxShadow: {
+                        'glow': '0 0 15px rgba(127, 13, 242, 0.3)',
+                        'glow-cyan': '0 0 10px rgba(11, 218, 115, 0.2)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col overflow-x-hidden selection:bg-primary selection:text-white">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-surface-dark bg-background-dark/80 backdrop-blur-md px-10 py-4">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-white hover:text-primary transition-colors cursor-pointer">
+<div class="size-8 text-primary">
+<svg class="w-full h-full drop-shadow-[0_0_8px_rgba(127,13,242,0.5)]" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_543)">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M7.24189 26.4066C7.31369 26.4411 7.64204 26.5637 8.52504 26.3738C9.59462 26.1438 11.0343 25.5311 12.7183 24.4963C14.7583 23.2426 17.0256 21.4503 19.238 19.238C21.4503 17.0256 23.2426 14.7583 24.4963 12.7183C25.5311 11.0343 26.1438 9.59463 26.3738 8.52504C26.5637 7.64204 26.4411 7.31369 26.4066 7.24189C26.345 7.21246 26.143 7.14535 25.6664 7.1918C24.9745 7.25925 23.9954 7.5498 22.7699 8.14278C20.3369 9.32007 17.3369 11.4915 14.4142 14.4142C11.4915 17.3369 9.32007 20.3369 8.14278 22.7699C7.5498 23.9954 7.25925 24.9745 7.1918 25.6664C7.14534 26.143 7.21246 26.345 7.24189 26.4066ZM29.9001 10.7285C29.4519 12.0322 28.7617 13.4172 27.9042 14.8126C26.465 17.1544 24.4686 19.6641 22.0664 22.0664C19.6641 24.4686 17.1544 26.465 14.8126 27.9042C13.4172 28.7617 12.0322 29.4519 10.7285 29.9001L21.5754 40.747C21.6001 40.7606 21.8995 40.931 22.8729 40.7217C23.9424 40.4916 25.3821 39.879 27.0661 38.8441C29.1062 37.5904 31.3734 35.7982 33.5858 33.5858C35.7982 31.3734 37.5904 29.1062 38.8441 27.0661C39.879 25.3821 40.4916 23.9425 40.7216 22.8729C40.931 21.8995 40.7606 21.6001 40.747 21.5754L29.9001 10.7285ZM29.2403 4.41187L43.5881 18.7597C44.9757 20.1473 44.9743 22.1235 44.6322 23.7139C44.2714 25.3919 43.4158 27.2666 42.252 29.1604C40.8128 31.5022 38.8165 34.012 36.4142 36.4142C34.012 38.8165 31.5022 40.8128 29.1604 42.252C27.2666 43.4158 25.3919 44.2714 23.7139 44.6322C22.1235 44.9743 20.1473 44.9757 18.7597 43.5881L4.41187 29.2403C3.29027 28.1187 3.08209 26.5973 3.21067 25.2783C3.34099 23.9415 3.8369 22.4852 4.54214 21.0277C5.96129 18.0948 8.43335 14.7382 11.5858 11.5858C14.7382 8.43335 18.0948 5.9613 21.0277 4.54214C22.4852 3.8369 23.9415 3.34099 25.2783 3.21067C26.5973 3.08209 28.1187 3.29028 29.2403 4.41187Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+<defs>
+<clippath id="clip0_6_543"><rect fill="white" height="48" width="48"></rect></clippath>
+</defs>
+</svg>
+</div>
+<h2 class="text-white text-xl font-bold leading-tight tracking-[-0.015em] font-display">Salesblock</h2>
+</div>
+<label class="flex flex-col min-w-40 !h-10 max-w-64 hidden md:flex">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full ring-1 ring-white/10 focus-within:ring-primary/50 transition-all bg-surface-darker">
+<div class="text-[#ad90cb] flex border-none items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-white focus:outline-0 focus:ring-0 border-none bg-transparent focus:border-none h-full placeholder:text-[#ad90cb] px-4 rounded-l-none border-l-0 pl-2 text-sm font-normal leading-normal font-display" placeholder="Search mission control..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<div class="hidden lg:flex items-center gap-8">
+<a class="text-white hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Dashboard</a>
+<a class="text-[#ad90cb] hover:text-white transition-colors text-sm font-medium leading-normal" href="#">Campaigns</a>
+<a class="text-[#ad90cb] hover:text-white transition-colors text-sm font-medium leading-normal" href="#">Accounts</a>
+<a class="text-[#ad90cb] hover:text-white transition-colors text-sm font-medium leading-normal" href="#">Inbox</a>
+</div>
+<div class="flex gap-3 items-center border-l border-white/10 pl-6">
+<button class="flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-primary hover:bg-primary/90 transition-all shadow-glow text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">New Task</span>
+</button>
+<button class="flex size-9 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-surface-dark hover:bg-surface-dark/80 transition-colors text-white border border-white/5">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+<button class="flex size-9 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-surface-dark hover:bg-surface-dark/80 transition-colors text-white border border-white/5">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-9 ml-2 border-2 border-primary/30" data-alt="User profile picture showing a man in a suit" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuADkbboQgvlOcD8NN5t086_WDuj5-2rIwYJt6Rf2ZAvYgvwwC6yQUjbmB3sLh0XlH01fEycUrPhpKOVOBL0DQpceeJRFN2SE0geCiE83XV9QH_7XoDB1iVpOnKO1wU1xiZTPqb2ShrEJfr_R3Qv8Phkeh1IlRaLcq_sv62kr7spMg8UvkfWz7mGA8oJGSIz-aepdOSXCwm6A36w41ik3K2NyCkhG9IkXATeOoRZKRxscMRO9MJJNk0VfsQVOiM8Ji6g0kuRl3FvhUo");'></div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 justify-center py-8 px-4 md:px-10 lg:px-20">
+<div class="layout-content-container flex flex-col max-w-[1200px] flex-1 gap-8">
+<!-- Pre-Flight Header -->
+<div class="flex flex-wrap justify-between items-end gap-6 pb-2 border-b border-white/5">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3">
+<span class="flex h-2 w-2 rounded-full bg-accent-cyan shadow-[0_0_8px_#0bda73]"></span>
+<p class="text-[#ad90cb] text-sm font-medium uppercase tracking-wider">System Online</p>
+</div>
+<h1 class="text-white text-4xl md:text-5xl font-bold leading-tight tracking-[-0.02em] drop-shadow-md">
+                                Pre-Flight <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">Check</span>
+</h1>
+<p class="text-slate-400 text-base font-normal max-w-lg mt-1">
+                                Mission Briefing for <span class="text-white font-medium">October 24, 2023</span>. Your pipeline velocity is optimal.
+                            </p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-surface-dark border border-white/10 text-white text-sm font-bold hover:bg-surface-darker transition-all">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span>Report</span>
+</button>
+<button class="flex items-center justify-center gap-2 rounded-lg h-10 px-6 bg-primary hover:bg-primary/90 transition-all shadow-glow text-white text-sm font-bold">
+<span class="material-symbols-outlined text-[20px]">rocket_launch</span>
+<span>Start Sequence</span>
+</button>
+</div>
+</div>
+<!-- Metrics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Metric Card 1 -->
+<div class="flex flex-col justify-between gap-4 rounded-xl p-6 bg-surface-dark border border-white/5 shadow-lg relative overflow-hidden group hover:border-primary/50 transition-all">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/30 transition-all"></div>
+<div class="flex justify-between items-start z-10">
+<p class="text-slate-300 text-sm font-medium uppercase tracking-wide">Pipeline Velocity</p>
+<span class="material-symbols-outlined text-primary/80">speed</span>
+</div>
+<div class="z-10">
+<p class="text-white text-3xl font-bold mb-1">85%</p>
+<div class="flex items-center gap-1 text-accent-cyan text-sm font-bold">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span>+12% vs last week</span>
+</div>
+</div>
+</div>
+<!-- Metric Card 2 -->
+<div class="flex flex-col justify-between gap-4 rounded-xl p-6 bg-surface-dark border border-white/5 shadow-lg relative overflow-hidden group hover:border-primary/50 transition-all">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/20 blur-2xl rounded-full group-hover:bg-purple-500/30 transition-all"></div>
+<div class="flex justify-between items-start z-10">
+<p class="text-slate-300 text-sm font-medium uppercase tracking-wide">Active Prospects</p>
+<span class="material-symbols-outlined text-primary/80">groups</span>
+</div>
+<div class="z-10">
+<p class="text-white text-3xl font-bold mb-1">142</p>
+<div class="flex items-center gap-1 text-accent-cyan text-sm font-bold">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span>+5% new leads</span>
+</div>
+</div>
+</div>
+<!-- Metric Card 3 -->
+<div class="flex flex-col justify-between gap-4 rounded-xl p-6 bg-surface-dark border border-white/5 shadow-lg relative overflow-hidden group hover:border-primary/50 transition-all">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/10 blur-2xl rounded-full group-hover:bg-orange-500/20 transition-all"></div>
+<div class="flex justify-between items-start z-10">
+<p class="text-slate-300 text-sm font-medium uppercase tracking-wide">Calls Today</p>
+<span class="material-symbols-outlined text-primary/80">phone_in_talk</span>
+</div>
+<div class="z-10">
+<p class="text-white text-3xl font-bold mb-1">28</p>
+<div class="flex items-center gap-1 text-orange-400 text-sm font-bold">
+<span class="material-symbols-outlined text-[16px]">trending_down</span>
+<span>-2% from target</span>
+</div>
+</div>
+</div>
+<!-- Metric Card 4 -->
+<div class="flex flex-col justify-between gap-4 rounded-xl p-6 bg-surface-dark border border-white/5 shadow-lg relative overflow-hidden group hover:border-primary/50 transition-all">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-accent-cyan/10 blur-2xl rounded-full group-hover:bg-accent-cyan/20 transition-all"></div>
+<div class="flex justify-between items-start z-10">
+<p class="text-slate-300 text-sm font-medium uppercase tracking-wide">Meetings Booked</p>
+<span class="material-symbols-outlined text-primary/80">event_available</span>
+</div>
+<div class="z-10">
+<p class="text-white text-3xl font-bold mb-1">5</p>
+<div class="flex items-center gap-1 text-accent-cyan text-sm font-bold">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>On track</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Content Section Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Left Column: Immediate Strikes (Main Focus) -->
+<div class="lg:col-span-2 flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<h2 class="text-white text-xl font-bold leading-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">bolt</span>
+                                    Immediate Strikes
+                                </h2>
+<span class="text-xs font-medium px-2 py-1 rounded bg-primary/20 text-primary border border-primary/20">3 Critical</span>
+</div>
+<!-- Task Card 1 -->
+<div class="flex flex-col sm:flex-row items-stretch gap-4 rounded-xl bg-surface-dark p-1 border border-white/5 hover:border-primary/40 transition-all shadow-lg group">
+<div class="w-full sm:w-32 h-32 sm:h-auto bg-cover bg-center rounded-lg sm:rounded-l-lg sm:rounded-r-none relative shrink-0 overflow-hidden" data-alt="Modern corporate office meeting room" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCzNRr8jkgdeK46PwuRhyprm_oMt52RZsUeN4IXPGytSo5BCY9nMzlHRMjgUB9uNEfBXwt6_JLi97xM99fwfX-VCdCiJFiVmE_93xcihIOtae-wGMgcKCGXgMRCFibwYGMJ8gbvJ4GCNTYc1_-xc3H3Vz-PT_Wg5XJrVcVflDG7GTm3GnXKyclVSIbFxVUG69YbHVrBM3DBqwPfQ3UtcqpNGi1wVx00zygu-GpIB8YIjIdkh_2O1zuqyids-mVqcUVW1ylWUzwOjIo");'>
+<div class="absolute inset-0 bg-primary/20 mix-blend-overlay"></div>
+</div>
+<div class="flex flex-col flex-1 p-4 justify-between gap-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-lg font-bold">Acme Corp - Decision Maker</h3>
+<p class="text-[#ad90cb] text-sm mt-1">Contract Negotiation • $120k ARR</p>
+</div>
+<div class="flex items-center gap-1 text-xs font-bold text-red-400 bg-red-400/10 px-2 py-1 rounded border border-red-400/20">
+<span class="material-symbols-outlined text-[14px]">priority_high</span>
+                                            Due 10:00 AM
+                                        </div>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full border-2 border-surface-dark bg-gray-600 flex items-center justify-center text-xs text-white" title="John Doe">JD</div>
+<div class="w-8 h-8 rounded-full border-2 border-surface-dark bg-gray-600 flex items-center justify-center text-xs text-white" title="Sarah Smith">SS</div>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold shadow-glow hover:bg-primary/90 transition-all group-hover:translate-x-1">
+<span>Launch Dialer</span>
+<span class="material-symbols-outlined text-[18px]">call</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Task Card 2 -->
+<div class="flex flex-col sm:flex-row items-stretch gap-4 rounded-xl bg-surface-dark p-1 border border-white/5 hover:border-primary/40 transition-all shadow-lg group">
+<div class="w-full sm:w-32 h-32 sm:h-auto bg-cover bg-center rounded-lg sm:rounded-l-lg sm:rounded-r-none relative shrink-0 overflow-hidden" data-alt="Skyscraper glass building abstract view" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCsx3DgCy5JLp9o0ycb2hiEdqCjsngRMHgOaQms7GCb343vzy5n7FKwExye2RmJe_WfEBT9BCNAd-wep7t9DXjEGOIUUEPn-a-xZM56tqu4Ysd50qMXegN6Sv5FU6Rbgz_J5cXUqZq73FqsJevzq2-T7azwIMH76-svomVrZRL6RxzKcYpi69xfyv5i4PT_jjhZXlUmU9hmcHOGbof20XO5wv7MKSmRzPbYdRoisD58_rl2TTTig36kjPoe9oDTIcPzvyCY6cuGupw");'>
+<div class="absolute inset-0 bg-indigo-500/20 mix-blend-overlay"></div>
+</div>
+<div class="flex flex-col flex-1 p-4 justify-between gap-4">
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-lg font-bold">Stark Industries - Follow Up</h3>
+<p class="text-[#ad90cb] text-sm mt-1">Demo Scheduled • $85k ARR</p>
+</div>
+<div class="flex items-center gap-1 text-xs font-bold text-orange-400 bg-orange-400/10 px-2 py-1 rounded border border-orange-400/20">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+                                            Due 1:30 PM
+                                        </div>
+</div>
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-2 text-slate-400 text-sm">
+<span class="material-symbols-outlined text-[16px]">mail</span>
+<span>Draft pending review</span>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-darker border border-white/10 text-white text-sm font-bold hover:bg-surface-dark transition-all">
+<span>Open Email</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Pipeline Pulse & Intelligence -->
+<div class="flex flex-col gap-6">
+<!-- Pipeline Pulse -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h2 class="text-white text-xl font-bold leading-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-accent-cyan">network_node</span>
+                                        Pipeline Pulse
+                                    </h2>
+</div>
+<div class="rounded-xl bg-surface-dark border border-white/5 p-4 flex flex-col gap-3 shadow-lg">
+<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="size-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+<span class="material-symbols-outlined">arrow_upward</span>
+</div>
+<div class="flex-1">
+<p class="text-white text-sm font-bold group-hover:text-blue-400 transition-colors">TechFlow Systems</p>
+<p class="text-slate-400 text-xs">Moved to Proposal</p>
+</div>
+<span class="text-white font-mono text-xs font-bold bg-white/5 px-2 py-1 rounded">$45k</span>
+</div>
+<div class="h-px bg-white/5 w-full"></div>
+<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
+<div class="size-10 rounded-full bg-accent-cyan/20 flex items-center justify-center text-accent-cyan">
+<span class="material-symbols-outlined">handshake</span>
+</div>
+<div class="flex-1">
+<p class="text-white text-sm font-bold group-hover:text-accent-cyan transition-colors">Nebula Corp</p>
+<p class="text-slate-400 text-xs">Contract Signed</p>
+</div>
+<span class="text-white font-mono text-xs font-bold bg-white/5 px-2 py-1 rounded">$12k</span>
+</div>
+</div>
+</div>
+<!-- Intelligence Brief -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h2 class="text-white text-xl font-bold leading-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-purple-400">psychology</span>
+                                        Intelligence Brief
+                                    </h2>
+<span class="bg-purple-500/20 text-purple-300 text-xs px-2 py-0.5 rounded-full border border-purple-500/30">New</span>
+</div>
+<div class="rounded-xl bg-gradient-to-br from-surface-dark to-primary/10 border border-white/5 p-5 shadow-lg relative overflow-hidden">
+<!-- Decorative background element -->
+<div class="absolute -right-10 -bottom-10 opacity-10">
+<span class="material-symbols-outlined text-[150px]">lightbulb</span>
+</div>
+<div class="relative z-10 flex flex-col gap-4">
+<div class="flex gap-3">
+<div class="w-12 h-12 rounded-lg bg-cover bg-center shrink-0 border border-white/10" data-alt="Abstract business chart background" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAvht6i81cWyJQFuMEaxQVwnOAiriKM8CIbeQJIDPNf0dzQZusB6SRIxjUIR7LeCS08OmkRBWSn63JLJHRXyLXmyHxc-L_S4gfyB8r-Q7L1Gcyf4NMmDdj9_o_Z49bw5yEwq-L6Fe2c6xqP8J1aLjyEZQ-ipk7Li296IM5cDQJIQ6Z4e6c9oZwWqYrgMKikjVtjGJVCrh9rjUuyGT6MjZr1y-wogRvcVo3MOZnF1iSRPvZLvSQzHiReFV6XStuFvNQWrNlA5hKarlw");'></div>
+<div>
+<h4 class="text-white font-bold text-sm leading-snug">Competitor Analysis: CyberDyne</h4>
+<p class="text-[#ad90cb] text-xs mt-1">New pricing model detected. Talk track updated.</p>
+</div>
+</div>
+<button class="w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-bold text-white transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                                            Review Brief
+                                        </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

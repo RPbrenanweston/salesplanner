@@ -9,7 +9,10 @@ import {
   Play,
   Plus,
   Clock,
-  Target
+  Target,
+  Zap,
+  TrendingUp,
+  ChevronRight,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -76,7 +79,6 @@ export default function Home() {
     setLoading(true)
 
     try {
-      // Load user display name
       const { data: userData } = await supabase
         .from('users')
         .select('display_name')
@@ -87,17 +89,13 @@ export default function Home() {
         setUserDisplayName(userData.display_name || 'there')
       }
 
-      // Load today's salesblocks
       const today = new Date()
       const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
       const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
 
       const { data: todaysData } = await supabase
         .from('salesblocks')
-        .select(`
-          *,
-          list:lists(name)
-        `)
+        .select(`*, list:lists(name)`)
         .eq('user_id', user.id)
         .gte('scheduled_start', todayStart.toISOString())
         .lt('scheduled_start', todayEnd.toISOString())
@@ -105,7 +103,6 @@ export default function Home() {
         .order('scheduled_start', { ascending: true })
 
       if (todaysData) {
-        // Enrich with contact counts
         const enriched = await Promise.all(
           todaysData.map(async (sb) => {
             const { count } = await supabase
@@ -118,16 +115,12 @@ export default function Home() {
         setTodaysSalesblocks(enriched)
       }
 
-      // Load upcoming salesblocks (next 7 days, excluding today)
       const tomorrowStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
       const weekEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 8)
 
       const { data: upcomingData } = await supabase
         .from('salesblocks')
-        .select(`
-          *,
-          list:lists(name)
-        `)
+        .select(`*, list:lists(name)`)
         .eq('user_id', user.id)
         .eq('status', 'scheduled')
         .gte('scheduled_start', tomorrowStart.toISOString())
@@ -135,7 +128,6 @@ export default function Home() {
         .order('scheduled_start', { ascending: true })
 
       if (upcomingData) {
-        // Enrich with contact counts
         const enriched = await Promise.all(
           upcomingData.map(async (sb) => {
             const { count } = await supabase
@@ -148,26 +140,15 @@ export default function Home() {
         setUpcomingSalesblocks(enriched)
       }
 
-      // Load recent activities (last 10)
       const { data: activitiesData } = await supabase
         .from('activities')
-        .select(`
-          id,
-          type,
-          outcome,
-          notes,
-          created_at,
-          contact:contacts(first_name, last_name)
-        `)
+        .select(`id, type, outcome, notes, created_at, contact:contacts(first_name, last_name)`)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10)
 
       if (activitiesData) {
-        // Transform the data to match our Activity interface
-        // Supabase may return contact as an array for joined data, extract first element
         const transformedActivities: Activity[] = activitiesData.map((a) => {
-          // Handle both array and object forms of the contact relation
           const contactData = Array.isArray(a.contact) ? a.contact[0] : a.contact
           return {
             id: a.id,
@@ -181,9 +162,7 @@ export default function Home() {
         setRecentActivities(transformedActivities)
       }
 
-      // Load goals and calculate progress
       await loadGoalProgress()
-
     } catch (error) {
       console.error('Error loading dashboard data:', error)
     } finally {
@@ -195,7 +174,6 @@ export default function Home() {
     if (!user) return
 
     try {
-      // Try to load goals from goals table (may not exist yet)
       const { data: goals, error } = await supabase
         .from('goals')
         .select('*')
@@ -203,19 +181,15 @@ export default function Home() {
         .in('period', ['daily', 'weekly'])
 
       if (error) {
-        // Goals table may not exist yet, use default goals
-        console.log('Goals table not available, using defaults')
         await loadDefaultGoalProgress()
         return
       }
 
       if (!goals || goals.length === 0) {
-        // No goals set, use defaults
         await loadDefaultGoalProgress()
         return
       }
 
-      // Calculate progress for each goal
       const progress: GoalProgress[] = await Promise.all(
         goals.map(async (goal: Goal) => {
           const current = await countActivitiesForGoal(goal)
@@ -230,7 +204,6 @@ export default function Home() {
 
       setGoalProgress(progress)
     } catch {
-      // Fallback to default goals
       await loadDefaultGoalProgress()
     }
   }
@@ -238,11 +211,9 @@ export default function Home() {
   const loadDefaultGoalProgress = async () => {
     if (!user) return
 
-    // Default goals: calls and meetings for daily
     const today = new Date()
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
 
-    // Count calls today
     const { count: callCount } = await supabase
       .from('activities')
       .select('*', { count: 'exact', head: true })
@@ -250,7 +221,6 @@ export default function Home() {
       .eq('type', 'call')
       .gte('created_at', todayStart.toISOString())
 
-    // Count meetings booked today
     const { count: meetingCount } = await supabase
       .from('activities')
       .select('*', { count: 'exact', head: true })
@@ -259,18 +229,8 @@ export default function Home() {
       .gte('created_at', todayStart.toISOString())
 
     setGoalProgress([
-      {
-        metric: 'calls',
-        label: 'Calls Made (Daily)',
-        current: callCount || 0,
-        target: 50, // Default target
-      },
-      {
-        metric: 'meetings_booked',
-        label: 'Meetings Booked (Daily)',
-        current: meetingCount || 0,
-        target: 3, // Default target
-      },
+      { metric: 'calls', label: 'Calls Made (Daily)', current: callCount || 0, target: 50 },
+      { metric: 'meetings_booked', label: 'Meetings Booked (Daily)', current: meetingCount || 0, target: 3 },
     ])
   }
 
@@ -284,13 +244,12 @@ export default function Home() {
       periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     } else if (goal.period === 'weekly') {
       const dayOfWeek = now.getDay()
-      const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Monday start
+      const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
       periodStart = new Date(now.getFullYear(), now.getMonth(), diff)
     } else {
       periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
     }
 
-    // Map metric to activity type
     const typeMap: Record<string, string> = {
       calls: 'call',
       emails: 'email',
@@ -354,28 +313,15 @@ export default function Home() {
     if (diffDays === 1) return 'Yesterday'
     if (diffDays < 7) return `${diffDays}d ago`
 
-    // Format as "Today 3:15pm" or date
     const isToday = date.toDateString() === now.toDateString()
     if (isToday) {
-      return `Today ${date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })}`
+      return `Today ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
     }
-
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    })
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
   }
 
   const formatDateTime = (dateString: string): string => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -386,204 +332,311 @@ export default function Home() {
   }
 
   const getActivityIcon = (type: string) => {
+    const cls = 'w-4 h-4'
     switch (type) {
-      case 'call':
-        return <Phone className="w-4 h-4" />
-      case 'email':
-        return <Mail className="w-4 h-4" />
-      case 'social':
-        return <Share2 className="w-4 h-4" />
-      case 'meeting':
-        return <Calendar className="w-4 h-4" />
-      case 'note':
-        return <FileText className="w-4 h-4" />
-      default:
-        return <Clock className="w-4 h-4" />
+      case 'call': return <Phone className={cls} />
+      case 'email': return <Mail className={cls} />
+      case 'social': return <Share2 className={cls} />
+      case 'meeting': return <Calendar className={cls} />
+      case 'note': return <FileText className={cls} />
+      default: return <Clock className={cls} />
     }
   }
 
-  const getOutcomeBadgeClass = (outcome: string): string => {
-    const successOutcomes = ['connect', 'conversation', 'meeting_booked']
-    const neutralOutcomes = ['no_answer', 'voicemail', 'follow_up']
-    const negativeOutcomes = ['not_interested']
+  const getActivityColor = (type: string): string => {
+    switch (type) {
+      case 'call': return 'text-cyan-neon bg-cyan-neon/10'
+      case 'email': return 'text-indigo-electric bg-indigo-electric/10'
+      case 'social': return 'text-purple-neon bg-purple-neon/10'
+      case 'meeting': return 'text-emerald-signal bg-emerald-signal/10'
+      default: return 'text-gray-400 dark:text-white/40 bg-gray-100 dark:bg-white/5'
+    }
+  }
 
-    if (successOutcomes.includes(outcome)) {
-      return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-    }
-    if (negativeOutcomes.includes(outcome)) {
-      return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-    }
-    if (neutralOutcomes.includes(outcome)) {
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-    }
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+  const getOutcomeColor = (outcome: string): string => {
+    const success = ['connect', 'conversation', 'meeting_booked']
+    const negative = ['not_interested']
+    if (success.includes(outcome)) return 'text-emerald-signal bg-emerald-signal/10'
+    if (negative.includes(outcome)) return 'text-red-alert bg-red-alert/10'
+    return 'text-gray-400 dark:text-white/40 bg-gray-100 dark:bg-white/5'
   }
 
   const formatOutcome = (outcome: string): string => {
-    return outcome
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  }
-
-  const truncateNotes = (notes: string | null, maxLength: number = 60): string => {
-    if (!notes) return ''
-    if (notes.length <= maxLength) return notes
-    return notes.substring(0, maxLength) + '...'
+    return outcome.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
   }
 
   const canStartBlock = (sb: SalesBlock): boolean => {
     if (sb.status !== 'scheduled') return false
-    const now = new Date()
-    const scheduledStart = new Date(sb.scheduled_start)
-    // Can start if scheduled time is now or in the past
-    return scheduledStart <= now
+    return new Date(sb.scheduled_start) <= new Date()
   }
 
   const handleStartBlock = (salesblockId: string) => {
     navigate(`/salesblocks/${salesblockId}/session`)
   }
 
-  const handleScheduleBlock = () => {
-    setShowCreateModal(true)
-  }
+  // Derive the "active mission" — in_progress block first, otherwise next scheduled today
+  const activeMission = todaysSalesblocks.find(sb => sb.status === 'in_progress')
+    ?? todaysSalesblocks.find(sb => sb.status === 'scheduled')
+
+  // Top-level KPI: first 2 goal progress items mapped to KPI cards
+  const callGoal = goalProgress.find(g => g.metric === 'calls') ?? { label: 'Calls Today', current: 0, target: 50, metric: 'calls' }
+  const meetingGoal = goalProgress.find(g => g.metric === 'meetings_booked') ?? { label: 'Meetings Booked', current: 0, target: 3, metric: 'meetings_booked' }
+  const overallPct = goalProgress.length > 0
+    ? Math.round(goalProgress.reduce((acc, g) => acc + (g.target > 0 ? (g.current / g.target) * 100 : 0), 0) / goalProgress.length)
+    : 0
 
   if (loading) {
     return (
-      <div className="p-8">
-        <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-8 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Initialising Briefing...</span>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-8">
-      {/* Greeting Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          {getGreeting()}, {userDisplayName}
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">{formatDate()}</p>
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+
+      {/* ── Header ── */}
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="vv-section-title mb-1">Daily Briefing</p>
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">
+            {getGreeting()}, {userDisplayName}
+          </h1>
+        </div>
+        <p className="font-mono text-xs text-gray-300 dark:text-white/30 tracking-wide">{formatDate()}</p>
       </div>
 
-      {/* Main Grid Layout */}
+      {/* ── Mission Timer Strip ── */}
+      <div className="glass-card p-5 flex items-center justify-between neon-glow-indigo">
+        <div className="flex items-center gap-4">
+          <div className="relative flex items-center justify-center w-10 h-10">
+            {activeMission?.status === 'in_progress' && (
+              <span className="absolute inset-0 rounded-full bg-indigo-electric/20 animate-ping" />
+            )}
+            <Zap className="w-5 h-5 text-indigo-electric relative z-10" />
+          </div>
+          <div>
+            <p className="vv-section-title mb-0.5">
+              {activeMission?.status === 'in_progress' ? 'Active Mission' : 'Next Mission'}
+            </p>
+            {activeMission ? (
+              <>
+                <p className="font-display font-semibold text-gray-900 dark:text-white">{activeMission.title}</p>
+                <p className="text-xs text-gray-400 dark:text-white/40 font-mono mt-0.5">
+                  {activeMission.list?.name} · {activeMission.contact_count} contacts · {activeMission.duration_minutes} min
+                </p>
+              </>
+            ) : (
+              <p className="font-display font-semibold text-gray-400 dark:text-white/40">No mission scheduled today</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {activeMission ? (
+            <>
+              {activeMission.status === 'in_progress' && (
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-electric/15 text-indigo-electric text-xs font-semibold uppercase tracking-widest">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-electric animate-pulse" />
+                  In Progress
+                </span>
+              )}
+              {activeMission.status === 'scheduled' && (
+                <span className="font-mono text-xs text-gray-400 dark:text-white/40">
+                  {new Date(activeMission.scheduled_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </span>
+              )}
+              {(canStartBlock(activeMission) || activeMission.status === 'in_progress') && (
+                <button
+                  onClick={() => handleStartBlock(activeMission.id)}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  {activeMission.status === 'in_progress' ? 'Continue' : 'Launch'}
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Schedule Block
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── KPI Row ── */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Calls KPI */}
+        <div className="stat-card neon-glow-cyan group hover:scale-[1.02] transition-transform duration-200 ease-snappy">
+          <div className="flex items-center justify-between">
+            <span className="vv-section-title">Calls Today</span>
+            <Phone className="w-4 h-4 text-cyan-neon opacity-60 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div className="flex items-end gap-2 mt-1">
+            <span className="font-mono text-3xl font-bold text-gray-900 dark:text-white">{callGoal.current}</span>
+            <span className="font-mono text-sm text-gray-300 dark:text-white/30 mb-1">/ {callGoal.target}</span>
+          </div>
+          <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-1.5 mt-1">
+            <div
+              className="h-1.5 rounded-full bg-cyan-neon transition-all duration-500"
+              style={{ width: `${Math.min((callGoal.current / callGoal.target) * 100, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Meetings KPI */}
+        <div className="stat-card neon-glow-purple group hover:scale-[1.02] transition-transform duration-200 ease-snappy">
+          <div className="flex items-center justify-between">
+            <span className="vv-section-title">Meetings Booked</span>
+            <Calendar className="w-4 h-4 text-purple-neon opacity-60 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div className="flex items-end gap-2 mt-1">
+            <span className="font-mono text-3xl font-bold text-gray-900 dark:text-white">{meetingGoal.current}</span>
+            <span className="font-mono text-sm text-gray-300 dark:text-white/30 mb-1">/ {meetingGoal.target}</span>
+          </div>
+          <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-1.5 mt-1">
+            <div
+              className="h-1.5 rounded-full bg-purple-neon transition-all duration-500"
+              style={{ width: `${Math.min((meetingGoal.current / meetingGoal.target) * 100, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Overall Mission Progress */}
+        <div className="stat-card group hover:scale-[1.02] transition-transform duration-200 ease-snappy">
+          <div className="flex items-center justify-between">
+            <span className="vv-section-title">Mission Progress</span>
+            <Target className="w-4 h-4 text-emerald-signal opacity-60 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div className="flex items-end gap-2 mt-1">
+            <span className={`font-mono text-3xl font-bold ${overallPct >= 75 ? 'text-emerald-signal' : overallPct >= 40 ? 'text-cyan-neon' : 'text-gray-900 dark:text-white'}`}>
+              {overallPct}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-1.5 mt-1">
+            <div
+              className={`h-1.5 rounded-full transition-all duration-500 ${overallPct >= 75 ? 'bg-emerald-signal' : overallPct >= 40 ? 'bg-cyan-neon' : 'bg-indigo-electric'}`}
+              style={{ width: `${overallPct}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Today's SalesBlocks + Activity Feed */}
+
+        {/* Left: Today's Blocks + Activity Feed */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Today's SalesBlocks Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-blue-600" />
-              Today's SalesBlocks
-            </h2>
+
+          {/* Today's SalesBlocks */}
+          <div className="glass-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-indigo-electric" />
+                <h2 className="font-display font-semibold text-gray-900 dark:text-white text-sm">Today's SalesBlocks</h2>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-1.5 text-xs text-indigo-electric hover:text-gray-900 dark:hover:text-white transition-colors font-medium"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                New
+              </button>
+            </div>
 
             {todaysSalesblocks.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  No salesblocks scheduled for today
-                </p>
+                <p className="text-gray-300 dark:text-white/30 text-sm mb-4">No missions scheduled today</p>
                 <button
-                  onClick={handleScheduleBlock}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
                 >
                   <Plus className="w-4 h-4" />
                   Schedule a SalesBlock
                 </button>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {todaysSalesblocks.map((sb) => (
                   <div
                     key={sb.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 ${
+                      sb.status === 'in_progress'
+                        ? 'bg-indigo-electric/10 border-indigo-electric/30'
+                        : 'bg-gray-50 dark:bg-white/[0.03] border-gray-200 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-white/5'
+                    }`}
                   >
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">
-                        {sb.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {sb.list?.name || 'Unknown list'} - {sb.contact_count} contacts - {sb.duration_minutes} min
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(sb.scheduled_start).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true,
-                        })}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-1.5 h-8 rounded-full ${sb.status === 'in_progress' ? 'bg-indigo-electric' : 'bg-gray-200 dark:bg-white/10'}`} />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white text-sm">{sb.title}</p>
+                        <p className="text-xs text-gray-400 dark:text-white/40 font-mono mt-0.5">
+                          {sb.list?.name} · {sb.contact_count} contacts · {sb.duration_minutes}m
+                        </p>
+                      </div>
                     </div>
-                    {canStartBlock(sb) && (
-                      <button
-                        onClick={() => handleStartBlock(sb.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        <Play className="w-4 h-4" />
-                        Start Block
-                      </button>
-                    )}
-                    {!canStartBlock(sb) && sb.status === 'scheduled' && (
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        Starts at {new Date(sb.scheduled_start).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true,
-                        })}
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-gray-300 dark:text-white/30">
+                        {new Date(sb.scheduled_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                       </span>
-                    )}
-                    {sb.status === 'in_progress' && (
-                      <button
-                        onClick={() => handleStartBlock(sb.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                      >
-                        <Play className="w-4 h-4" />
-                        Continue
-                      </button>
-                    )}
+                      {(canStartBlock(sb) || sb.status === 'in_progress') && (
+                        <button
+                          onClick={() => handleStartBlock(sb.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-signal hover:bg-emerald-signal/80 text-white rounded-lg text-xs font-semibold transition-all duration-200 ease-snappy"
+                        >
+                          <Play className="w-3 h-3" />
+                          {sb.status === 'in_progress' ? 'Continue' : 'Start'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Activity Feed Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-purple-600" />
-              Recent Activity
-            </h2>
+          {/* Activity Feed */}
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-4 h-4 text-purple-neon" />
+              <h2 className="font-display font-semibold text-gray-900 dark:text-white text-sm">Activity Feed</h2>
+            </div>
 
             {recentActivities.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                No recent activities
-              </p>
+              <p className="text-gray-300 dark:text-white/30 text-sm text-center py-6">No recent activities logged</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {recentActivities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                    className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors group"
                   >
-                    <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                    <div className={`flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg ${getActivityColor(activity.type)}`}>
                       {getActivityIcon(activity.type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-gray-900 dark:text-white text-sm">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-gray-900 dark:text-white text-sm font-medium">
                           {activity.contact?.first_name} {activity.contact?.last_name}
                         </span>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getOutcomeBadgeClass(activity.outcome)}`}>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getOutcomeColor(activity.outcome)}`}>
                           {formatOutcome(activity.outcome)}
                         </span>
                       </div>
                       {activity.notes && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                          {truncateNotes(activity.notes)}
-                        </p>
+                        <p className="text-xs text-gray-300 dark:text-white/30 mt-0.5 truncate">{activity.notes}</p>
                       )}
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        {formatTimeAgo(activity.created_at)}
-                      </p>
                     </div>
+                    <span className="font-mono text-xs text-gray-200 dark:text-white/20 flex-shrink-0 mt-0.5 group-hover:text-gray-400 dark:group-hover:text-white/40 transition-colors">
+                      {formatTimeAgo(activity.created_at)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -591,50 +644,38 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Column - Goal Progress + Upcoming SalesBlocks */}
+        {/* Right: Goal Progress + Upcoming */}
         <div className="space-y-6">
-          {/* Goal Progress Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Target className="w-5 h-5 text-green-600" />
-              Goal Progress
-            </h2>
+
+          {/* Goal Progress */}
+          <div className="glass-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-emerald-signal" />
+                <h2 className="font-display font-semibold text-gray-900 dark:text-white text-sm">Goal Progress</h2>
+              </div>
+            </div>
 
             {goalProgress.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                No goals set
-              </p>
+              <p className="text-gray-300 dark:text-white/30 text-sm text-center py-4">No goals configured</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {goalProgress.map((goal, index) => {
-                  const percentage = goal.target > 0 ? Math.min((goal.current / goal.target) * 100, 100) : 0
+                  const pct = goal.target > 0 ? Math.min((goal.current / goal.target) * 100, 100) : 0
+                  const color = pct >= 100 ? 'bg-emerald-signal' : pct >= 75 ? 'bg-cyan-neon' : pct >= 40 ? 'bg-indigo-electric' : 'bg-gray-200 dark:bg-white/20'
                   return (
                     <div key={index}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {goal.label}
-                        </span>
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {goal.current} / {goal.target}
-                        </span>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs text-gray-500 dark:text-white/60 font-medium">{goal.label}</span>
+                        <span className="font-mono text-xs text-gray-400 dark:text-white/40">{goal.current} / {goal.target}</span>
                       </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                      <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-1.5">
                         <div
-                          className={`h-3 rounded-full transition-all duration-300 ${
-                            percentage >= 100
-                              ? 'bg-green-600'
-                              : percentage >= 75
-                              ? 'bg-green-500'
-                              : percentage >= 50
-                              ? 'bg-yellow-500'
-                              : 'bg-blue-600'
-                          }`}
-                          style={{ width: `${percentage}%` }}
+                          className={`h-1.5 rounded-full transition-all duration-500 ${color}`}
+                          style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 text-right">
-                        {Math.round(percentage)}%
-                      </p>
+                      <p className="font-mono text-xs text-gray-200 dark:text-white/20 mt-1 text-right">{Math.round(pct)}%</p>
                     </div>
                   )
                 })}
@@ -642,37 +683,30 @@ export default function Home() {
             )}
           </div>
 
-          {/* Upcoming SalesBlocks Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-orange-600" />
-              Upcoming This Week
-            </h2>
+          {/* Upcoming This Week */}
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-4 h-4 text-cyan-neon" />
+              <h2 className="font-display font-semibold text-gray-900 dark:text-white text-sm">Upcoming This Week</h2>
+            </div>
 
             {upcomingSalesblocks.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                No upcoming salesblocks this week
-              </p>
+              <p className="text-gray-300 dark:text-white/30 text-sm text-center py-4">Clear week ahead</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {upcomingSalesblocks.map((sb) => (
                   <div
                     key={sb.id}
-                    className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/[0.03] hover:bg-gray-100 dark:hover:bg-white/5 border border-gray-200 dark:border-white/5 transition-colors group"
                   >
-                    <h3 className="font-medium text-gray-900 dark:text-white text-sm">
-                      {sb.title}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {sb.list?.name || 'Unknown list'}
-                    </p>
-                    <div className="flex items-center justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      <span>{formatDateTime(sb.scheduled_start)}</span>
-                      <span>{sb.duration_minutes} min</span>
+                    <div>
+                      <p className="text-gray-900 dark:text-white text-sm font-medium">{sb.title}</p>
+                      <p className="font-mono text-xs text-gray-300 dark:text-white/30 mt-0.5">
+                        {formatDateTime(sb.scheduled_start)}
+                      </p>
+                      <p className="text-xs text-gray-200 dark:text-white/20 mt-0.5">{sb.contact_count} contacts · {sb.duration_minutes}m</p>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {sb.contact_count} contacts
-                    </p>
+                    <ChevronRight className="w-4 h-4 text-gray-100 dark:text-white/10 group-hover:text-gray-300 dark:group-hover:text-white/30 transition-colors flex-shrink-0" />
                   </div>
                 ))}
               </div>

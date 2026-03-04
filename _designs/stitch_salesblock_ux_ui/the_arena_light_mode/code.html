@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Arena | Sales Competition Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d59f2",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(13, 89, 242, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-200">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-6 md:px-10 py-3">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<div class="bg-primary p-1.5 rounded-lg text-white">
+<span class="material-symbols-outlined text-2xl block">leaderboard</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-bold tracking-tight">The Arena</h2>
+</div>
+<div class="hidden lg:flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 ml-2 pl-8">
+<label class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 rounded-full px-4 py-1.5 w-64">
+<span class="material-symbols-outlined text-slate-400 text-sm">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-slate-400" placeholder="Search competitors..." type="text"/>
+</label>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<nav class="hidden md:flex items-center gap-6 mr-6">
+<a class="text-primary text-sm font-semibold border-b-2 border-primary pb-0.5" href="#">War Room</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-primary transition-colors text-sm font-medium" href="#">Leaderboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-primary transition-colors text-sm font-medium" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-300" id="theme-toggle">
+<span class="material-symbols-outlined block dark:hidden">dark_mode</span>
+<span class="material-symbols-outlined hidden dark:block">light_mode</span>
+</button>
+<div class="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2"></div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold text-slate-900 dark:text-white leading-none">Alex Rivera</p>
+<p class="text-[10px] text-primary font-bold uppercase tracking-wider">Elite League</p>
+</div>
+<div class="size-10 rounded-full bg-primary/10 border-2 border-primary/20 p-0.5 overflow-hidden">
+<img class="w-full h-full object-cover rounded-full" data-alt="User profile avatar with professional look" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtGMeopnXHHiBHnxpScFdC8C-R_utEvGYs3RJELZKTyfVwZf-2YFx8TveyT2vu-z_MP2QgNJV0spCTUDidDccFAy_G-t1keqKB4VFseHWpvJ4TyiRviu67yFm7X90uty_usvkvPXIh01oSIwVGXCIxCvJReip01urpxGR4w7F-CwqgMw5LmwCsBePhyHIzmqnM2Qfh4bYdr4vMbuU68PMNFC9N8hZ5LmbxKW9DKD6g3WKZL-oiw19TDmdgPZlPuUInVfLGFLd60pE"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex overflow-hidden">
+<!-- Left Sidebar -->
+<aside class="hidden lg:flex w-64 flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark p-6">
+<div class="space-y-1 mb-8">
+<p class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">Navigation</p>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-semibold" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm">War Room</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span class="text-sm">My Stats</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined">swords</span>
+<span class="text-sm">Duels</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="text-sm">Training</span>
+</a>
+</div>
+<div class="mt-auto space-y-4">
+<div class="p-4 rounded-xl bg-slate-900 dark:bg-primary/20 text-white dark:text-primary border border-primary/20">
+<p class="text-xs font-bold uppercase tracking-widest opacity-70">Current Rank</p>
+<p class="text-2xl font-black mt-1">#4th</p>
+<div class="mt-3 bg-white/20 dark:bg-primary/30 h-1.5 w-full rounded-full overflow-hidden">
+<div class="bg-white dark:bg-primary h-full" style="width: 75%"></div>
+</div>
+<p class="text-[10px] mt-2 font-medium">850 pts to reach #3rd</p>
+</div>
+<button class="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm shadow-lg shadow-primary/25 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">bolt</span>
+                        New Challenge
+                    </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-[calc(100vh-65px)] overflow-y-auto bg-slate-50 dark:bg-slate-900/40 p-6">
+<!-- Header Stats -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+<div>
+<h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">The Arena: Q3 Sales Open</h1>
+<p class="text-slate-500 dark:text-slate-400 flex items-center gap-2 font-medium">
+<span class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                            Live High-Velocity Competition
+                        </p>
+</div>
+<div class="flex gap-3">
+<div class="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+<span class="material-symbols-outlined text-primary">timer</span>
+<div class="flex flex-col">
+<span class="text-[10px] text-slate-400 font-bold uppercase">Time Left</span>
+<span class="text-sm font-bold tabular-nums">14:22:08</span>
+</div>
+</div>
+<button class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-6 py-2 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                            Enter Match
+                        </button>
+</div>
+</div>
+<!-- Live Velocity Tickers -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="glass-card p-5 rounded-2xl flex flex-col gap-1">
+<div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+<span class="text-xs font-bold uppercase tracking-wider">Room Velocity</span>
+<span class="material-symbols-outlined text-primary text-xl">speed</span>
+</div>
+<p class="text-2xl font-bold text-slate-900 dark:text-white">142 <span class="text-sm font-medium text-slate-400">u/hr</span></p>
+<p class="text-xs font-bold text-green-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                            +12% vs last hour
+                        </p>
+</div>
+<div class="glass-card p-5 rounded-2xl flex flex-col gap-1">
+<div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+<span class="text-xs font-bold uppercase tracking-wider">Total Pipeline</span>
+<span class="material-symbols-outlined text-primary text-xl">payments</span>
+</div>
+<p class="text-2xl font-bold text-slate-900 dark:text-white">$1.24M</p>
+<p class="text-xs font-bold text-green-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                            +$85k today
+                        </p>
+</div>
+<div class="glass-card p-5 rounded-2xl flex flex-col gap-1">
+<div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+<span class="text-xs font-bold uppercase tracking-wider">Active Duels</span>
+<span class="material-symbols-outlined text-primary text-xl">swords</span>
+</div>
+<p class="text-2xl font-bold text-slate-900 dark:text-white">24</p>
+<p class="text-xs font-bold text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">group</span>
+                            48 Users in Combat
+                        </p>
+</div>
+<div class="glass-card p-5 rounded-2xl flex flex-col gap-1">
+<div class="flex justify-between items-center text-slate-500 dark:text-slate-400">
+<span class="text-xs font-bold uppercase tracking-wider">Win Rate</span>
+<span class="material-symbols-outlined text-primary text-xl">target</span>
+</div>
+<p class="text-2xl font-bold text-slate-900 dark:text-white">68.5%</p>
+<p class="text-xs font-bold text-red-500 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+                            -2.1% volatility
+                        </p>
+</div>
+</div>
+<!-- Main Grid: Duel & Leaderboard -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-12">
+<!-- Featured Duel -->
+<div class="lg:col-span-7 flex flex-col gap-6">
+<div class="bg-white dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+<div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">military_tech</span>
+                                    Live Featured Duel
+                                </h3>
+<span class="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-1 rounded-full uppercase">Main Event</span>
+</div>
+<div class="p-8">
+<div class="flex items-center justify-between gap-4">
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="relative">
+<div class="size-20 rounded-2xl bg-slate-100 dark:bg-slate-700 overflow-hidden border-4 border-primary">
+<img class="w-full h-full object-cover" data-alt="Competitor 1 profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaBOJqY_pHoJrSJ-OhxTNCtNL4rSpHjZqc55ljQbe9j6Xha-2SBc1vAURnrB51y2MD5hOayIHmVCY_M7BSg_NvioqMAQa5mgg4FRS5an4zNgeIuKhvwyWA4Viu9gkhW6XnddLiSwTgJltrmkJ0_v0GXPJFVVTCr4cvsUn6W1bbjfAPgR5q6m0Z6Ej4C67aVnGPcLKS2z_KG1XEQazlzvHEf9SsoO3oHFHo8yRCdXQise0H2ZDyRj8HbiUZvu5y_u-Uj3XzlSe4Bas"/>
+</div>
+<div class="absolute -bottom-2 -right-2 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-lg border-2 border-white dark:border-slate-800">YOU</div>
+</div>
+<div class="text-center">
+<p class="font-bold text-slate-900 dark:text-white">Alex Rivera</p>
+<p class="text-xs text-slate-500">12 Deals Closed</p>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center gap-2">
+<div class="text-4xl font-black italic tracking-tighter text-slate-200 dark:text-slate-700">VS</div>
+<div class="h-px w-24 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent"></div>
+<span class="text-[10px] font-bold text-primary uppercase">Round 4 of 5</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="size-20 rounded-2xl bg-slate-100 dark:bg-slate-700 overflow-hidden border-2 border-slate-200 dark:border-slate-700">
+<img class="w-full h-full object-cover" data-alt="Competitor 2 profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzYEZmODpqo97u2ai-V2juzjF06wnRhQOxEJvlwoowDly4oCUQ0i2u4ai31YmKsQNFjhJg5H2Ptp4FmsvFbvcZyA3pLiIWtIINCrKIjpzyYdt8y5k3c0ZBbHlPWdi3iqd2_tpMWX2U1dOTIMwTrI82UGms_AJBz1xPB5eW4he76F0pO6dwE8rYVfcxd7iiqpckAipv-MrRE4OPHNjDHuqK44JfX2JxjPdbZfm8nAkX8evGK9mpz90d-muvm_IU82lZtj-e70_isj8"/>
+</div>
+<div class="text-center">
+<p class="font-bold text-slate-900 dark:text-white">Sarah Chen</p>
+<p class="text-xs text-slate-500">14 Deals Closed</p>
+</div>
+</div>
+</div>
+<div class="mt-8 relative h-4 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden flex">
+<div class="h-full bg-primary" style="width: 45%"></div>
+<div class="h-full bg-slate-400 dark:bg-slate-500" style="width: 55%"></div>
+<div class="absolute inset-0 flex items-center justify-between px-4 text-[10px] font-black text-white mix-blend-difference">
+<span>$45,200</span>
+<span>$52,100</span>
+</div>
+</div>
+</div>
+<div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center gap-4 border-t border-slate-100 dark:border-slate-800">
+<button class="text-xs font-bold text-primary flex items-center gap-1.5 hover:underline">
+<span class="material-symbols-outlined text-sm">visibility</span>
+                                    Spectate Match
+                                </button>
+<div class="w-1 h-1 bg-slate-300 rounded-full"></div>
+<button class="text-xs font-bold text-slate-500 flex items-center gap-1.5 hover:text-slate-700 dark:hover:text-slate-300">
+<span class="material-symbols-outlined text-sm">share</span>
+                                    Share Stream
+                                </button>
+</div>
+</div>
+<!-- Secondary Duel Feeds -->
+<div class="grid grid-cols-2 gap-4">
+<div class="p-4 bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Live Duel</p>
+<div class="flex items-center justify-between">
+<div class="flex -space-x-2">
+<div class="size-8 rounded-full border-2 border-white dark:border-slate-800 bg-slate-100">
+<img class="rounded-full" data-alt="User avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAghx8deI2nrUvoXk-9mNgDjJjn0_SxFzDGzjppXYJkhWVRQ0Nzi06IwrIYhoChd5y-6_cy8JZ8CUpoM_H5mZHtPX2g8kxxvkHFH72U7lDjnG7HwE05zZVElm3y9Tgi4QXhmKGXB-TPLAgME84JpKZ7DNDrV9gOBqw6kTXX0rn6RiDavqMDXs4Wmq9IkU7o0lHqJrgceB40Cj-UPH6cuPMFd0yXNNMJKego8_G07lMH5OAGngXERy7x1fdXrd5KnWc0kyccSYei6i8"/>
+</div>
+<div class="size-8 rounded-full border-2 border-white dark:border-slate-800 bg-slate-100">
+<img class="rounded-full" data-alt="User avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCt0B1G8of_zauYVDhoAEqBoSX8KBzaHo-o1hUv3SFmCv5xUiPmH9WwcSmfbcahcYWbIQWhgMHuqHJ5Sn0JWijT3_IEJr-Pm14bKxabS1N6YoyilQ9r1o5eLnMhbDjoestbFgJJ05ri4ngESHT8s1zZ8_E_K9zhXKPxkU-wv-U5a1OSG-EvLJURUORar_oK9PaeupwIaF9dIaV1Tv9c3mgKHCvUiKDJWwKy2MHNMM76_wLsg1aCad-S8Mp5qWN86xjkl1wACBTil18"/>
+</div>
+</div>
+<span class="text-xs font-bold text-green-500">+2.4k gap</span>
+</div>
+</div>
+<div class="p-4 bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Live Duel</p>
+<div class="flex items-center justify-between">
+<div class="flex -space-x-2">
+<div class="size-8 rounded-full border-2 border-white dark:border-slate-800 bg-slate-100">
+<img class="rounded-full" data-alt="User avatar 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8_sFoUfO5WfyG34k69JUfhNfK0eTu7OU6vt_1GcHmA_lDFOxlaH7BrUU0OqqhSMkpU-XphROj3UhR-ma8XipSxH81BcJnL3XPR5lSv5ydez-WVvLEZqIzvABJTaO2w9oG22neni3oIaq7EC7J0R5Ggcmlu-SSMbZQnbO4pZrETT8r4gMSILTIoHWtd_Yh9T54gl1VYoeb5JDVRDGl4YkBmOsxyvfc8Qq-sOm-EwOrxkdbUsGpjtgHtPwh7ugzFjJCWWuaIu61EhQ"/>
+</div>
+<div class="size-8 rounded-full border-2 border-white dark:border-slate-800 bg-slate-100">
+<img class="rounded-full" data-alt="User avatar 4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6f6swuW7PvjIWUaK60fX2phyuvbWcoIOpEmICwRXB9hPGB7DpNtv6ktiOHdFcqCDhmULb6Mhri4tHM5FiVRRVwo4M0AjWX7Rsi78rjNaiR0-datsPBfloR01--aeT6QztJoTVmjU0il_O9Edj2LM2z-UwvU6UrjPk00K0qpGuZf3H-QYXbTKcVt1XnM3CAwqvcni6ZyccB6UrTxNnr8EvO-evqEpTnsQ8n_Nu4oTeZLZbMZee6v3tccZWZ1UiH7gdNz9P0jR4IZY"/>
+</div>
+</div>
+<span class="text-xs font-bold text-red-500">-1.1k gap</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Leaderboard Sidebar -->
+<div class="lg:col-span-5">
+<div class="bg-white dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col h-full overflow-hidden shadow-sm">
+<div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">emoji_events</span>
+                                    Top Performers
+                                </h3>
+<div class="flex gap-1">
+<button class="text-[10px] font-bold px-3 py-1 bg-primary text-white rounded-full">All-Time</button>
+<button class="text-[10px] font-bold px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded-full">Today</button>
+</div>
+</div>
+<div class="p-2 overflow-y-auto max-h-[500px]">
+<!-- Performer Item -->
+<div class="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="text-xl font-black text-slate-300 dark:text-slate-700 italic w-6">01</span>
+<div class="size-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-primary">
+<img class="w-full h-full object-cover" data-alt="Top performer 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrP-xxwKQE7HRDdepZ4UMZFHPbMTt_7nhQRhN3vY94rhyvWitW_Ai3lpiOzjVETdMp3Al1s5bwrgni0RB1L0l_zyv0K-THVzU_NIMk_YzO2olM1dJnmYUTMbKI8BlZFxGjGCyOw3UTVDDf1niLA-LFPQaxJ24gYAgqK60F78e_bvIiJ3zNuje0VQMu1gQaY4-qa3CWGjphFktPwZAPzpAK3ehz_r_CdhZC6Xz3imsP3KDTL50u9yth3PqxF43WOrFoiWKM6dMi2Pw"/>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Marcus Jordon</p>
+<p class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Mid-Market Lead</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-slate-900 dark:text-white">$342,000</p>
+<p class="text-[10px] font-bold text-green-500">22 DEALS</p>
+</div>
+</div>
+<!-- Performer Item -->
+<div class="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="text-xl font-black text-slate-300 dark:text-slate-700 italic w-6">02</span>
+<div class="size-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-transparent">
+<img class="w-full h-full object-cover" data-alt="Top performer 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWDi9bvZ78B8UxXp5uVJn6F66kNoK_MkkEwdD1OYp6cfpSA4REjjlOeagu1s7Tke1Ut-4t6ykWq9zHE-Boz5Jvbl9pIM0WJ9saAacibTPl4yNkJyVYxo7TxGEKCXFD7CwJqutN_5hgM9bzlTE3Uh988z-V6J6ZJrinwIfKiBDpKYJrmzA36F4udaFxfHwtKpNPlTn3sRfNXnFQ2_NZTkFLSi0pl6lSryOF8uFTsGPImScpupbGifVaZRQOMT25nIj_8rKO_UPsfpA"/>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Sarah Chen</p>
+<p class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Strategic Accounts</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-slate-900 dark:text-white">$318,500</p>
+<p class="text-[10px] font-bold text-green-500">19 DEALS</p>
+</div>
+</div>
+<!-- Performer Item -->
+<div class="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-2xl transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<span class="text-xl font-black text-slate-300 dark:text-slate-700 italic w-6">03</span>
+<div class="size-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-transparent">
+<img class="w-full h-full object-cover" data-alt="Top performer 3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNsh6-QcF_h2ML6HGV0r_aFNnkEg7dJx-draBjJTff0AZdISsbA8CDfIyZrayV-23CfwzjiVZxlxPvJ-Op30SHMZYc6hEZJ6SXkWnRMZgoCgjRZSNUwEV2xRlpZNHE_DA4JPhTPnSrFFSbrBXX2UAg3VfjuxZahsldfbWr0STMlFSCT7c0aeWB0atC_WG-UZHvlfeMchoyp8T6GLXOd-i-a3s9nEX0kRCDjOl2EL9GKqyQeBP8dLGCAr20V8nwgHxcdIvkZ3LWlIM"/>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Elena Rodriguez</p>
+<p class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Emerging Enterprise</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-slate-900 dark:text-white">$285,100</p>
+<p class="text-[10px] font-bold text-green-500">25 DEALS</p>
+</div>
+</div>
+<!-- Your Item -->
+<div class="flex items-center justify-between p-4 bg-primary/5 border border-primary/20 rounded-2xl cursor-pointer group my-1">
+<div class="flex items-center gap-4">
+<span class="text-xl font-black text-primary italic w-6">04</span>
+<div class="size-10 rounded-full bg-primary/20 overflow-hidden ring-2 ring-primary">
+<img class="w-full h-full object-cover" data-alt="Current user status" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_7hdeVL6RxhIh3zm4dIWyqM004kU4DbwzLXWIX9q7wnJC_mc5y8030XIDBm8dbuH-_9twKccjnUN2PYFLtI-ekbW2-iF-UNYggnkqm6rGNLN2xFesoVOf7lmyyeMgzW6OfyGQLGtr3_nflyR0xs4sk4xodFD5w0tzrCd_2dcu40MiQEgjDZIHRAGOFQ2GgdtKLD_owWIvTTTaPaWT4345zkzD070pVTDU7_XGQlk9UtCX53wT_i3CEEsL78ehMLrfLzH2mOtz-T0"/>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-white">Alex Rivera</p>
+<p class="text-[10px] font-bold text-primary uppercase tracking-wider">Elite Division</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-slate-900 dark:text-white">$262,400</p>
+<p class="text-[10px] font-bold text-primary">12 DEALS</p>
+</div>
+</div>
+</div>
+<button class="mt-auto p-4 text-center font-bold text-xs text-slate-400 hover:text-primary transition-colors border-t border-slate-100 dark:border-slate-800">
+                                View Full Rankings (500+)
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        
+        themeToggle.addEventListener('click', () => {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        // Initialize theme based on preference
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            // html.classList.add('dark'); // Uncomment to enable system-pref initial dark
+        }
+    </script>
+</body></html>

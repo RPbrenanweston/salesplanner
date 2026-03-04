@@ -18,6 +18,8 @@ import SettingsPage from './pages/SettingsPage'
 import SalesBlockSessionPage from './pages/SalesBlockSessionPage'
 import Scripts from './pages/Scripts'
 import EmailTemplates from './pages/EmailTemplates'
+import ContentLibrary from './pages/ContentLibrary'
+import Arena from './pages/Arena'
 import GmailOAuthCallback from './pages/GmailOAuthCallback'
 import OutlookOAuthCallback from './pages/OutlookOAuthCallback'
 import GoogleCalendarOAuthCallback from './pages/GoogleCalendarOAuthCallback'
@@ -174,6 +176,16 @@ function App() {
             }
           />
           <Route
+            path="/content"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ContentLibrary />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/scripts"
             element={
               <ProtectedRoute>
@@ -189,6 +201,16 @@ function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <EmailTemplates />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/arena"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Arena />
                 </AppLayout>
               </ProtectedRoute>
             }

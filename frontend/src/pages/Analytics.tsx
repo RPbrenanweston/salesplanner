@@ -386,7 +386,7 @@ export default function Analytics() {
     }).format(date);
   };
 
-  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
+  const COLORS = ['#6366F1', '#0db9f2', '#F59E0B', '#10b981'];
 
   if (loading) {
     return (
@@ -397,48 +397,49 @@ export default function Analytics() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Analytics</h1>
+    <div className="min-h-screen bg-void-950 text-white p-8">
+      <div className="mb-8">
+        <h1 className="font-display text-4xl font-black text-white mb-2">Command Center</h1>
+        <p className="text-white/60 mb-6">Real-time sales velocity and team performance</p>
 
         {/* Date Range Selector */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => setDateRange('today')}
-            className={`px-4 py-2 rounded-lg ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
               dateRange === 'today'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                ? 'bg-white/10 text-indigo-electric border border-indigo-electric'
+                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
             }`}
           >
             Today
           </button>
           <button
             onClick={() => setDateRange('this_week')}
-            className={`px-4 py-2 rounded-lg ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
               dateRange === 'this_week'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                ? 'bg-white/10 text-indigo-electric border border-indigo-electric'
+                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
             }`}
           >
             This Week
           </button>
           <button
             onClick={() => setDateRange('this_month')}
-            className={`px-4 py-2 rounded-lg ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
               dateRange === 'this_month'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                ? 'bg-white/10 text-indigo-electric border border-indigo-electric'
+                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
             }`}
           >
             This Month
           </button>
           <button
             onClick={() => setDateRange('custom')}
-            className={`px-4 py-2 rounded-lg ${
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
               dateRange === 'custom'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                ? 'bg-white/10 text-indigo-electric border border-indigo-electric'
+                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
             }`}
           >
             Custom
@@ -450,93 +451,93 @@ export default function Analytics() {
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="px-3 py-2 border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/40"
               />
-              <span className="text-gray-600 dark:text-gray-400">to</span>
+              <span className="text-white/40">to</span>
               <input
                 type="date"
                 value={customEndDate}
                 onChange={(e) => setCustomEndDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="px-3 py-2 border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/40"
               />
             </>
           )}
         </div>
       </div>
 
-      {/* Activity Cards */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <Phone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 bg-indigo-electric/10 rounded-lg">
+              <Phone className="w-6 h-6 text-indigo-electric" />
             </div>
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Calls</h3>
+            <h3 className="text-xs font-medium text-white/70 uppercase tracking-wider">Total Calls</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.totalCalls}</p>
+          <p className="text-4xl font-black text-white">{metrics.totalCalls}</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-              <Mail className="w-6 h-6 text-green-600 dark:text-green-400" />
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 bg-cyan-neon/10 rounded-lg">
+              <Mail className="w-6 h-6 text-cyan-neon" />
             </div>
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Emails</h3>
+            <h3 className="text-xs font-medium text-white/70 uppercase tracking-wider">Total Emails</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.totalEmails}</p>
+          <p className="text-4xl font-black text-white">{metrics.totalEmails}</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
-              <Share2 className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 bg-amber-400/10 rounded-lg">
+              <Share2 className="w-6 h-6 text-amber-400" />
             </div>
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Social Touches</h3>
+            <h3 className="text-xs font-medium text-white/70 uppercase tracking-wider">Social Touches</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.totalSocial}</p>
+          <p className="text-4xl font-black text-white">{metrics.totalSocial}</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
-              <Calendar className="w-6 h-6 text-red-600 dark:text-red-400" />
+        <div className="glass-card p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 bg-red-alert/10 rounded-lg">
+              <Calendar className="w-6 h-6 text-red-alert" />
             </div>
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Meetings Booked</h3>
+            <h3 className="text-xs font-medium text-white/70 uppercase tracking-wider">Meetings Booked</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{metrics.totalMeetings}</p>
+          <p className="text-4xl font-black text-white">{metrics.totalMeetings}</p>
         </div>
       </div>
 
       {/* Activity Trend Chart */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Activity Trend</h2>
+      <div className="glass-card mb-8 p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Activity Trend</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={dailyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
-              stroke="#9CA3AF"
+              stroke="rgba(255,255,255,0.6)"
               style={{ fontSize: '12px' }}
             />
-            <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+            <YAxis stroke="rgba(255,255,255,0.6)" style={{ fontSize: '12px' }} />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#1F2937',
-                border: '1px solid #374151',
+                backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(255,255,255,0.1)',
                 borderRadius: '8px',
                 color: '#F3F4F6',
               }}
               labelFormatter={(label) => formatDate(label as string)}
             />
-            <Legend />
-            <Line type="monotone" dataKey="calls" stroke="#3B82F6" strokeWidth={2} name="Calls" />
-            <Line type="monotone" dataKey="emails" stroke="#10B981" strokeWidth={2} name="Emails" />
+            <Legend wrapperStyle={{ paddingTop: '20px' }} />
+            <Line type="monotone" dataKey="calls" stroke="#6366F1" strokeWidth={2} name="Calls" />
+            <Line type="monotone" dataKey="emails" stroke="#0db9f2" strokeWidth={2} name="Emails" />
             <Line type="monotone" dataKey="social" stroke="#F59E0B" strokeWidth={2} name="Social" />
             <Line
               type="monotone"
               dataKey="meetings"
-              stroke="#EF4444"
+              stroke="#10b981"
               strokeWidth={2}
               name="Meetings"
             />
@@ -547,41 +548,41 @@ export default function Analytics() {
       {/* Activity Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Stacked Bar Chart */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="glass-card p-6">
+          <h2 className="text-xl font-semibold text-white mb-4">
             Daily Activity Breakdown
           </h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={dailyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatDate}
-                stroke="#9CA3AF"
+                stroke="rgba(255,255,255,0.6)"
                 style={{ fontSize: '12px' }}
               />
-              <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
+              <YAxis stroke="rgba(255,255,255,0.6)" style={{ fontSize: '12px' }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1F2937',
-                  border: '1px solid #374151',
+                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '8px',
                   color: '#F3F4F6',
                 }}
                 labelFormatter={(label) => formatDate(label as string)}
               />
-              <Legend />
-              <Bar dataKey="calls" stackId="a" fill="#3B82F6" name="Calls" />
-              <Bar dataKey="emails" stackId="a" fill="#10B981" name="Emails" />
-              <Bar dataKey="social" stackId="a" fill="#F59E0B" name="Social" />
-              <Bar dataKey="meetings" stackId="a" fill="#EF4444" name="Meetings" />
+              <Legend wrapperStyle={{ paddingTop: '20px' }} />
+              <Bar dataKey="calls" stackId="a" fill="#6366F1" name="Calls" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="emails" stackId="a" fill="#0db9f2" name="Emails" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="social" stackId="a" fill="#F59E0B" name="Social" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="meetings" stackId="a" fill="#10b981" name="Meetings" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Pie Chart */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="glass-card p-6">
+          <h2 className="text-xl font-semibold text-white mb-4">
             Activity Type Distribution
           </h2>
           <ResponsiveContainer width="100%" height={300}>
@@ -604,8 +605,8 @@ export default function Analytics() {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1F2937',
-                  border: '1px solid #374151',
+                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '8px',
                   color: '#F3F4F6',
                 }}
@@ -619,10 +620,10 @@ export default function Analytics() {
       {customKPIs.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Custom KPIs</h2>
+            <h2 className="text-xl font-semibold text-white">Custom KPIs</h2>
             <button
               onClick={() => setShowKPIModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 border border-white/20 transition-all"
             >
               <Plus className="w-4 h-4" />
               Add KPI
@@ -638,16 +639,16 @@ export default function Analytics() {
       )}
 
       {customKPIs.length === 0 && (
-        <div className="mb-8 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <div className="mb-8 glass-card p-6">
           <div className="text-center">
-            <TrendingUp className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Custom KPIs Yet</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <TrendingUp className="w-12 h-12 text-white/40 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-white mb-2">No Custom KPIs Yet</h3>
+            <p className="text-white/60 mb-4">
               Create custom KPIs to track metrics specific to your workflow.
             </p>
             <button
               onClick={() => setShowKPIModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mx-auto"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 border border-white/20 transition-all mx-auto"
             >
               <Plus className="w-4 h-4" />
               Add Custom KPI
@@ -657,8 +658,8 @@ export default function Analytics() {
       )}
 
       {/* Conversion Funnel */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Conversion Funnel</h2>
+      <div className="glass-card p-6">
+        <h2 className="text-xl font-semibold text-white mb-6">Conversion Funnel</h2>
 
         {/* Funnel Stages */}
         <div className="space-y-4">
@@ -666,19 +667,19 @@ export default function Analytics() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-white/80">
                   Calls → Connects
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-lg font-bold text-white">
                     {conversionMetrics.callToConnectRate.toFixed(1)}%
                   </span>
                   {previousPeriod.callToConnectChange !== 0 && (
                     <span
                       className={`text-xs font-medium ${
                         previousPeriod.callToConnectChange > 0
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600 dark:text-red-400'
+                          ? 'text-emerald-signal'
+                          : 'text-red-alert'
                       }`}
                     >
                       {previousPeriod.callToConnectChange > 0 ? '+' : ''}
@@ -687,14 +688,14 @@ export default function Analytics() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-white/60">
                 <span>{conversionMetrics.totalCalls} calls</span>
                 <span>→</span>
                 <span>{conversionMetrics.connects} connects</span>
               </div>
-              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all"
+                  className="bg-indigo-electric h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(conversionMetrics.callToConnectRate, 100)}%` }}
                 />
               </div>
@@ -705,19 +706,19 @@ export default function Analytics() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-white/80">
                   Connects → Meetings
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-lg font-bold text-white">
                     {conversionMetrics.connectToMeetingRate.toFixed(1)}%
                   </span>
                   {previousPeriod.connectToMeetingChange !== 0 && (
                     <span
                       className={`text-xs font-medium ${
                         previousPeriod.connectToMeetingChange > 0
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600 dark:text-red-400'
+                          ? 'text-emerald-signal'
+                          : 'text-red-alert'
                       }`}
                     >
                       {previousPeriod.connectToMeetingChange > 0 ? '+' : ''}
@@ -726,14 +727,14 @@ export default function Analytics() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-white/60">
                 <span>{conversionMetrics.connects} connects</span>
                 <span>→</span>
                 <span>{conversionMetrics.meetings} meetings</span>
               </div>
-              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
                 <div
-                  className="bg-green-600 h-2 rounded-full transition-all"
+                  className="bg-cyan-neon h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(conversionMetrics.connectToMeetingRate, 100)}%` }}
                 />
               </div>
@@ -744,19 +745,19 @@ export default function Analytics() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-white/80">
                   Emails → Replies
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-lg font-bold text-white">
                     {conversionMetrics.emailToReplyRate.toFixed(1)}%
                   </span>
                   {previousPeriod.emailToReplyChange !== 0 && (
                     <span
                       className={`text-xs font-medium ${
                         previousPeriod.emailToReplyChange > 0
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-red-600 dark:text-red-400'
+                          ? 'text-emerald-signal'
+                          : 'text-red-alert'
                       }`}
                     >
                       {previousPeriod.emailToReplyChange > 0 ? '+' : ''}
@@ -765,14 +766,14 @@ export default function Analytics() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-white/60">
                 <span>{conversionMetrics.totalEmails} emails</span>
                 <span>→</span>
                 <span>{conversionMetrics.replies} replies</span>
               </div>
-              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
                 <div
-                  className="bg-orange-600 h-2 rounded-full transition-all"
+                  className="bg-amber-400 h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(conversionMetrics.emailToReplyRate, 100)}%` }}
                 />
               </div>
@@ -780,14 +781,14 @@ export default function Analytics() {
           </div>
 
           {/* Calls to Meetings (End-to-End) */}
-          <div className="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-4 pt-4 border-t border-white/10">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-white/80">
                   Calls → Meetings (End-to-End)
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-lg font-bold text-white">
                     {conversionMetrics.totalCalls > 0
                       ? ((conversionMetrics.meetings / conversionMetrics.totalCalls) * 100).toFixed(1)
                       : 0}
@@ -795,14 +796,14 @@ export default function Analytics() {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-white/60">
                 <span>{conversionMetrics.totalCalls} calls</span>
                 <span>→</span>
                 <span>{conversionMetrics.meetings} meetings</span>
               </div>
-              <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
                 <div
-                  className="bg-purple-600 h-2 rounded-full transition-all"
+                  className="bg-emerald-signal h-2 rounded-full transition-all"
                   style={{
                     width: `${Math.min(
                       conversionMetrics.totalCalls > 0
@@ -869,18 +870,18 @@ function CustomKPICard({ kpi, calculateValue }: CustomKPICardProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+    <div className="glass-card p-6">
       <div className="flex items-center gap-3 mb-2">
-        <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-          <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+        <div className="p-2 bg-purple-neon/10 rounded-lg">
+          <TrendingUp className="w-6 h-6 text-purple-neon" />
         </div>
-        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{kpi.name}</h3>
+        <h3 className="text-sm font-medium text-white/70">{kpi.name}</h3>
       </div>
-      <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+      <p className="text-3xl font-bold text-white mb-1">
         {loading ? '...' : formatValue()}
       </p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{getFormulaDescription()}</p>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 capitalize">{kpi.period}</p>
+      <p className="text-xs text-white/60">{getFormulaDescription()}</p>
+      <p className="text-xs text-white/50 mt-1 capitalize">{kpi.period}</p>
     </div>
   );
 }

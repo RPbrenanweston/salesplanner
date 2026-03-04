@@ -21,4 +21,34 @@ export declare const GatingConfigSchema: z.ZodObject<{
     geography?: string | undefined;
 }>;
 export type GatingConfig = z.infer<typeof GatingConfigSchema>;
+/**
+ * Signal types for validation
+ */
+export type SignalName = 'code' | 'depth' | 'sustained' | 'thinking' | 'peer';
+/**
+ * A citation linking a factual claim to a verifiable source.
+ */
+export interface Citation {
+    signal: SignalName;
+    url: string;
+    description: string;
+}
+/**
+ * Validated profile ready for inclusion in final report.
+ */
+export interface ValidatedProfile {
+    name: string;
+    handle?: string;
+    primaryUrl: string;
+    languages: string[];
+    engineeringFocus: string;
+    geography?: string;
+    signals: Record<SignalName, boolean>;
+    citations: Citation[];
+    discoverySource?: {
+        method: string;
+        query: string;
+        discoveredAt: Date;
+    };
+}
 //# sourceMappingURL=types.d.ts.map

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Content Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0606f9",
+                        "primary-glow": "#4d4dff",
+                        "background-light": "#f5f5f8",
+                        "background-dark": "#0f0f23",
+                        "surface-dark": "#1a1a35",
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk", "sans-serif"],
+                        sans: ["Space Grotesk", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px",
+                    },
+                    boxShadow: {
+                        'neon': '0 0 5px theme("colors.primary"), 0 0 10px theme("colors.primary")',
+                        'neon-hover': '0 0 10px theme("colors.primary"), 0 0 20px theme("colors.primary-glow")',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Space Grotesk", sans-serif;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-display overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col overflow-hidden">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#21214a] px-6 py-4 bg-white/50 dark:bg-[#15152e]/80 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="size-8 text-primary">
+<span class="material-symbols-outlined text-[32px] !leading-none">rocket_launch</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">Salesblock <span class="text-primary font-normal text-sm ml-2 tracking-widest uppercase">Velocity</span></h2>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-primary font-bold text-sm relative after:content-[''] after:absolute after:-bottom-5 after:left-0 after:w-full after:h-0.5 after:bg-primary after:shadow-[0_0_8px_theme('colors.primary')]" href="#">Content Armory</a>
+<a class="text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white text-sm font-medium transition-colors" href="#">Campaigns</a>
+<a class="text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white text-sm font-medium transition-colors" href="#">Analytics</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="hidden sm:flex items-center justify-center rounded-lg h-9 px-4 bg-primary hover:bg-primary/90 hover:shadow-neon transition-all text-white text-sm font-bold tracking-wide group">
+<span class="material-symbols-outlined text-[18px] mr-2 group-hover:rotate-90 transition-transform">add</span>
+<span>Create New</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-primary/30" data-alt="User profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC8WBxdzjvnHWmPAMfCrKzJm3x8Q-H1-MpNgTLum09wB28F8m7fQNq6R_rTqxH3MW7RSDkGRFFk-HDcq5cyb5W05QS6oaO6E17vyfhPife-yb7hHqv7_VLFep1vkcErXQi8f4vG3hAy7FMxCeeXmQVcXhChpHizK8N8-yHM5I3TqW1bUu3PXcz0ZAMux3bOdyaerXs-BzwCA1Cs1h3zg8uJGWmxwn6RJkY5BJEsbJX1IqibStShlLbD7DF9Q9fqa0tRv_gZgZgVUaY");'></div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col w-full max-w-[1440px] mx-auto px-4 md:px-8 py-8 gap-8">
+<!-- Hero Section -->
+<div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#1a1a35] to-[#0f0f23] border border-[#21214a] shadow-2xl">
+<div class="absolute top-0 right-0 w-1/3 h-full opacity-20 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent blur-3xl"></div>
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 p-8 relative z-10">
+<div class="flex flex-col gap-2 max-w-2xl">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary text-sm">bolt</span>
+<span class="text-primary text-xs font-bold uppercase tracking-[0.2em]">System Status: Online</span>
+</div>
+<h1 class="text-slate-900 dark:text-white text-4xl md:text-5xl font-black leading-tight tracking-[-0.03em]">
+                            Content Armory
+                        </h1>
+<p class="text-slate-500 dark:text-[#8e8ecc] text-lg font-normal max-w-lg">
+                            Access high-velocity sales assets. Deploy battle-tested templates instantly.
+                        </p>
+</div>
+<div class="flex gap-3 w-full md:w-auto">
+<button class="flex-1 md:flex-none items-center justify-center rounded-lg h-11 px-6 bg-surface-light dark:bg-[#21214a] hover:bg-slate-100 dark:hover:bg-[#2a2a5e] text-slate-900 dark:text-white text-sm font-bold border border-slate-200 dark:border-[#35356e] transition-colors flex gap-2">
+<span class="material-symbols-outlined text-[20px]">upload_file</span>
+                            Upload Asset
+                        </button>
+</div>
+</div>
+</div>
+<!-- Search & Filters -->
+<div class="flex flex-col lg:flex-row gap-6 items-stretch lg:items-center justify-between sticky top-20 z-40 py-2 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm -mx-4 px-4 md:mx-0 md:px-0">
+<div class="relative flex-1 max-w-2xl group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-[#8e8ecc] group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="block w-full rounded-xl border-0 py-3.5 pl-10 pr-4 text-slate-900 dark:text-white bg-white dark:bg-[#1a1a35] ring-1 ring-inset ring-slate-200 dark:ring-[#21214a] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 shadow-sm transition-shadow" placeholder="Search across all templates, scripts, and handlers..." type="text"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+<kbd class="hidden sm:inline-flex items-center gap-1 rounded border border-slate-200 dark:border-[#35356e] bg-slate-50 dark:bg-[#21214a] px-2 py-0.5 text-xs font-sans font-medium text-slate-400 dark:text-slate-500">⌘K</kbd>
+</div>
+</div>
+<div class="flex gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium whitespace-nowrap shadow-neon">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+                        All Assets
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-[#1a1a35] hover:bg-slate-50 dark:hover:bg-[#21214a] text-slate-600 dark:text-slate-300 text-sm font-medium border border-slate-200 dark:border-[#21214a] transition-all whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">mail</span>
+                        Email Templates
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-[#1a1a35] hover:bg-slate-50 dark:hover:bg-[#21214a] text-slate-600 dark:text-slate-300 text-sm font-medium border border-slate-200 dark:border-[#21214a] transition-all whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">call</span>
+                        Call Scripts
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-[#1a1a35] hover:bg-slate-50 dark:hover:bg-[#21214a] text-slate-600 dark:text-slate-300 text-sm font-medium border border-slate-200 dark:border-[#21214a] transition-all whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">gpp_maybe</span>
+                        Objections
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-[#1a1a35] hover:bg-slate-50 dark:hover:bg-[#21214a] text-slate-600 dark:text-slate-300 text-sm font-medium border border-slate-200 dark:border-[#21214a] transition-all whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">description</span>
+                        Case Studies
+                    </button>
+</div>
+</div>
+<!-- Content Grid: High Velocity Tracks -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-slate-900 dark:text-white text-xl font-bold flex items-center gap-2">
+<span class="w-1 h-6 bg-primary rounded-full"></span>
+                        High-Velocity Tracks
+                    </h3>
+<button class="text-primary text-sm font-bold hover:underline">View All</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="group relative bg-white dark:bg-[#1a1a35] rounded-xl border border-slate-200 dark:border-[#2a2a5e] p-5 hover:border-primary/50 dark:hover:border-primary/50 transition-all hover:shadow-[0_0_20px_rgba(6,6,249,0.15)] flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+<span class="material-symbols-outlined">rocket_launch</span>
+</div>
+<div>
+<h4 class="text-slate-900 dark:text-white font-bold text-base">Cold Outreach Sequence</h4>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Email • 5 Steps</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold border border-green-200 dark:border-green-800">
+                                24% Conv.
+                            </div>
+</div>
+<p class="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
+                            Our top performing sequence for SaaS decision makers. Focuses on pain points and ROI calculation.
+                        </p>
+<div class="mt-auto pt-4 border-t border-slate-100 dark:border-[#2a2a5e] flex items-center justify-between">
+<div class="flex -space-x-2">
+<img alt="Avatar" class="inline-block size-6 rounded-full ring-2 ring-white dark:ring-[#1a1a35]" data-alt="User avatar 1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkXkkT_JbkNSIxaLKytSWnQG6lLgGCZdaC9QLB1SdXqAEBN5AdfwmcZdzLd4Oe3M26WHItZ1c0EOblbXXwCaPsrW2msRKcQ4tpRwQUNiY7tADRsXVqAr6EedkP1VEVMdX2iFe5BEzmPdv2SC6iTJt5SE5Z0JU7dZgp_9i0qTajKzmLQ8CgfOZYYvM0uIIE5QZmNj5wXtROkhfPAJgjk1lbfUnfcv581tgZxAZgNKxpo8GCNlE1hfVzmB4zim_7phQVvqzfJPR3mCA"/>
+<img alt="Avatar" class="inline-block size-6 rounded-full ring-2 ring-white dark:ring-[#1a1a35]" data-alt="User avatar 2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLM2q0bAH4gPsZny5LXEd5wnreXkLxqlL6N8DIuA6Ua_HcNJsK9LiZvmxopLCNVDwV9V2fEpMGBENs7bx2W3HBYci7AhVrhWQ9DSEl26ZFn-5eiFPfEbPTBFHH2h2Th6_yqU9lezD36swLJqei7MumbFmJQAihZ1HK_EVIySFZAKVNaKQ3Rw3jZMvY8vWeItx2vkPWfl9PszUo3dX--GA6YQSp1eRCXV9UMxCwVT7uHcLH88mZF67yZnIPXPxMi0Hn251DqvcCRKc"/>
+<span class="inline-flex items-center justify-center size-6 rounded-full ring-2 ring-white dark:ring-[#1a1a35] bg-slate-100 dark:bg-[#2a2a5e] text-[10px] font-bold text-slate-500 dark:text-slate-400">+3</span>
+</div>
+<button class="text-slate-400 hover:text-primary dark:text-slate-500 dark:hover:text-primary transition-colors" title="Quick Copy">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group relative bg-white dark:bg-[#1a1a35] rounded-xl border border-slate-200 dark:border-[#2a2a5e] p-5 hover:border-primary/50 dark:hover:border-primary/50 transition-all hover:shadow-[0_0_20px_rgba(6,6,249,0.15)] flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+<span class="material-symbols-outlined">headset_mic</span>
+</div>
+<div>
+<h4 class="text-slate-900 dark:text-white font-bold text-base">Gatekeeper Bypass</h4>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Call Script</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold border border-green-200 dark:border-green-800">
+                                4.8/5
+                            </div>
+</div>
+<p class="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
+                            Effective scripts to navigate past executive assistants and front desk receptions.
+                        </p>
+<div class="mt-auto pt-4 border-t border-slate-100 dark:border-[#2a2a5e] flex items-center justify-between">
+<div class="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<span>Updated 2d ago</span>
+</div>
+<button class="text-slate-400 hover:text-primary dark:text-slate-500 dark:hover:text-primary transition-colors" title="Quick Copy">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="group relative bg-white dark:bg-[#1a1a35] rounded-xl border border-slate-200 dark:border-[#2a2a5e] p-5 hover:border-primary/50 dark:hover:border-primary/50 transition-all hover:shadow-[0_0_20px_rgba(6,6,249,0.15)] flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<div>
+<h4 class="text-slate-900 dark:text-white font-bold text-base">"Too Expensive"</h4>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Objection Handler</p>
+</div>
+</div>
+<div class="px-2 py-1 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-bold border border-orange-200 dark:border-orange-800">
+                                Hot
+                            </div>
+</div>
+<p class="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
+                            Reframe the conversation from cost to value investment. Includes ROI calculator links.
+                        </p>
+<div class="mt-auto pt-4 border-t border-slate-100 dark:border-[#2a2a5e] flex items-center justify-between">
+<div class="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+<span class="material-symbols-outlined text-[14px]">visibility</span>
+<span>1.2k views</span>
+</div>
+<button class="text-slate-400 hover:text-primary dark:text-slate-500 dark:hover:text-primary transition-colors" title="Quick Copy">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary Section: Recent Uploads & Favorites -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Recent Uploads Table -->
+<div class="lg:col-span-2 flex flex-col gap-4">
+<h3 class="text-slate-900 dark:text-white text-xl font-bold flex items-center gap-2">
+<span class="w-1 h-6 bg-slate-400 dark:bg-slate-600 rounded-full"></span>
+                        Recent Comms
+                    </h3>
+<div class="bg-white dark:bg-[#1a1a35] rounded-xl border border-slate-200 dark:border-[#2a2a5e] overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-slate-100 dark:border-[#2a2a5e] bg-slate-50/50 dark:bg-[#21214a]/30 text-xs uppercase text-slate-500 dark:text-slate-400 font-bold tracking-wider">
+<th class="px-6 py-4">Asset Name</th>
+<th class="px-6 py-4">Type</th>
+<th class="px-6 py-4">Owner</th>
+<th class="px-6 py-4 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="group hover:bg-slate-50 dark:hover:bg-[#21214a] transition-colors border-b border-slate-100 dark:border-[#2a2a5e] last:border-0">
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">description</span>
+                                            Q3 Quarterly Review Deck
+                                        </td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">Presentation</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-indigo-500 flex items-center justify-center text-[10px] text-white font-bold">JD</div>
+<span>John D.</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">download</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-slate-50 dark:hover:bg-[#21214a] transition-colors border-b border-slate-100 dark:border-[#2a2a5e] last:border-0">
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">mail</span>
+                                            Follow-up: No Response
+                                        </td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">Email Template</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-pink-500 flex items-center justify-center text-[10px] text-white font-bold">AS</div>
+<span>Sarah A.</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">content_copy</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-slate-50 dark:hover:bg-[#21214a] transition-colors border-b border-slate-100 dark:border-[#2a2a5e] last:border-0">
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">movie</span>
+                                            Product Demo Recording
+                                        </td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">Video</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">
+<div class="flex items-center gap-2">
+<div class="size-6 rounded-full bg-cyan-500 flex items-center justify-center text-[10px] text-white font-bold">MK</div>
+<span>Mike K.</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">share</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Trending / Featured Snippet -->
+<div class="flex flex-col gap-4">
+<h3 class="text-slate-900 dark:text-white text-xl font-bold flex items-center gap-2">
+<span class="w-1 h-6 bg-pink-500 rounded-full"></span>
+                        Trending Now
+                    </h3>
+<div class="bg-gradient-to-br from-primary/20 to-[#1a1a35] rounded-xl p-6 border border-primary/30 relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-3 opacity-50 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-primary text-[48px] rotate-12">trending_up</span>
+</div>
+<div class="relative z-10 flex flex-col h-full">
+<div class="flex items-center gap-2 mb-4">
+<span class="px-2 py-1 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">Top Rated</span>
+</div>
+<h4 class="text-xl font-bold text-white mb-2">Competitor Takedown: Acme Corp</h4>
+<p class="text-slate-300 text-sm mb-6 flex-grow">
+                                Detailed battlecard highlighting our strengths vs Acme's weakness in enterprise security.
+                            </p>
+<button class="w-full py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg font-bold text-sm shadow-neon transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                                View Asset
+                            </button>
+</div>
+</div>
+<!-- Quick Stat -->
+<div class="bg-white dark:bg-[#1a1a35] rounded-xl p-6 border border-slate-200 dark:border-[#2a2a5e] flex items-center justify-between">
+<div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Your Contribution</p>
+<p class="text-3xl font-black text-slate-900 dark:text-white">12</p>
+</div>
+<div class="size-12 rounded-full bg-slate-100 dark:bg-[#21214a] flex items-center justify-center text-slate-400">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

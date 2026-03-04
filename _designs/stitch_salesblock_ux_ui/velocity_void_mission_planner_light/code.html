@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Mission Planner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#2f06f9",
+                        "primary-light": "#593bfb",
+                        "primary-dark": "#1e04a3",
+                        "background-light": "#f6f5f8",
+                        "background-dark": "#130f23",
+                        "surface-light": "#ffffff",
+                        "surface-accent": "#eef2ff",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        "2xl": "1rem",
+                        full: "9999px",
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(47, 6, 249, 0.05)',
+                        'glow': '0 0 15px rgba(47, 6, 249, 0.15)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-slate-900 antialiased selection:bg-primary selection:text-white">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200/60 bg-surface-light/80 px-6 py-4 backdrop-blur-md lg:px-10">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-slate-900">
+<div class="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-light text-white shadow-glow">
+<span class="material-symbols-outlined text-xl">bolt</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight text-slate-900">Velocity Void</h2>
+</div>
+<div class="hidden md:flex items-center rounded-xl bg-slate-100 p-1">
+<span class="material-symbols-outlined px-3 text-slate-400">search</span>
+<input class="w-64 bg-transparent border-none p-2 text-sm text-slate-700 placeholder:text-slate-400 focus:ring-0" placeholder="Search missions, prospects..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-sm font-medium text-slate-600 hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-sm font-medium text-primary" href="#">Missions</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary transition-colors" href="#">Analytics</a>
+</nav>
+<div class="h-6 w-px bg-slate-200"></div>
+<div class="flex items-center gap-3">
+<button class="flex size-10 items-center justify-center rounded-full bg-surface-light text-slate-600 hover:bg-slate-50 hover:text-primary transition-all shadow-sm border border-slate-100">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<div class="size-10 overflow-hidden rounded-full border-2 border-white shadow-sm bg-slate-200 relative">
+<img alt="User Profile" class="h-full w-full object-cover" data-alt="Professional user portrait in a circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsyaI6FNXLhgMceWuI4NH59bFqDqiBMUP349BJa5BvGn5PYBwpn2LbteFm8XD-V0ytPKuZUGcmLk3fVxPcMFubwzTpQacPEYulLGMvBxDXAq_bIueV3b6A3Q8t6rWHUGk_SX7ixOPddU23XWSPgOYj8wLtAXt23FjJUHW6dn1gfPdaTBSkowmg7kvsGTrB8qykOmtX0696ZtQmC8LgTq17g9g3m3Ab91I8PNmDPswIcx_WSSvdbFpdoDJSuEa39cH2LH7wY3Ec_FQ"/>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 px-4 py-8 lg:px-10">
+<div class="mx-auto max-w-5xl">
+<!-- Header Section -->
+<div class="mb-10 flex flex-wrap items-end justify-between gap-6">
+<div class="space-y-2">
+<div class="flex items-center gap-2 text-primary text-sm font-semibold uppercase tracking-wider">
+<span class="material-symbols-outlined text-lg">alt_route</span>
+                        Manual Sequence
+                    </div>
+<h1 class="text-4xl font-black tracking-tight text-slate-900">Mission Planner</h1>
+<p class="max-w-xl text-lg text-slate-500">Construct your high-velocity sales cadence manually. Define touchpoints, triggers, and content.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm border border-slate-200 hover:bg-slate-50 transition-all">
+<span class="material-symbols-outlined text-[20px]">play_circle</span>
+                        Test Run
+                    </button>
+<button class="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/30 hover:bg-primary-dark transition-all">
+<span class="material-symbols-outlined text-[20px]">save</span>
+                        Save Mission
+                    </button>
+</div>
+</div>
+<!-- Timeline Container -->
+<div class="relative">
+<!-- Vertical Line -->
+<div class="absolute left-[27px] top-4 h-[calc(100%-2rem)] w-0.5 bg-gradient-to-b from-primary via-primary-light to-slate-200"></div>
+<!-- Step 1 -->
+<div class="group relative mb-8 grid grid-cols-[56px_1fr] gap-6">
+<div class="relative flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-surface-light bg-gradient-to-br from-blue-500 to-primary text-white shadow-lg z-10 transition-transform group-hover:scale-105">
+<span class="material-symbols-outlined text-2xl">mail</span>
+</div>
+<div class="flex flex-col gap-4 rounded-2xl bg-surface-light p-6 shadow-soft transition-all hover:shadow-lg border border-slate-100/50">
+<div class="flex items-start justify-between">
+<div>
+<h3 class="text-lg font-bold text-slate-900">Initial Outreach</h3>
+<div class="mt-1 flex items-center gap-2">
+<span class="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">Day 1</span>
+<span class="text-sm text-slate-500">Automated Email</span>
+</div>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<div class="grid gap-4 md:grid-cols-2">
+<!-- Strategic Triggers -->
+<div class="flex flex-col justify-between rounded-xl bg-slate-50 p-4 border border-slate-100 hover:border-blue-200 transition-colors">
+<div>
+<div class="flex items-center gap-2 mb-2 text-primary">
+<span class="material-symbols-outlined text-lg">tune</span>
+<span class="text-xs font-bold uppercase tracking-wide">Triggers</span>
+</div>
+<p class="text-sm text-slate-600 mb-4">Define entry criteria based on prospect behavior (e.g., website visit).</p>
+</div>
+<button class="mt-auto w-full rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm border border-slate-200 hover:text-primary hover:border-primary/30 transition-all text-center">
+                                    Configure Rules
+                                </button>
+</div>
+<!-- Content Preview -->
+<div class="relative overflow-hidden rounded-xl bg-slate-900 p-4 shadow-inner group/card">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-50"></div>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-2 text-white/90">
+<span class="material-symbols-outlined text-lg">description</span>
+<span class="text-xs font-bold uppercase tracking-wide">Template</span>
+</div>
+<p class="text-sm text-white/70 line-clamp-2">Hi {{first_name}}, noticed your team is expanding into...</p>
+</div>
+<button class="absolute bottom-4 right-4 flex size-8 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm hover:bg-white hover:text-primary transition-all">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="group relative mb-8 grid grid-cols-[56px_1fr] gap-6">
+<div class="relative flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-surface-light bg-surface-light text-blue-600 shadow-lg z-10 transition-transform group-hover:scale-105">
+<!-- Ring for step number or icon -->
+<div class="absolute inset-0 rounded-xl border-2 border-blue-100"></div>
+<span class="material-symbols-outlined text-2xl">thumb_up</span>
+</div>
+<div class="flex flex-col gap-4 rounded-2xl bg-surface-light p-6 shadow-soft transition-all hover:shadow-lg border border-slate-100/50">
+<div class="flex items-start justify-between">
+<div>
+<h3 class="text-lg font-bold text-slate-900">Social Touchpoint</h3>
+<div class="mt-1 flex items-center gap-2">
+<span class="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700">Day 3</span>
+<span class="text-sm text-slate-500">LinkedIn Connect</span>
+</div>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<div class="grid gap-4 md:grid-cols-2">
+<!-- Battlecards -->
+<div class="col-span-1 md:col-span-2 flex flex-col md:flex-row gap-4 rounded-xl bg-slate-50 p-4 border border-slate-100 hover:border-indigo-200 transition-colors items-center">
+<div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+<span class="material-symbols-outlined">school</span>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-slate-800">Connection Strategy</h4>
+<p class="text-sm text-slate-500">Use the "Mutual Connection" template to increase acceptance rate.</p>
+</div>
+<button class="shrink-0 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm border border-slate-200 hover:text-primary transition-all">
+                                    View Script
+                                </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="group relative mb-8 grid grid-cols-[56px_1fr] gap-6">
+<div class="relative flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-surface-light bg-white text-emerald-600 shadow-lg z-10 transition-transform group-hover:scale-105">
+<div class="absolute inset-0 rounded-xl border-2 border-emerald-100"></div>
+<span class="material-symbols-outlined text-2xl">call</span>
+</div>
+<div class="flex flex-col gap-4 rounded-2xl bg-surface-light p-6 shadow-soft transition-all hover:shadow-lg border border-slate-100/50">
+<div class="flex items-start justify-between">
+<div>
+<h3 class="text-lg font-bold text-slate-900">Discovery Call</h3>
+<div class="mt-1 flex items-center gap-2">
+<span class="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">Day 5</span>
+<span class="text-sm text-slate-500">Phone Call</span>
+</div>
+</div>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<div class="grid gap-4 md:grid-cols-3">
+<!-- Objection Handling -->
+<div class="col-span-1 md:col-span-2 rounded-xl bg-gradient-to-r from-emerald-50 to-white p-4 border border-emerald-100 flex items-center justify-between">
+<div>
+<div class="flex items-center gap-2 mb-1 text-emerald-700">
+<span class="material-symbols-outlined text-lg">shield</span>
+<span class="text-xs font-bold uppercase">Battlecard</span>
+</div>
+<p class="font-medium text-slate-800">Competitor X vs Us</p>
+<p class="text-xs text-slate-500">Key differentiators loaded</p>
+</div>
+<span class="material-symbols-outlined text-emerald-300 text-4xl">verified_user</span>
+</div>
+<!-- Call Script Placeholder -->
+<div class="rounded-xl bg-slate-50 p-4 border border-slate-100 flex flex-col items-center justify-center text-center gap-2 hover:bg-slate-100 transition-colors cursor-pointer group/add">
+<div class="size-8 rounded-full bg-slate-200 flex items-center justify-center group-hover/add:bg-primary group-hover/add:text-white transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</div>
+<span class="text-xs font-medium text-slate-500 group-hover/add:text-slate-700">Add Script</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Add Step Button -->
+<div class="relative flex items-center gap-6 pl-[28px]">
+<div class="absolute left-[27px] top-0 h-8 w-0.5 bg-gradient-to-b from-slate-200 to-transparent"></div>
+<button class="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 shadow-sm border border-slate-200 hover:bg-primary hover:text-white hover:border-primary hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 -translate-x-1/2">
+<span class="material-symbols-outlined text-2xl">add</span>
+</button>
+<span class="text-sm font-medium text-slate-400 -ml-4">Add next step</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

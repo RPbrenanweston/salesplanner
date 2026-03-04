@@ -1,0 +1,212 @@
+# Velocity Void
+
+## Product Overview
+
+**The Pitch:** Velocity Void is a high-octane "System of Action" for elite sales professionals, transforming CRM drudgery into a frictionless flow state. It unifies communication, pipeline management, and deep work timers into a single, immersive cockpit that minimizes context switching and maximizes deal velocity.
+
+**For:** High-volume Account Executives and SDRs who demand speed, hate waiting for page loads, and live in their dashboards 8+ hours a day.
+
+**Device:** Desktop (macOS/Windows native app feel).
+
+**Design Direction:** "Dark Mode Zen." Deep slate void environments, electric indigo bioluminescence, glassmorphism panels, and zero-latency motion.
+
+**Inspired by:** Linear (speed/precision), Vercel (dark aesthetic), Cron (calendar fluidity).
+
+---
+
+## Screens
+
+-   **Dashboard (The Cockpit):** Central command hub featuring the Power Block timer and mission-critical metrics.
+-   **Pipeline View (The Stream):** A fluid, horizontal Kanban board for dragging deals through stages with physics-based feedback.
+-   **Communications HUD (The Comms Link):** Unified inbox for email, SMS, and calls, functioning as a slide-over overlay.
+-   **Deal Detail (The Deep Dive):** Focused, distraction-free view of a single opportunity with rich data visualization.
+
+---
+
+## Key Flows
+
+**Deep Work Session:** Start a timed block to clear the inbox.
+
+1.  User is on **Dashboard** -> sees pulsing **Power Block** ring.
+2.  User hits `Spacebar` -> Ring expands, timer starts (25m), background dims.
+3.  **Comms Link** slides in automatically -> User clears emails rapidly with keyboard shortcuts.
+
+**Accelerating a Deal:** Moving a prospect to "Closed Won".
+
+1.  User is on **Pipeline View** -> grabs a "Negotiation" card.
+2.  User drags card right -> Column glows **Electric Indigo**, card snaps into place with haptic "thud".
+3.  Confetti particle effect triggers -> Revenue counter in top right updates instantly.
+
+---
+
+<details>
+<summary>Design System</summary>
+
+## Color Palette
+
+-   **Background:** `#020617` (Slate-950) - The Void.
+-   **Surface:** `#0F172A` (Slate-900) + 1px Border `#1E293B` (Slate-800) - Panels.
+-   **Surface Active:** `#1E293B` (Slate-800) - Hover states / Active cards.
+-   **Text Primary:** `#F8FAFC` (Slate-50) - High contrast headers.
+-   **Text Muted:** `#94A3B8` (Slate-400) - Metadata, labels.
+-   **Accent:** `#6366F1` (Indigo-500) - Primary actions, active borders.
+-   **Glow:** `#818CF8` (Indigo-400, 20% opacity) - Inner glows, focus rings.
+-   **Success:** `#10B981` (Emerald-500) - Positive trends.
+
+## Typography
+
+-   **Headings:** **Space Grotesk**, 700. Technical, futuristic, clean.
+-   **Body:** **Inter**, 400. Standard for UI legibility.
+-   **Data/Code:** **JetBrains Mono**, 500. For revenue numbers, IDs, and timestamps.
+
+**Style Notes:**
+-   **Inner Glows:** Every panel has a `box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05)`.
+-   **Glassmorphism:** Overlays use `backdrop-filter: blur(12px)`.
+-   **Motion:** `transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1)`. Snappy start, smooth stop.
+
+## Design Tokens
+
+```css
+:root {
+  --bg-void: #020617;
+  --bg-panel: #0F172A;
+  --border-subtle: #1E293B;
+  --text-primary: #F8FAFC;
+  --accent-indigo: #6366F1;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-lg: 12px;
+  --radius-sm: 6px;
+  --glow-inner: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+```
+
+</details>
+
+---
+
+<details>
+<summary>Screen Specifications</summary>
+
+### Dashboard (The Cockpit)
+
+**Purpose:** Provide an at-a-glance status of the sales day and initiate flow states.
+
+**Layout:** Bento-Box Grid. 3 columns.
+-   **Left (25%):** Navigation + User Stat mini-card.
+-   **Center (50%):** The Power Block (Top) + Activity Feed (Bottom).
+-   **Right (25%):** KPI Mini-charts (Stacked).
+
+**Key Elements:**
+-   **The Power Block:** 280px circle, centered. 2px stroke `#1E293B`. Inner fill gradient `#0F172A`. Displays "Start Session" or "24:59" (Mono font).
+-   **Nav Sidebar:** Vertical list. Icons only until hover. Active state: Left border `#6366F1` + glowing background.
+-   **Activity Feed:** "Live Pulse". List of events (Email opened, Deal moved). Each item: 48px height, icon left, text right.
+-   **KPI Stack:** 3 cards. "Calls made", "Revenue", "Pipeline Velocity". Sparkline charts (Recharts) in background, bold white numbers in foreground.
+
+**States:**
+-   **Active Timer:** The Power Block ring glows `#6366F1` and pulses (scale 1.02) every second.
+-   **Loading:** Skeleton shimmer on KPI cards.
+
+**Components:**
+-   **StatCard:** `w-full h-32`, Slate-900 bg, 1px border.
+-   **ActionFab:** Fixed bottom-right `64px` circle, indigo gradient. `+` icon.
+
+**Interactions:**
+-   **Click Power Block:** Triggers "Focus Mode". Sidebar fades out. Timer creates a localized ambient light effect.
+-   **Hover KPI:** Chart line thickens, tooltip appears with exact value.
+
+**Responsive:**
+-   **Desktop:** 3-column grid.
+-   **Tablet:** 2-column. Nav collapses to bottom bar.
+-   **Mobile:** Hidden (Desktop-first app).
+
+---
+
+### Pipeline View (The Stream)
+
+**Purpose:** Visual management of deal stages.
+
+**Layout:** Full-width horizontal scroll container.
+
+**Key Elements:**
+-   **Stage Headers:** Fixed top. "Prospecting", "Qualifying", "Closing". Font: Space Grotesk 14px, Uppercase, tracking-wide.
+-   **Deal Card:** `w-72`, `h-auto`. Slate-900. Title (White), Company (Muted), Value (Mono, Indigo).
+-   **Probability Bar:** Thin 2px line at bottom of card showing win probability (width %).
+-   **Avatar Stack:** Bottom right of card. Overlapping circles `24px`.
+
+**States:**
+-   **Dragging:** Card tilts 3deg. Drop zones (columns) highlight with indigo overlay `opacity-10`.
+-   **Won:** Card flashes Emerald-500, then dissolves into particle effect.
+
+**Components:**
+-   **Filter Bar:** Pill-shaped toggle list above columns. "My Deals", "High Value", "Stalled".
+
+**Interactions:**
+-   **Drag & Drop:** Physics-based. Cards must displace other cards to fit.
+-   **Double Click Card:** Opens "Deal Detail" modal.
+
+---
+
+### Communications HUD (The Comms Link)
+
+**Purpose:** Handle all inbound/outbound without leaving the current screen.
+
+**Layout:** Slide-over panel from the right (40% width). Glassmorphism background (`backdrop-blur-xl`, `bg-slate-950/90`).
+
+**Key Elements:**
+-   **Unified Stream:** Chronological list of Emails, SMS, Call Logs.
+-   **Composer:** Fixed bottom area. TextArea expands on focus.
+-   **Quick Actions:** Row of buttons above composer: "Template", "Scheduler", "Call".
+-   **Contact Context:** Top header shows current selected contact info + "Last touch: 2d ago".
+
+**States:**
+-   **Unread:** Item background `#1E293B`, left border 2px Indigo.
+-   **Sending:** Composer button shows spinning loader, then checkmark.
+
+**Components:**
+-   **Message Bubble:** Slate-800 for incoming, Indigo-600 for outgoing. Rounded corners (12px), sharp corner on anchor side.
+
+**Interactions:**
+-   **Cmd+K:** Opens Command Palette to quickly switch contact context.
+-   **Esc:** Slides panel away.
+
+---
+
+### Deal Detail (The Deep Dive)
+
+**Purpose:** Comprehensive view of a single entity.
+
+**Layout:** Modal overlay. Central 800px column.
+
+**Key Elements:**
+-   **Header:** Hero section. Large Company Logo (64px), Company Name (32px Space Grotesk).
+-   **Stage Stepper:** Linear progress bar showing current stage.
+-   **Property Grid:** 2-column grid of fields. Label (Slate-400), Value (Slate-50, editable on click).
+-   **Notes Section:** Rich text editor. Slate-900 background, inset shadow.
+
+**States:**
+-   **Edit Mode:** Clicking any property transforms text to input field with Indigo underline.
+
+**Components:**
+-   **Tab Switcher:** "Activity", "Contacts", "Files". Underline animation.
+
+**Interactions:**
+-   **Click Outside:** Closes modal (auto-saves).
+
+</details>
+
+---
+
+<details>
+<summary>Build Guide</summary>
+
+**Stack:** HTML5 + Tailwind CSS v3
+
+**Build Order:**
+1.  **Dashboard (The Cockpit):** Establishes the core layout (Grid), Typography (Inter/Space Grotesk), and Color System (The Slate Void). Create the `Power Block` component first as it anchors the brand identity.
+2.  **Pipeline View (The Stream):** Implements the complex drag-and-drop interactions and card styling components.
+3.  **Communications HUD:** Focuses on the glassmorphism overlays and Z-index layering.
+4.  **Deal Detail:** Reuses components from previous screens (forms, avatars, tabs).
+
+</details>

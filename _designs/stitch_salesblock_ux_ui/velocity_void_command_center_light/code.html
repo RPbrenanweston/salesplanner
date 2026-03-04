@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#0657f9",
+              "background-light": "#f5f6f8",
+              "background-dark": "#0f1623",
+              "surface": "#ffffff",
+              "surface-highlight": "#f8fafe",
+              "text-primary": "#0f172a",
+              "text-secondary": "#64748b",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem", 
+              "lg": "0.75rem", 
+              "xl": "1rem", 
+              "2xl": "1.5rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f6f8; /* background-light */
+        }
+        /* Custom scrollbar for cleaner look */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-background-light text-text-primary antialiased">
+<div class="flex min-h-screen w-full overflow-hidden">
+<!-- Side Navigation -->
+<aside class="flex w-72 flex-col justify-between border-r border-slate-200 bg-surface px-4 py-6 shadow-sm z-10">
+<div class="flex flex-col gap-8">
+<!-- Branding -->
+<div class="flex items-center gap-3 px-2">
+<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-400 text-white shadow-lg shadow-blue-500/20">
+<span class="material-symbols-outlined text-2xl font-bold">bolt</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-lg font-bold tracking-tight text-text-primary">Salesblock</h1>
+<p class="text-xs font-medium text-primary">Velocity Void v2.0</p>
+</div>
+</div>
+<!-- Nav Menu -->
+<nav class="flex flex-col gap-1.5">
+<a class="group flex items-center gap-3 rounded-xl bg-primary/10 px-3 py-2.5 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined filled-icon">dashboard</span>
+<span class="text-sm font-semibold">Command Center</span>
+</a>
+<a class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-sm font-medium">Squad Velocity</span>
+</a>
+<a class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-sm font-medium">Pipeline</span>
+</a>
+<a class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">warning</span>
+<div class="flex flex-1 items-center justify-between">
+<span class="text-sm font-medium">Drift Detection</span>
+<span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[10px] font-bold text-red-600">3</span>
+</div>
+</a>
+<a class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">workspace_premium</span>
+<span class="text-sm font-medium">Leaderboard</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Actions -->
+<div class="flex flex-col gap-2 border-t border-slate-100 pt-4">
+<a class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-text-secondary hover:bg-slate-50 hover:text-text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<div class="mt-2 flex items-center gap-3 rounded-xl bg-surface-highlight p-3 border border-slate-100">
+<div class="h-9 w-9 overflow-hidden rounded-full bg-slate-200" data-alt="User profile avatar showing a professional smiling">
+<img alt="Profile" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsWTkmxAZhYEt-eY1l68SGhtzkfPHqNq6Avs5C4qwvUsJmq61e_4ZTc1-SFktxLvQsA3LqnDqNXZrcEj2uzo7dyxd-AmanxO4fdmue2yVsy0n9S2H-C1YDsKWGsoYASYzHERgXcrDm49naO2Lcd8b0lh5nCSMFuLQXVWYKI08AqQ-L6ccOeLcr97w-d2y1mXAxV_lyooBpqKq6teXF02FJZrgQb5dIX2EbzrJmHjvmAVW9MslA7SIz7CtpSl0fBIPVGv2AyLHrcIY"/>
+</div>
+<div class="flex flex-col">
+<p class="text-sm font-semibold text-text-primary">Alex Morgan</p>
+<p class="text-xs text-text-secondary">VP of Sales</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto bg-background-light p-8">
+<div class="mx-auto flex max-w-7xl flex-col gap-8">
+<!-- Header Section -->
+<div class="flex flex-wrap items-end justify-between gap-4">
+<div>
+<h2 class="text-3xl font-black tracking-tight text-text-primary">Command Center</h2>
+<p class="mt-1 text-text-secondary">Monitor squad velocity, pipeline health, and deal drift.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 shadow-sm border border-slate-200">
+<span class="material-symbols-outlined text-slate-400 text-sm">calendar_month</span>
+<span class="text-sm font-medium text-text-primary">This Quarter</span>
+<span class="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
+</div>
+<button class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-medium text-white shadow-md shadow-primary/20 hover:bg-blue-700 transition-colors">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>New Deal</span>
+</button>
+</div>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+<!-- Total Revenue -->
+<div class="relative overflow-hidden rounded-2xl bg-surface p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 group hover:border-primary/30 transition-all">
+<div class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-50 opacity-50 group-hover:scale-110 transition-transform"></div>
+<div class="relative flex flex-col gap-1">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-medium text-text-secondary">Total Revenue</span>
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 text-green-600">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+</div>
+</div>
+<span class="text-3xl font-bold tracking-tight text-text-primary">$1.2M</span>
+<div class="flex items-center gap-1.5">
+<span class="flex items-center text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">+12%</span>
+<span class="text-xs text-text-secondary">vs last month</span>
+</div>
+</div>
+</div>
+<!-- Deals Closed -->
+<div class="relative overflow-hidden rounded-2xl bg-surface p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 group hover:border-primary/30 transition-all">
+<div class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-purple-50 opacity-50 group-hover:scale-110 transition-transform"></div>
+<div class="relative flex flex-col gap-1">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-medium text-text-secondary">Deals Closed</span>
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+</div>
+</div>
+<span class="text-3xl font-bold tracking-tight text-text-primary">45</span>
+<div class="flex items-center gap-1.5">
+<span class="flex items-center text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">+5%</span>
+<span class="text-xs text-text-secondary">vs last month</span>
+</div>
+</div>
+</div>
+<!-- Squad Velocity -->
+<div class="relative overflow-hidden rounded-2xl bg-surface p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 group hover:border-primary/30 transition-all">
+<div class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-50 opacity-50 group-hover:scale-110 transition-transform"></div>
+<div class="relative flex flex-col gap-1">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-medium text-text-secondary">Squad Velocity</span>
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+<span class="material-symbols-outlined text-sm">speed</span>
+</div>
+</div>
+<span class="text-3xl font-bold tracking-tight text-text-primary">92%</span>
+<div class="flex items-center gap-1.5">
+<span class="flex items-center text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">+8%</span>
+<span class="text-xs text-text-secondary">vs target</span>
+</div>
+</div>
+</div>
+<!-- Drift Alerts -->
+<div class="relative overflow-hidden rounded-2xl bg-surface p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 group hover:border-red-200 transition-all">
+<div class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-red-50 opacity-50 group-hover:scale-110 transition-transform"></div>
+<div class="relative flex flex-col gap-1">
+<div class="flex items-center justify-between mb-2">
+<span class="text-sm font-medium text-text-secondary">Drift Alerts</span>
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600">
+<span class="material-symbols-outlined text-sm">notifications_active</span>
+</div>
+</div>
+<span class="text-3xl font-bold tracking-tight text-text-primary">7</span>
+<div class="flex items-center gap-1.5">
+<span class="flex items-center text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">+2</span>
+<span class="text-xs text-text-secondary">needs attention</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Grid Layout -->
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+<!-- Squad Velocity Chart (Big) -->
+<div class="rounded-2xl bg-surface p-6 shadow-sm border border-slate-100 lg:col-span-2">
+<div class="flex items-center justify-between mb-6">
+<div>
+<h3 class="text-lg font-bold text-text-primary">Squad Velocity Trend</h3>
+<p class="text-sm text-text-secondary">Team performance against quota timeline</p>
+</div>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 text-xs font-medium text-text-secondary">
+<span class="block h-2.5 w-2.5 rounded-full bg-primary"></span> Current
+                                </span>
+<span class="flex items-center gap-1 text-xs font-medium text-text-secondary">
+<span class="block h-2.5 w-2.5 rounded-full bg-slate-300"></span> Projected
+                                </span>
+</div>
+</div>
+<!-- Chart Container -->
+<div class="relative h-64 w-full">
+<!-- Background Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between text-xs text-slate-300">
+<div class="border-b border-dashed border-slate-100 w-full"></div>
+<div class="border-b border-dashed border-slate-100 w-full"></div>
+<div class="border-b border-dashed border-slate-100 w-full"></div>
+<div class="border-b border-dashed border-slate-100 w-full"></div>
+<div class="border-b border-slate-200 w-full"></div>
+</div>
+<!-- Graph SVG -->
+<svg class="absolute inset-0 h-full w-full overflow-visible" preserveaspectratio="none" viewbox="0 0 100 100">
+<!-- Gradient Definition -->
+<defs>
+<lineargradient id="velocityGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#0657f9;stop-opacity:0.2"></stop>
+<stop offset="100%" style="stop-color:#0657f9;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+<!-- Area Path -->
+<path d="M0,80 Q10,75 20,60 T40,45 T60,50 T80,30 T100,20 V100 H0 Z" fill="url(#velocityGradient)"></path>
+<!-- Line Path -->
+<path d="M0,80 Q10,75 20,60 T40,45 T60,50 T80,30 T100,20" fill="none" stroke="#0657f9" stroke-linecap="round" stroke-width="2.5" vector-effect="non-scaling-stroke"></path>
+<!-- Points -->
+<circle cx="20" cy="60" fill="#ffffff" r="3" stroke="#0657f9" stroke-width="2"></circle>
+<circle cx="40" cy="45" fill="#ffffff" r="3" stroke="#0657f9" stroke-width="2"></circle>
+<circle cx="60" cy="50" fill="#ffffff" r="3" stroke="#0657f9" stroke-width="2"></circle>
+<circle cx="80" cy="30" fill="#ffffff" r="3" stroke="#0657f9" stroke-width="2"></circle>
+<!-- Current Pulse Point -->
+<circle cx="100" cy="20" fill="#0657f9" r="4">
+<animate attributename="r" dur="2s" repeatcount="indefinite" values="4;7;4"></animate>
+<animate attributename="opacity" dur="2s" repeatcount="indefinite" values="1;0.5;1"></animate>
+</circle>
+</svg>
+</div>
+<div class="mt-2 flex justify-between text-xs font-medium text-text-secondary px-2">
+<span>Week 1</span>
+<span>Week 2</span>
+<span>Week 3</span>
+<span>Week 4</span>
+<span>Week 5</span>
+<span>Week 6</span>
+</div>
+</div>
+<!-- Pipeline Heatmap -->
+<div class="rounded-2xl bg-surface p-6 shadow-sm border border-slate-100 flex flex-col">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-lg font-bold text-text-primary">Pipeline Heatmap</h3>
+<button class="text-primary hover:bg-blue-50 p-1 rounded-md transition-colors">
+<span class="material-symbols-outlined text-lg">more_horiz</span>
+</button>
+</div>
+<div class="flex-1 flex flex-col gap-3">
+<!-- Stage 1 -->
+<div class="group">
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-text-secondary group-hover:text-primary transition-colors">Discovery</span>
+<span class="font-bold text-text-primary">$450k</span>
+</div>
+<div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full rounded-full bg-gradient-to-r from-blue-400 to-primary w-[85%]"></div>
+</div>
+</div>
+<!-- Stage 2 -->
+<div class="group">
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-text-secondary group-hover:text-primary transition-colors">Evaluation</span>
+<span class="font-bold text-text-primary">$320k</span>
+</div>
+<div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full rounded-full bg-gradient-to-r from-blue-400 to-primary w-[65%]"></div>
+</div>
+</div>
+<!-- Stage 3 -->
+<div class="group">
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-text-secondary group-hover:text-primary transition-colors">Negotiation</span>
+<span class="font-bold text-text-primary">$280k</span>
+</div>
+<div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full rounded-full bg-gradient-to-r from-blue-400 to-primary w-[45%]"></div>
+</div>
+</div>
+<!-- Stage 4 -->
+<div class="group">
+<div class="flex justify-between text-sm mb-1">
+<span class="font-medium text-text-secondary group-hover:text-primary transition-colors">Closed Won</span>
+<span class="font-bold text-text-primary">$1.2M</span>
+</div>
+<div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+<div class="h-full rounded-full bg-green-500 w-[92%]"></div>
+</div>
+</div>
+<div class="mt-auto pt-4 flex items-center justify-between border-t border-slate-50">
+<div class="flex flex-col">
+<span class="text-xs text-text-secondary">Conversion Rate</span>
+<span class="text-lg font-bold text-text-primary">34%</span>
+</div>
+<div class="h-10 w-20">
+<svg class="h-full w-full" viewbox="0 0 50 20">
+<path d="M0,15 Q10,18 25,10 T50,5" fill="none" stroke="#22c55e" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Drift Detection Section -->
+<div class="rounded-2xl bg-surface shadow-sm border border-slate-100 overflow-hidden">
+<div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="rounded-md bg-red-50 p-1.5 text-red-600">
+<span class="material-symbols-outlined text-xl">radar</span>
+</div>
+<div>
+<h3 class="text-lg font-bold text-text-primary">Drift Detection</h3>
+<p class="text-xs text-text-secondary">Deals at risk of stalling or slipping</p>
+</div>
+</div>
+<button class="text-sm font-medium text-primary hover:underline">View All Risks</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead class="bg-surface-highlight text-text-secondary">
+<tr>
+<th class="px-6 py-3 font-medium">Deal Name</th>
+<th class="px-6 py-3 font-medium">Owner</th>
+<th class="px-6 py-3 font-medium">Value</th>
+<th class="px-6 py-3 font-medium">Stage</th>
+<th class="px-6 py-3 font-medium">Last Activity</th>
+<th class="px-6 py-3 font-medium">Risk Factor</th>
+<th class="px-6 py-3 font-medium text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="group hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 font-semibold text-text-primary">Acme Corp Enterprise</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-indigo-100 overflow-hidden" data-alt="Small avatar of sales rep">
+<img alt="Rep" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiA7T7h4r41JtfsfeR0axGPk4TN_ejv0JGn5KyOQK3uF1BeT8E-MQ543sN3uWKGt9nCcSYteC3jBDlPEN38uFeZBF56WEsfWGeig_EeHpAEgP7CaiTdnL97fYb90-bIHISQ52tOoz25oH0F_smsf2qsM1RXhkAE4AD6kEr6ZSxQXTlBP9b73Q_ZmG6diM8Ej1tBZ64jhYi_Ui3QVXDXUN7ouNm4jhGArY3bMSBX9wft-VIPcYmgH6CeU-iMC4bSOP-PrNUUGZxmsM"/>
+</div>
+<span class="text-text-secondary">Sarah J.</span>
+</div>
+</td>
+<td class="px-6 py-4 font-medium">$125,000</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">Negotiation</span>
+</td>
+<td class="px-6 py-4 text-red-600 font-medium">14 days ago</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-1.5 w-16 rounded-full bg-slate-200">
+<div class="h-1.5 rounded-full bg-red-500 w-[80%]"></div>
+</div>
+<span class="text-xs font-bold text-red-600">High</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="rounded-md bg-white border border-slate-200 px-3 py-1.5 text-xs font-medium text-text-secondary shadow-sm hover:bg-slate-50 hover:text-primary transition-colors">Nudge Rep</button>
+</td>
+</tr>
+<tr class="group hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 font-semibold text-text-primary">Globex Expansion</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-orange-100 overflow-hidden" data-alt="Small avatar of sales rep">
+<img alt="Rep" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-0v-kHGJZNdZELzzX-48ZqK1UG-h9x5oJfUrbHl-60HnLlPBFoHsm6q1PYSjlea2K5dof657W2ijVgDhivTyLx7MqrxkcKmgz3qsadTekaZYrjDScYzd_PHqU3Vsetx3K0mJBFGdqbh4R5lYW9-tsVJda_ZHnvpmcaE0r5__4HlsPL0GhOuMFt_hwHbfOcmLb29RMePJ-VN7u9MqIs6elwtYpjn_LbX44Riar0t9fHmzyDgAyDgwqDt-3EUS2fGfwwj0ZfHqN5qU"/>
+</div>
+<span class="text-text-secondary">Mike R.</span>
+</div>
+</td>
+<td class="px-6 py-4 font-medium">$84,500</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700">Proposal</span>
+</td>
+<td class="px-6 py-4 text-orange-600 font-medium">8 days ago</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-1.5 w-16 rounded-full bg-slate-200">
+<div class="h-1.5 rounded-full bg-orange-500 w-[50%]"></div>
+</div>
+<span class="text-xs font-bold text-orange-600">Medium</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="rounded-md bg-white border border-slate-200 px-3 py-1.5 text-xs font-medium text-text-secondary shadow-sm hover:bg-slate-50 hover:text-primary transition-colors">Nudge Rep</button>
+</td>
+</tr>
+<tr class="group hover:bg-slate-50 transition-colors">
+<td class="px-6 py-4 font-semibold text-text-primary">Stark Industries Pilot</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-teal-100 overflow-hidden" data-alt="Small avatar of sales rep">
+<img alt="Rep" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1oLtT5QB6WSGRyYF02Tg4aTNjg_qWjN5LBSa2ZjGr5T-PkyhIrsWL5cqjWPLsPljQmGQj2NqK6VNkvVJogyj6bm7Q7Mdx__sAjhKP1SgZCBcou3pvkmdi3NGrPKyOJzZZitjI33S8F0OZQX_F-KtOg8Dj4yiAoc0ypz8JH-5zZPN9tgKIfxDWM1pTNs0fHlP_dUnwkHC0q6p3K8nfDFODAYnaqv3Fma9yypnZF_-AxPQKLxFYVrSND2zCVLhf5DMj_-qlUf89A8g"/>
+</div>
+<span class="text-text-secondary">Jessica L.</span>
+</div>
+</td>
+<td class="px-6 py-4 font-medium">$45,000</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700">Discovery</span>
+</td>
+<td class="px-6 py-4 text-orange-600 font-medium">6 days ago</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-1.5 w-16 rounded-full bg-slate-200">
+<div class="h-1.5 rounded-full bg-yellow-500 w-[40%]"></div>
+</div>
+<span class="text-xs font-bold text-yellow-600">Low</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="rounded-md bg-white border border-slate-200 px-3 py-1.5 text-xs font-medium text-text-secondary shadow-sm hover:bg-slate-50 hover:text-primary transition-colors">Nudge Rep</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
