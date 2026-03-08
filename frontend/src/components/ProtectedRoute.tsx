@@ -4,15 +4,16 @@
  * @area SEC
  * @intent Route wrapper component enforcing authentication requirements and preventing unauthenticated access to protected routes
  * @responsibilities Session validation at route entry, auth state change subscription, redirect to signin on auth failure, loading state display during auth check
- * @contracts ProtectedRoute({children: ReactNode}) → JSX; renders {children} if authenticated, Navigate({to: '/signin'}) if unauthenticated, "Loading..." if auth check in progress
+ * @contracts ProtectedRoute({children: ReactNode}) → JSX; renders {children} if authenticated, Navigate({to: '/signin'}) if unauthenticated, animated skeleton (sidebar + content) if auth check in progress
  * @in Session state via useAuth hook, child components (protected pages)
  * @out Protected JSX or redirect to signin
  * @err getSession network failure (offline), onAuthStateChange event misses auth transition (concurrent auth operations), redirect race during logout
- * @hazard Redirect to /signin happens synchronously on first auth check—if user is legitimately logging out concurrently, redirect race can cause redirect loop (user bounces /signin → /protected → /signin); Loading state "Loading..." is bare text—no visual feedback of progress, poor UX on slow networks (>2s)
+ * @hazard Redirect to /signin happens synchronously on first auth check—if user is legitimately logging out concurrently, redirect race can cause redirect loop (user bounces /signin → /protected → /signin)
  * @hazard useEffect dependency array missing loading—if loading state changes and component is unmounted, useEffect may fire after unmount causing memory leak
+ * @fixed Loading state upgraded from bare "Loading..." text to full sidebar+content skeleton (animate-pulse) matching AppLayout dimensions — prevents layout shift on slow networks (2026-03-08)
  * @shared-edges frontend/src/hooks/useAuth.ts→CALLS for session validation; frontend/src/components/AppLayout.tsx→WRAPPED in protected route definitions; frontend/src/App.tsx→NESTS ProtectedRoute around 10+ authenticated routes; protected pages (Settings, Contacts, Lists, etc.)→RENDERED as children
- * @trail route-protection#1 | Route mounts → ProtectedRoute calls useAuth → getSession in progress → render "Loading..." → getSession returns → if authenticated, render AppLayout + children; if unauthenticated, Navigate to /signin → user signs in on /signin → redirected to requested page
- * @prompt Add loading skeleton UI matching AppLayout dimensions to prevent layout shift. Consider debouncing rapid auth transitions (sign out → sign in within 100ms) to prevent redirect flicker. Add telemetry for auth check latency. Test redirect race condition when user signs out while ProtectedRoute mounting.
+ * @trail route-protection#1 | Route mounts → ProtectedRoute calls useAuth → getSession in progress → render skeleton UI → getSession returns → if authenticated, render AppLayout + children; if unauthenticated, Navigate to /signin → user signs in on /signin → redirected to requested page
+ * @prompt Consider debouncing rapid auth transitions (sign out → sign in within 100ms) to prevent redirect flicker. Add telemetry for auth check latency. Test redirect race condition when user signs out while ProtectedRoute mounting.
  */
 
 import { useEffect, useState } from 'react'
@@ -47,8 +48,38 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900 animate-pulse">
+        {/* Sidebar skeleton */}
+        <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+          {/* Logo */}
+          <div className="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
+            <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
+          </div>
+          {/* Nav items */}
+          <div className="flex-1 p-4 space-y-1">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-lg">
+                <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded flex-1" />
+              </div>
+            ))}
+          </div>
+          {/* User section */}
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
+            <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full" />
+            <div className="flex-1 space-y-1">
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24" />
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+            </div>
+          </div>
+        </div>
+        {/* Main content skeleton */}
+        <div className="flex-1 overflow-auto p-6 space-y-4">
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded-lg mt-4" />
+        </div>
       </div>
     )
   }

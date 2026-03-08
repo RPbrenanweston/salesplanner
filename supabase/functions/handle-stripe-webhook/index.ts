@@ -8,7 +8,8 @@
  * @in Stripe webhook payload + signature header, org/user IDs from session metadata, Supabase admin client (service role)
  * @out Updated organizations.stripe_customer_id, users.subscription_status on success; 400 on missing/invalid signature, 500 on database error
  * @err Webhook signature verification fails if secret invalid or payload tampered (line 34); missing org_id/user_id in metadata (line 52); database connection fails (lines 58-65, 98-101)
- * @hazard Token expiration not checked on Stripe.webhooks.constructEvent—if webhook secret rotates mid-batch, subsequent events fail silently (line 34); subscription status enum mismatch (line 91-95): Stripe 'trialing'→'trial', 'active'→'active', 'past_due'→'past_due', but if Stripe adds new status code, falls through to 'inactive', losing intent
+ * @hazard Token expiration not checked on Stripe.webhooks.constructEvent—if webhook secret rotates mid-batch, subsequent events fail silently (line 34)
+ * @fixed Stripe status mapping refactored to lookup table — unknown Stripe status codes now log a warning and skip update (preserving existing state) instead of silently downgrading to 'inactive' (2026-03-08)
  * @hazard Metadata extraction assumes org_id and user_id always present—missing these silently breaks (lines 49-54); no idempotency guard—same webhook fired twice will create duplicate state updates (no unique constraint on stripe_webhook_id in code)
  * @shared-edges supabase/functions/sync-activities-to-salesforce/index.ts→READS oauth_connections same table for Salesforce tokens; frontend/src/lib/supabase.ts→USES same Supabase client singleton; src/types.ts→DEPENDS on subscription_status enum definition
  * @trail payment-lifecycle#1 | Stripe charge → webhook fired → signature verified → event type matched (switch) → subscription_status updated in users table based on Stripe status → org.stripe_customer_id linked
@@ -103,12 +104,19 @@ Deno.serve(async (req) => {
         }
 
         // Map Stripe subscription status to our enum
-        let status: string
-        if (subscription.status === 'trialing') status = 'trial'
-        else if (subscription.status === 'active') status = 'active'
-        else if (subscription.status === 'past_due') status = 'past_due'
-        else if (subscription.status === 'canceled') status = 'canceled'
-        else status = 'inactive'
+        const stripeToInternal: Record<string, string> = {
+          trialing: 'trial',
+          active: 'active',
+          past_due: 'past_due',
+          canceled: 'canceled',
+        }
+        const status = stripeToInternal[subscription.status]
+
+        if (!status) {
+          // Unknown Stripe status — log and preserve existing state rather than downgrading
+          console.warn(`Unrecognised Stripe subscription status '${subscription.status}' for org ${org.id}. Skipping status update to avoid silent downgrade.`)
+          break
+        }
 
         // Update all users in the org
         await supabase

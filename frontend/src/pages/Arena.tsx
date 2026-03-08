@@ -1,5 +1,23 @@
+/**
+ * @crumb
+ * @id frontend-arena-leaderboard
+ * @area UI
+ * @intent Display competitive sales leaderboard ranking reps by calls, emails, deals moved, and total activity score
+ * @responsibilities Fetch battle stats for all org users, compute ranks, render leaderboard table, navigate back to home
+ * @contracts Arena() → JSX; loads BattleStats[] from supabase, renders ranked leaderboard with Trophy/Zap/Mail/Phone activity breakdown
+ * @in Supabase activities table (aggregated per user), useAuth for current user context, useNavigate for back navigation
+ * @out Leaderboard table sorted by total_activity, current user highlighted, loading skeleton while fetching
+ * @err Supabase query failure (network/auth), no stats returned (empty org activity)
+ * @hazard void-700 missing from tailwind.config.js — rank colour fallback uses undefined colour class, renders without colour (cosmetic only)
+ * @fixed Added useNavigate import and navigate const — resolved TS2552 "Cannot find name 'navigate'" (2026-03-08)
+ * @fixed Added ArrowLeft to lucide-react destructure — resolved TS2304 "Cannot find name 'ArrowLeft'" (2026-03-08)
+ * @shared-edges frontend/src/hooks/useAuth.ts→CALLS for current user; frontend/src/lib/supabase.ts→QUERIES activities; frontend/src/App.tsx→ROUTES to /arena
+ * @trail leaderboard#1 | User navigates to /arena → Arena mounts → loadStats fetches aggregated activity counts → sorted by total_activity → rendered with rank badges (🥇🥈🥉 for top 3) → back button navigates to /
+ * @prompt Add void-700 to tailwind.config.js for rank fallback colour. Consider real-time subscription on activities table for live leaderboard updates. Add time-range filter (today/week/month). Ensure leaderboard only shows users in same org (multi-tenant isolation).
+ */
 import { useEffect, useState } from 'react';
-import { Trophy, Zap, Mail, Phone, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Trophy, Zap, Mail, Phone, TrendingUp, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
@@ -15,6 +33,7 @@ interface BattleStats {
 
 export default function Arena() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<BattleStats[]>([]);
   const [loading, setLoading] = useState(true);
 

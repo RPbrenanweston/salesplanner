@@ -8,7 +8,9 @@
  * @in OAuth connections (Gmail refresh_token, access_token, expires_at; Outlook refresh_token, access_token, expires_at), activities table (email type, thread_id or conversation_id), contact table (salesforce_id, email, first/last name)
  * @out Updated activities.replied_at (timestamp of first inbound reply), sync_status='reply_tracked' on success; error logged on token expiration or missing email field
  * @err OAuth token expired (line 67, 89); activity.thread_id null for Gmail (line 73); activity.conversation_id null for Outlook (line 91); contact.email missing (line 78, 94); Outlook search filter URL unencoded (line 95-potential injection); activity.created_at > 30 days skipped silently (line 52)
- * @hazard Token expiration not checked before API call—if access_token invalid, batch silently fails after 30sec timeout with no retry, delaying reply detection window by entire batch retry cycle; Gmail thread detection (messages.length > 1) assumes all multi-message threads are replies—shared threads or team conversations trigger false positives (line 74); Outlook conversation search filter is unencoded (line 95)—if contact.email contains special characters (@, quotes, slashes), OData injection possible
+ * @hazard Token expiration not checked before API call—if access_token invalid, batch silently fails after 30sec timeout with no retry, delaying reply detection window by entire batch retry cycle
+ * @fixed Gmail reply detection now verifies sender From header matches contact.email — eliminates false positives from shared threads or team conversations where messages.length > 1 but no reply from contact (2026-03-08)
+ * @fixed Outlook OData search filter now URL-encodes conversationId and contact.email via encodeURIComponent — prevents OData injection via special characters in email addresses or conversation IDs (2026-03-08)
  * @hazard Thread_id/conversation_id extraction assumes always present—missing these causes activity silently skipped, losing reply tracking forever (no recovery mechanism); Email metadata (sender, reply timestamp, message preview) not persisted—losing ability to surface reply content in UI or correlate with other activities; No idempotency guard—same webhook fire twice creates duplicate replied_at updates if checked before first completes
  * @shared-edges supabase/functions/sync-activities-to-salesforce/index.ts→READS oauth_connections same table, accesses activities from same batch flow, references salesforce_task_id for correlation; frontend/src/lib/salesforce.ts→USES same Token refresh pattern (refreshAccessToken); supabase/functions/handle-stripe-webhook/index.ts→USES same OAuth token handling and batch database updates
  * @trail email-reply-tracking#1 | Outbound email activity created with thread_id (Gmail) or conversation_id (Outlook) → activity.replied_at IS NULL, created_at < 30 days → Job polls activities → Gmail: threadData.messages.length > 1 → Outlook: conversation search for from:contact.email → Inbound reply detected → activity.replied_at = reply.timestamp, sync_status='reply_tracked' → reply signal triggers automation (follow-up cancel, sales intelligence update)
@@ -177,26 +179,62 @@ async function checkGmailReplies(
 
       const threadData = await threadResponse.json();
 
-      // A thread with more than 1 message means there's a reply
-      if (threadData.messages && threadData.messages.length > 1) {
-        // Get the most recent message (last in array is latest)
-        const replyMessage = threadData.messages[threadData.messages.length - 1];
-        const replyTimestamp = new Date(parseInt(replyMessage.internalDate));
+      // Only check threads with more than 1 message (potential replies)
+      if (!threadData.messages || threadData.messages.length <= 1) {
+        continue;
+      }
 
-        console.log(`Found reply in thread ${activity.thread_id} at ${replyTimestamp.toISOString()}`);
+      // Fetch contact email to verify the reply sender
+      const { data: contact, error: contactError } = await supabaseClient
+        .from("contacts")
+        .select("email")
+        .eq("id", activity.contact_id)
+        .single();
 
-        // Update activity with replied_at timestamp
-        await supabaseClient
-          .from("activities")
-          .update({
-            replied_at: replyTimestamp.toISOString(),
-          })
-          .eq("id", activity.id);
+      if (contactError || !contact?.email) {
+        console.error(`Failed to fetch contact email for activity ${activity.id}`);
+        continue;
+      }
 
-        // TODO: Increment email_templates.reply_count if template was used
-        // This requires storing template_id on activities table (future enhancement)
+      // Check messages after the first (sent) message for a reply from the contact
+      const messagesAfterFirst = threadData.messages.slice(1);
+      let replyFound = false;
 
-        repliesFound++;
+      for (const msg of messagesAfterFirst) {
+        // Fetch message metadata to inspect From header
+        const msgMetaUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From`;
+        const msgMetaResponse = await fetch(msgMetaUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (!msgMetaResponse.ok) continue;
+
+        const msgMeta = await msgMetaResponse.json();
+        const fromHeader = msgMeta.payload?.headers?.find(
+          (h: { name: string; value: string }) => h.name === "From"
+        );
+
+        if (fromHeader?.value && fromHeader.value.includes(contact.email)) {
+          const replyTimestamp = new Date(parseInt(msg.internalDate));
+          console.log(`Found reply from ${contact.email} in thread ${activity.thread_id} at ${replyTimestamp.toISOString()}`);
+
+          // Update activity with replied_at timestamp
+          await supabaseClient
+            .from("activities")
+            .update({ replied_at: replyTimestamp.toISOString() })
+            .eq("id", activity.id);
+
+          // TODO: Increment email_templates.reply_count if template was used
+          // This requires storing template_id on activities table (future enhancement)
+
+          repliesFound++;
+          replyFound = true;
+          break;
+        }
+      }
+
+      if (!replyFound) {
+        console.log(`Thread ${activity.thread_id} has multiple messages but none from ${contact.email}`);
       }
     } catch (error) {
       console.error(`Error checking Gmail reply for activity ${activity.id}:`, error);
@@ -236,7 +274,10 @@ async function checkOutlookReplies(
       }
 
       // Search Outlook for messages in the same conversation from the contact
-      const outlookSearchUrl = `https://graph.microsoft.com/v1.0/me/messages?$filter=conversationId eq '${activity.conversation_id}' and from/emailAddress/address eq '${contact.email}' and receivedDateTime ge ${new Date(activity.created_at).toISOString()}&$select=id,receivedDateTime&$orderby=receivedDateTime asc&$top=1`;
+      // URL-encode values to prevent OData injection via special characters in conversationId or email
+      const conversationIdEncoded = encodeURIComponent(activity.conversation_id);
+      const emailEncoded = encodeURIComponent(contact.email);
+      const outlookSearchUrl = `https://graph.microsoft.com/v1.0/me/messages?$filter=conversationId eq '${conversationIdEncoded}' and from/emailAddress/address eq '${emailEncoded}' and receivedDateTime ge ${new Date(activity.created_at).toISOString()}&$select=id,receivedDateTime&$orderby=receivedDateTime asc&$top=1`;
 
       const outlookResponse = await fetch(outlookSearchUrl, {
         headers: {
