@@ -1,0 +1,11 @@
+/**
+ * @crumb.index frontend/src/
+ * // FRONTEND-LAYER | User-facing React application
+ * // why: Orchestrate UI components, auth state, external integrations (Salesforce, Calendar APIs), real-time sync
+ * // in:User interactions, localStorage/sessionStorage, Supabase auth tokens, OAuth flows out:Rendered React tree, API calls, cached session state err:OAuthError, SessionExpireError, NetworkError
+ * // hazard: OAuth token refresh race condition (concurrent calendar + salesforce API calls); localStorage mutation without encryption for sensitive session data
+ * // hazard: Network fallback missing — if Supabase auth unavailable, no graceful degradation to offline mode
+ * // shared-edge: lib/supabase.ts -> READS (config, session); lib/salesforce.ts -> CALLS (create/update opportunities); lib/calendar.ts -> CALLS (sync events); hooks/useAuth.ts -> MANAGES (auth state); components/ProtectedRoute.tsx -> GUARDS (authenticated access)
+ * // pipeline: auth-flow (1-useAuth setup, 2-session validation, 3-route protection) | calendar-sync (1-oauth init, 2-event fetch, 3-local cache) | salesforce-integration (1-opportunity lookup, 2-activity log, 3-email tracking)
+ * // area: UI
+ */

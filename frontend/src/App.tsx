@@ -1,3 +1,20 @@
+/**
+ * @crumb
+ * @id frontend-app-orchestrator
+ * @area DOM
+ * @intent Root component orchestrating complete routing architecture and app initialization with protected/public route separation
+ * @responsibilities BrowserRouter setup, QueryClientProvider (React Query) initialization, route definition and protection, OAuth callback handling, layout injection
+ * @contracts App() → Router JSX; exports BrowserRouter wrapper with 18 route definitions (public + protected); wraps authenticated routes in ProtectedRoute + AppLayout
+ * @in Route component imports (18 pages), protected route list, AppLayout wrapper
+ * @out Router tree with all routes, auth protection applied, QueryClient provider scope
+ * @err Route component not found (lazy load failure), OAuth callback URL mismatch on concurrent flows, route name collision
+ * @hazard 18 routes hardcoded in App.tsx—no dynamic route registry, adding routes requires App.tsx modification (scales poorly, creates bottleneck); OAuth callbacks (Gmail, Outlook, GoogleCalendar, OutlookCalendar, Salesforce) all point to /oauth-callback—if multiple OAuth flows in progress, state param collision can cause wrong callback handler execution (user logs in with Gmail, ends up with Outlook token)
+ * @hazard React Query cache not persisted—QueryClient cache resets on full page reload, losing infinite query state and user-specific data cache (address/contact lists)
+ * @shared-edges frontend/src/components/AppLayout.tsx→WRAPPED by ProtectedRoute in route definitions; frontend/src/components/ProtectedRoute.tsx→INSTANTIATED in 10+ protected route definitions (/salesblocks, /lists, /contacts, /email, /social, /pipeline, /goals, /analytics, /team, /settings, /content, /scripts, /templates, /arena); frontend/src/pages/*.tsx→RENDERED as route components (SignInPage, SignUpPage, ContactsPage, etc.); frontend/src/lib/oauth-callbacks.ts→IMPORTED for OAuth callback routes
+ * @trail app-init#1 | App mounts BrowserRouter → mounts QueryClientProvider → defines 18 routes (5 public: /signin, /signup, /forgot-password, OAuth callbacks × 4; 13 protected: /, /salesblocks, /lists, /contacts, /email, /social, /pipeline, /goals, /analytics, /team, /settings, /content, /scripts, /templates, /arena) → ProtectedRoute enforces auth on protected routes → AppLayout renders sidebar + header + content
+ * @prompt Refactor route definitions into separate routes.ts config file to reduce App.tsx size (currently 225 lines). Create dynamic OAuth callback registry to safely handle multiple concurrent OAuth flows (track state param → handler mapping). Implement React Query persistence using localStorage adapter for offline-first experience. Consider code-splitting page components with React.lazy() for faster initial load.
+ */
+
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Home from './pages/Home'
