@@ -84,6 +84,7 @@ export default function SalesBlockSessionPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
   const [sessionNotes, setSessionNotes] = useState('');
+  const [noteSaveError, setNoteSaveError] = useState('');
 
   // Load user's org_id
   useEffect(() => {
@@ -400,6 +401,7 @@ export default function SalesBlockSessionPage() {
   const handleSaveNotes = async () => {
     if (!salesblockId) return;
 
+    setNoteSaveError('');
     try {
       const { error } = await supabase
         .from('salesblocks')
@@ -408,6 +410,8 @@ export default function SalesBlockSessionPage() {
 
       if (error) throw error;
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to save session notes';
+      setNoteSaveError(errorMsg);
       console.error('Error saving notes:', error);
     }
   };
@@ -557,6 +561,11 @@ export default function SalesBlockSessionPage() {
               className="w-full px-4 py-3 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-electric text-sm"
               rows={4}
             />
+            {noteSaveError && (
+              <div className="mt-3 p-3 bg-red-alert/10 border border-red-alert rounded-lg flex items-center gap-2">
+                <span className="text-red-alert text-sm">⚠ {noteSaveError}</span>
+              </div>
+            )}
           </div>
 
           {/* Back to Home */}
