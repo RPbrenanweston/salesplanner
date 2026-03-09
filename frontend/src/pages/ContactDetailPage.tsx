@@ -12,7 +12,7 @@
  * @hazard Inline field editing with no optimistic rollback — if save fails, input still shows new value but DB has old value (silent desync)
  * @shared-edges frontend/src/components/LogActivityModal.tsx→LAUNCHES; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/components/ContactActivityTimeline.tsx→RENDERS; frontend/src/lib/supabase.ts→QUERIES+UPDATES; frontend/src/App.tsx→ROUTES to /contacts/:id
  * @trail contact#1 | ContactDetailPage mounts with contactId → load contact record → render editable fields → user edits → save writes to Supabase → activity timeline loads in parallel → modal actions log to activities table
- * @prompt Add 404 state when contact not found. Fix back navigation null guard (location.state?.from ?? '/lists'). Add error toast on field save failure. Confirm contacts table has org_id scoping on all queries.
+ * @prompt Add 404 state when contact not found. Fix back navigation null guard (location.state?.from ?? '/lists'). Add error toast on field save failure. Confirm contacts table has org_id scoping on all queries. VV design applied: void-950 page bg, VV spinner loading state, font-display name heading + vv-section-title, glass-card timeline + notes panels, indigo-electric email/phone links + Send Email CTA, emerald-signal Book Meeting CTA, secondary outlined Log Social button, back button transition-colors, Research Lab sidebar already VV-native.
  */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -168,20 +168,23 @@ export default function ContactDetailPage() {
 
   if (loading || !contact) {
     return (
-      <div className="p-8">
-        <p className="text-gray-500 dark:text-gray-400">Loading contact...</p>
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Contact...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-white dark:bg-gray-950">
-      <div className="flex-1 p-8 overflow-y-auto">
+    <div className="flex min-h-full bg-gray-50 dark:bg-void-950">
+      <div className="flex-1 p-6 overflow-y-auto space-y-6">
         {/* Header */}
-        <div className="mb-6">
+        <div>
           <button
             onClick={() => navigate(returnPath)}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
+            className="flex items-center gap-2 text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white mb-4 transition-colors duration-150"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -189,10 +192,11 @@ export default function ContactDetailPage() {
 
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <p className="vv-section-title mb-1">Contact</p>
+              <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 {contact.first_name} {contact.last_name}
               </h1>
-              <div className="space-y-1 text-gray-600 dark:text-gray-400">
+              <div className="space-y-1 text-gray-500 dark:text-white/50">
                 {contact.title && contact.company && (
                   <p className="flex items-center gap-2">
                     <Briefcase className="w-4 h-4" />
@@ -215,7 +219,7 @@ export default function ContactDetailPage() {
                   <Mail className="w-4 h-4" />
                   <a
                     href={`mailto:${contact.email}`}
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                   >
                     {contact.email}
                   </a>
@@ -225,7 +229,7 @@ export default function ContactDetailPage() {
                     <Phone className="w-4 h-4" />
                     <a
                       href={`tel:${contact.phone}`}
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                     >
                       {contact.phone}
                     </a>
@@ -238,21 +242,21 @@ export default function ContactDetailPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEmailModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
               >
                 <Mail className="w-4 h-4" />
                 Send Email
               </button>
               <button
                 onClick={() => setIsSocialModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/20 transition-all duration-200 ease-snappy"
               >
                 <Share2 className="w-4 h-4" />
                 Log Social
               </button>
               <button
                 onClick={() => setIsMeetingModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-signal hover:bg-emerald-signal/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
               >
                 <Calendar className="w-4 h-4" />
                 Book Meeting
@@ -263,15 +267,15 @@ export default function ContactDetailPage() {
 
         {/* Contact Notes */}
         {contact.notes && (
-          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Contact Notes</h3>
-            <p className="text-gray-700 dark:text-gray-300">{contact.notes}</p>
+          <div className="glass-card p-4 border-l-4 border-amber-400">
+            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-2">Contact Notes</h3>
+            <p className="text-sm text-gray-600 dark:text-white/50">{contact.notes}</p>
           </div>
         )}
 
         {/* Activity Timeline */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="glass-card p-6">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Activity Timeline
           </h2>
           <ContactActivityTimeline contactId={contact.id} showAddNote={true} />
@@ -401,7 +405,7 @@ export default function ContactDetailPage() {
             <button
               onClick={saveResearchData}
               disabled={isSavingResearch}
-              className="w-full px-4 py-2 bg-indigo-electric text-white rounded-lg font-medium hover:bg-indigo-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg font-semibold disabled:opacity-50 transition-all duration-200 ease-snappy flex items-center justify-center gap-2"
             >
               <Zap className="w-4 h-4" />
               {isSavingResearch ? 'Saving...' : 'Save Research'}
@@ -415,7 +419,7 @@ export default function ContactDetailPage() {
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className={`fixed right-0 top-8 transform transition-all duration-300 ${
           isSidebarOpen ? 'translate-x-96' : 'translate-x-0'
-        } z-40 p-3 bg-indigo-electric text-white rounded-l-lg hover:bg-indigo-600 shadow-lg`}
+        } z-40 p-3 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-l-lg shadow-lg transition-colors duration-150`}
       >
         <Search className="w-5 h-5" />
       </button>
