@@ -193,17 +193,17 @@ export default function DealDetailModal({ isOpen, onClose, dealId }: DealDetailM
     if (!outcome) return null
 
     const colors: Record<string, string> = {
-      meeting_booked: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      conversation: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      connect: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-      voicemail: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      no_answer: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-      not_interested: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-      follow_up: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      meeting_booked: 'bg-emerald-signal/15 text-emerald-signal',
+      conversation: 'bg-cyan-neon/15 text-cyan-neon',
+      connect: 'bg-cyan-neon/15 text-cyan-neon',
+      voicemail: 'bg-yellow-400/15 text-yellow-400',
+      no_answer: 'bg-gray-200/50 text-gray-500 dark:bg-white/10 dark:text-white/40',
+      not_interested: 'bg-red-alert/15 text-red-alert',
+      follow_up: 'bg-purple-neon/15 text-purple-neon',
     }
 
     return (
-      <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[outcome] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+      <span className={`px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide font-mono ${colors[outcome] || 'bg-gray-200/50 text-gray-500 dark:bg-white/10 dark:text-white/40'}`}>
         {outcome.replace('_', ' ')}
       </span>
     )
@@ -212,133 +212,131 @@ export default function DealDetailModal({ isOpen, onClose, dealId }: DealDetailM
   if (!isOpen || !deal) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-void-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+
+        {/* Header */}
+        <div className="sticky top-0 bg-white dark:bg-void-900 border-b border-gray-200 dark:border-white/10 px-6 py-4 flex items-center justify-between rounded-t-xl">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{deal.title}</h2>
-            <div className="flex items-center gap-2 mt-1">
+            <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">{deal.title}</h2>
+            <div className="flex items-center gap-3 mt-1">
               <span
-                className="px-2 py-1 rounded text-xs font-medium text-white"
+                className="px-2 py-0.5 rounded text-xs font-semibold font-mono uppercase tracking-wide text-white"
                 style={{ backgroundColor: deal.pipeline_stages.color }}
               >
                 {deal.pipeline_stages.name}
               </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
+              <span className="font-mono text-xs text-gray-400 dark:text-white/30">
                 Created {formatDate(deal.created_at)}
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/70 transition-colors duration-150"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
           {/* Left: Deal Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Deal Info */}
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <DollarSign className="w-5 h-5 text-gray-400 mt-0.5" />
-                <div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Deal Value</div>
-                  <div className="text-2xl font-semibold text-gray-900 dark:text-white">
-                    {formatCurrency(deal.value, deal.currency)}
-                  </div>
+          <div className="lg:col-span-2 space-y-5">
+            <div className="flex items-start gap-3">
+              <DollarSign className="w-4 h-4 text-gray-400 dark:text-white/30 mt-1" />
+              <div>
+                <p className="vv-section-title mb-0.5">Deal Value</p>
+                <div className="font-mono text-2xl font-bold text-gray-900 dark:text-white">
+                  {formatCurrency(deal.value, deal.currency)}
                 </div>
               </div>
-
-              {deal.close_date && (
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Expected Close</div>
-                    <div className="text-lg font-medium text-gray-900 dark:text-white">
-                      {formatDate(deal.close_date)}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-start gap-3">
-                <User className="w-5 h-5 text-gray-400 mt-0.5" />
-                <div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">Contact</div>
-                  <div className="text-lg font-medium text-gray-900 dark:text-white">
-                    {deal.contacts.first_name} {deal.contacts.last_name}
-                  </div>
-                  {deal.contacts.title && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {deal.contacts.title}
-                    </div>
-                  )}
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {deal.contacts.email}
-                  </div>
-                </div>
-              </div>
-
-              {deal.contacts.company && (
-                <div className="flex items-start gap-3">
-                  <Building2 className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Company</div>
-                    <div className="text-lg font-medium text-gray-900 dark:text-white">
-                      {deal.contacts.company}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {deal.notes && (
-                <div className="flex items-start gap-3">
-                  <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Notes</div>
-                    <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                      {deal.notes}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {deal.close_date && (
+              <div className="flex items-start gap-3">
+                <Calendar className="w-4 h-4 text-gray-400 dark:text-white/30 mt-1" />
+                <div>
+                  <p className="vv-section-title mb-0.5">Expected Close</p>
+                  <div className="font-mono text-base font-semibold text-gray-900 dark:text-white">
+                    {formatDate(deal.close_date)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-start gap-3">
+              <User className="w-4 h-4 text-gray-400 dark:text-white/30 mt-1" />
+              <div>
+                <p className="vv-section-title mb-0.5">Contact</p>
+                <div className="font-display font-semibold text-gray-900 dark:text-white">
+                  {deal.contacts.first_name} {deal.contacts.last_name}
+                </div>
+                {deal.contacts.title && (
+                  <div className="text-sm text-gray-500 dark:text-white/40">
+                    {deal.contacts.title}
+                  </div>
+                )}
+                <div className="text-sm text-gray-500 dark:text-white/40 font-mono">
+                  {deal.contacts.email}
+                </div>
+              </div>
+            </div>
+
+            {deal.contacts.company && (
+              <div className="flex items-start gap-3">
+                <Building2 className="w-4 h-4 text-gray-400 dark:text-white/30 mt-1" />
+                <div>
+                  <p className="vv-section-title mb-0.5">Company</p>
+                  <div className="font-display font-semibold text-gray-900 dark:text-white">
+                    {deal.contacts.company}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {deal.notes && (
+              <div className="flex items-start gap-3">
+                <FileText className="w-4 h-4 text-gray-400 dark:text-white/30 mt-1" />
+                <div className="flex-1">
+                  <p className="vv-section-title mb-1">Notes</p>
+                  <div className="text-sm text-gray-700 dark:text-white/70 whitespace-pre-wrap leading-relaxed">
+                    {deal.notes}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: Activity Timeline */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Activity Timeline
-            </h3>
-            <div className="space-y-3">
+            <p className="vv-section-title mb-3">Activity Timeline</p>
+            <div className="space-y-2">
               {activities.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-400 dark:text-white/30 font-mono">
                   No activities yet
                 </p>
               ) : (
                 activities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3"
+                    className="bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-3"
                   >
                     <div className="flex items-start gap-2">
-                      <span className="text-lg">{getActivityIcon(activity.type)}</span>
+                      <span className="text-base">{getActivityIcon(activity.type)}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white capitalize">
                             {activity.type}
                           </span>
                           {activity.outcome && getOutcomeBadge(activity.outcome)}
                         </div>
                         {activity.notes && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-1">
+                          <p className="text-xs text-gray-500 dark:text-white/40 line-clamp-2 mb-1 leading-relaxed">
                             {activity.notes}
                           </p>
                         )}
-                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                        <div className="font-mono text-xs text-gray-400 dark:text-white/30">
                           {formatDateTime(activity.created_at)}
                         </div>
                       </div>

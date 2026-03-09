@@ -70,8 +70,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-full bg-void-950 p-8 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-white/40">
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-8 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
           <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
           <span className="font-mono text-sm tracking-widest uppercase">Initialising Briefing...</span>
         </div>
@@ -80,12 +80,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-full bg-void-950 p-6 space-y-6">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
 
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
         <DashboardGreeting userDisplayName={userDisplayName} />
-        <p className="font-mono text-xs text-white/30 tracking-wide">{formatDate()}</p>
+        <p className="font-mono text-xs text-gray-400 dark:text-white/30 tracking-wide">{formatDate()}</p>
       </div>
 
       {/* ── Mission Timer Strip ── */}
@@ -103,13 +103,13 @@ export default function Home() {
             </p>
             {activeMission ? (
               <>
-                <p className="font-display font-semibold text-white">{activeMission.title}</p>
-                <p className="text-xs text-white/40 font-mono mt-0.5">
+                <p className="font-display font-semibold text-gray-900 dark:text-white">{activeMission.title}</p>
+                <p className="text-xs text-gray-500 dark:text-white/40 font-mono mt-0.5">
                   {activeMission.list?.name} · {activeMission.contact_count} contacts · {activeMission.duration_minutes} min
                 </p>
               </>
             ) : (
-              <p className="font-display font-semibold text-white/40">No mission scheduled today</p>
+              <p className="font-display font-semibold text-gray-400 dark:text-white/40">No mission scheduled today</p>
             )}
           </div>
         </div>
@@ -123,7 +123,7 @@ export default function Home() {
                 </span>
               )}
               {activeMission.status === 'scheduled' && (
-                <span className="font-mono text-xs text-white/40">
+                <span className="font-mono text-xs text-gray-400 dark:text-white/40">
                   {new Date(activeMission.scheduled_start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                 </span>
               )}
@@ -140,7 +140,7 @@ export default function Home() {
           ) : (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-900 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
             >
               <Plus className="w-3.5 h-3.5" />
               Schedule Block
@@ -158,10 +158,10 @@ export default function Home() {
             <Phone className="w-4 h-4 text-cyan-neon opacity-60 group-hover:opacity-100 transition-opacity" />
           </div>
           <div className="flex items-end gap-2 mt-1">
-            <span className="font-mono text-3xl font-bold text-white">{callGoal.current}</span>
-            <span className="font-mono text-sm text-white/30 mb-1">/ {callGoal.target}</span>
+            <span className="font-mono text-3xl font-bold text-gray-900 dark:text-white">{callGoal.current}</span>
+            <span className="font-mono text-sm text-gray-400 dark:text-white/30 mb-1">/ {callGoal.target}</span>
           </div>
-          <div className="w-full bg-white/5 rounded-full h-1.5 mt-1">
+          <div className="w-full bg-gray-200 dark:bg-white/5 rounded-full h-1.5 mt-1">
             <div
               className="h-1.5 rounded-full bg-cyan-neon transition-all duration-500"
               style={{ width: `${Math.min((callGoal.current / callGoal.target) * 100, 100)}%` }}
@@ -176,10 +176,10 @@ export default function Home() {
             <Calendar className="w-4 h-4 text-purple-neon opacity-60 group-hover:opacity-100 transition-opacity" />
           </div>
           <div className="flex items-end gap-2 mt-1">
-            <span className="font-mono text-3xl font-bold text-white">{meetingGoal.current}</span>
-            <span className="font-mono text-sm text-white/30 mb-1">/ {meetingGoal.target}</span>
+            <span className="font-mono text-3xl font-bold text-gray-900 dark:text-white">{meetingGoal.current}</span>
+            <span className="font-mono text-sm text-gray-400 dark:text-white/30 mb-1">/ {meetingGoal.target}</span>
           </div>
-          <div className="w-full bg-white/5 rounded-full h-1.5 mt-1">
+          <div className="w-full bg-gray-200 dark:bg-white/5 rounded-full h-1.5 mt-1">
             <div
               className="h-1.5 rounded-full bg-purple-neon transition-all duration-500"
               style={{ width: `${Math.min((meetingGoal.current / meetingGoal.target) * 100, 100)}%` }}
@@ -194,11 +194,11 @@ export default function Home() {
             <Target className="w-4 h-4 text-emerald-signal opacity-60 group-hover:opacity-100 transition-opacity" />
           </div>
           <div className="flex items-end gap-2 mt-1">
-            <span className={`font-mono text-3xl font-bold ${overallPct >= 75 ? 'text-emerald-signal' : overallPct >= 40 ? 'text-cyan-neon' : 'text-white'}`}>
+            <span className={`font-mono text-3xl font-bold ${overallPct >= 75 ? 'text-emerald-signal' : overallPct >= 40 ? 'text-cyan-neon' : 'text-gray-900 dark:text-white'}`}>
               {overallPct}%
             </span>
           </div>
-          <div className="w-full bg-white/5 rounded-full h-1.5 mt-1">
+          <div className="w-full bg-gray-200 dark:bg-white/5 rounded-full h-1.5 mt-1">
             <div
               className={`h-1.5 rounded-full transition-all duration-500 ${overallPct >= 75 ? 'bg-emerald-signal' : overallPct >= 40 ? 'bg-cyan-neon' : 'bg-indigo-electric'}`}
               style={{ width: `${overallPct}%` }}
