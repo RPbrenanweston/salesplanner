@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-template-modal
+ * @area UI/Content/Templates
+ * @intent Template modal — create or edit an email template with subject + body fields, save to Supabase email_templates table for reuse in ComposeEmailModal
+ * @responsibilities Load existing template data if editing, render subject line field + body textarea, save new/updated template to Supabase email_templates table, call onSave callback
+ * @contracts TemplateModal({ isOpen, onClose, onSave, orgId, templateId? }) → JSX; reads email_templates table if templateId provided; calls supabase.from('email_templates').insert or .update; calls onSave on success
+ * @in isOpen (boolean), onClose callback, onSave callback, orgId (string), templateId (optional string — if provided, load and edit existing template)
+ * @out New or updated row in email_templates table; onSave called; modal closed
+ * @err Supabase read failure (edit mode — template not loaded, form renders empty); Supabase insert/update failure (caught, error shown)
+ * @hazard Template body is stored as plain text but may contain merge tags like {{first_name}} — if merge tag substitution is not implemented consistently across all send paths (Gmail, Outlook), some channels will send raw unsubstituted tags to prospects
+ * @hazard Template upsert does not validate subject line length or body size before insert — oversized subjects or bodies may fail at send time (Gmail/Outlook API limits) rather than at save time, with no user-visible feedback at the point of creation
+ * @shared-edges supabase email_templates table→READS (edit) and INSERTS/UPDATES; frontend/src/pages/EmailTemplates.tsx→RENDERS modal + READS templates; frontend/src/components/ComposeEmailModal.tsx→READS templates for insertion; parent→PASSES orgId + templateId
+ * @trail template-edit#1 | User clicks Edit Template → TemplateModal loads with existing template → user edits subject + body → handleSave → supabase update → onSave() → modal closes → EmailTemplates page refreshes
+ * @prompt Validate merge tags at save time against a known variable list. Add send-time preview with variable substitution. Enforce subject line and body character limits.
+ */
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'

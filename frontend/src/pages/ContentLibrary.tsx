@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-content-library
+ * @area UI/Pages
+ * @intent Unified content library — combined view of email templates and call scripts for browsing and management
+ * @responsibilities Load and display both email_templates and call_scripts in one view, filter by type, open TemplateModal or ScriptModal for create/edit, delete items
+ * @contracts ContentLibrary() → JSX; reads email_templates + call_scripts from Supabase; writes on create/update/delete
+ * @in supabase (email_templates + call_scripts tables), TemplateModal + ScriptModal components
+ * @out Tabbed or merged content list with type labels, shared badges, edit/delete actions
+ * @err Supabase query failure for either type (silent partial load — may show only one content type with no indication the other failed)
+ * @hazard Dual-table load with no error differentiation — if email_templates query fails, scripts still render and vice versa; partial state looks identical to full success state
+ * @hazard RLS on both tables must scope to same org — if one table has tighter RLS than the other, the views will show inconsistent ownership across content types
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES email_templates+call_scripts; frontend/src/components/TemplateModal.tsx→LAUNCHES; frontend/src/components/ScriptModal.tsx→LAUNCHES; frontend/src/App.tsx→ROUTES to /content-library
+ * @trail content-library#1 | ContentLibrary mounts → load templates + scripts → render unified list → user filters by type → user creates/edits via modal → reload
+ * @prompt Surface load errors per content type. Merge with EmailTemplates and Scripts pages or remove redundancy. Add bulk actions. Verify org-scoped RLS on both tables.
+ */
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Share2, Lock, Mail, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';

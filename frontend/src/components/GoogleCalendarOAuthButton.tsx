@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-google-calendar-oauth-button
+ * @area UI/Integrations/OAuth
+ * @intent Google Calendar OAuth button — initiate Google Calendar OAuth flow with calendar-specific scopes, check connection status, allow disconnect
+ * @responsibilities Check current Google Calendar connection status from Supabase, render Connect/Disconnect button, construct Google OAuth URL with calendar scopes and state param containing user_id, redirect to Google
+ * @contracts GoogleCalendarOAuthButton({ onConnected?, onDisconnected? }) → JSX; reads google_calendar_integrations table; constructs OAuth URL with calendar scopes; window.location.href redirect
+ * @in useAuth (user_id), supabase google_calendar_integrations table, Google OAuth env vars (VITE_GOOGLE_CLIENT_ID, VITE_GOOGLE_OAUTH_REDIRECT_URI for calendar), onConnected callback (optional), onDisconnected callback (optional)
+ * @out Redirect to Google OAuth URL with calendar scopes; or Disconnect: supabase google_calendar_integrations delete; connection status updated
+ * @err Missing env vars (OAuth URL malformed); disconnect delete failure (caught, error shown)
+ * @hazard Google Calendar and Gmail both use Google OAuth but require different scope sets — if this button requests the same scopes as GmailOAuthButton or the redirect URI routes to the wrong callback, the integration will connect but have incorrect permissions
+ * @hazard Same CSRF nonce gap as GmailOAuthButton — state param contains user_id without a nonce, making the callback vulnerable to state forgery
+ * @shared-edges frontend/src/hooks/useAuth.ts→READS user_id; supabase google_calendar_integrations table→READS connection status; frontend/src/pages/GoogleCalendarOAuthCallback.tsx→RECEIVES redirect; frontend/src/pages/SettingsPage.tsx→RENDERS button
+ * @trail gcal-connect#1 | User clicks "Connect Google Calendar" → constructs OAuth URL with calendar scopes → window.location.href redirect → Google login → GoogleCalendarOAuthCallback → tokens stored → /settings
+ * @prompt Verify calendar scopes differ from Gmail scopes. Add CSRF nonce. Consolidate OAuth button logic with GmailOAuthButton into a shared hook with provider param.
+ */
 import { useState, useEffect } from 'react'
 import { Calendar, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'

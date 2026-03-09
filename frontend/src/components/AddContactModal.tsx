@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-add-contact-modal
+ * @area UI/Contacts
+ * @intent Add contact modal — form to create a new contact with multi-value email/phone fields, linked to a salesblock and org
+ * @responsibilities Render contact creation form (name, title, company, email list, phone list), validate required fields, insert into contacts table, call onContactAdded callback
+ * @contracts AddContactModal({ salesBlockId, onClose, onContactAdded }) → JSX; calls supabase.from('contacts').insert; requires salesBlockId prop
+ * @in salesBlockId (string), supabase contacts table, onClose callback, onContactAdded callback
+ * @out New contact row in contacts table; onContactAdded called with new contact; modal closed via onClose
+ * @err Supabase insert failure (caught, error message shown); missing required fields (form validation prevents submit)
+ * @hazard Contact insert does not link to org_id by reading from session/context — if org_id is not passed or derived correctly, contacts may be created without org association, making them invisible in org-scoped queries
+ * @hazard Multi-value email/phone fields are stored as arrays — if the contacts table schema expects a single primary email, inserts with multiple emails may silently truncate or error depending on DB column type
+ * @shared-edges frontend/src/lib/supabase.ts→CALLS contacts insert; parent page (SalesBlockDetail or similar)→RENDERS modal; contacts table→INSERTS to
+ * @trail add-contact#1 | User clicks "Add Contact" → AddContactModal renders → user fills form → handleSubmit → supabase insert → onContactAdded(newContact) → modal closes
+ * @prompt Pass org_id from auth context to ensure contacts are correctly org-scoped. Validate email format before submit. Confirm array column type in contacts schema.
+ */
 import { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';

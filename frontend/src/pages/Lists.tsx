@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-lists
+ * @area UI/Pages
+ * @intent Contact list management — create, view, import, and navigate into contact lists for prospecting and SalesBlock targeting
+ * @responsibilities Load user's contact lists, display list cards with contact count and metadata, open import modals (CSV/Salesforce), open ListBuilderModal, open CreateSalesBlockModal, navigate to ListDetailPage
+ * @contracts Lists() → JSX; reads lists table + list_contacts count from Supabase; uses useNavigate; uses getSalesforceConnection for integration check
+ * @in supabase (lists + list_contacts tables), useNavigate, ImportCSVModal + AddContactModal + ListBuilderModal + CreateSalesBlockModal + ImportSalesforceModal components, getSalesforceConnection lib
+ * @out List cards grid with contact counts, import buttons, create list button, run SalesBlock CTA
+ * @err Salesforce connection check failure (silently disables import button); list load failure (empty state renders)
+ * @hazard getSalesforceConnection is called on mount to check integration status — if salesforce.ts throws, the error propagates and may crash the component (no catch)
+ * @hazard list_contacts count is a separate aggregation query per list — N+1 pattern if many lists exist; page load time scales linearly with list count
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES lists+list_contacts; frontend/src/lib/salesforce.ts→CALLS getSalesforceConnection; frontend/src/components/ImportCSVModal.tsx→LAUNCHES; frontend/src/components/ListBuilderModal.tsx→LAUNCHES; frontend/src/pages/ListDetailPage.tsx→NAVIGATES to; frontend/src/App.tsx→ROUTES to /lists
+ * @trail lists#1 | Lists mounts → load lists + contact counts → render cards → user clicks list → navigate to ListDetailPage → user creates → ListBuilderModal → user imports → CSV or Salesforce modal
+ * @prompt Add error catch around getSalesforceConnection. Batch list_contacts count into single query. Add list sorting (by size, recency). Add list search.
+ */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Plus, List, RefreshCw, Users, Clock, Database } from 'lucide-react';

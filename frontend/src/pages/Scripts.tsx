@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-scripts
+ * @area UI/Pages
+ * @intent Call script library — create, edit, share, and delete reusable call scripts for sales reps
+ * @responsibilities Load user's scripts (owned + shared), render script cards, open ScriptModal for create/edit, delete scripts
+ * @contracts Scripts() → JSX; reads call_scripts table by user_id from Supabase; writes on create/update/delete
+ * @in supabase (call_scripts table, auth.getUser), ScriptModal component
+ * @out Grid/list of script cards with name, content preview, shared badge, edit/delete actions
+ * @err Supabase load failure (silent — empty list renders); delete error (no feedback)
+ * @hazard No delete confirmation dialog — delete fires immediately on button click; user can accidentally delete scripts with no undo
+ * @hazard Shared script visibility depends on RLS — if call_scripts table lacks org_id RLS, scripts from other orgs may appear in shared view
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES call_scripts; frontend/src/components/ScriptModal.tsx→LAUNCHES for create/edit; frontend/src/App.tsx→ROUTES to /scripts
+ * @trail scripts#1 | Scripts mounts → load scripts → render cards → user clicks New → ScriptModal → save → reload → user deletes → immediate remove
+ * @prompt Add delete confirmation. Verify RLS on call_scripts. Add script categories/tags. Add search. Consider linking scripts to SalesBlock session for in-session use.
+ */
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Share2, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-hook-use-theme
+ * @area UI/Theming
+ * @intent useTheme hook — read and persist the current user's theme preference (light/dark/system), apply the theme class to the document root, sync to Supabase user_preferences
+ * @responsibilities Load theme from Supabase user_preferences on mount, apply 'dark' class to document.documentElement, listen to system prefers-color-scheme if theme='system', expose setTheme to update preference in state and Supabase
+ * @contracts useTheme() → { theme: Theme, setTheme: (t: Theme) => void }; reads/writes user_preferences table; applies/removes 'dark' class on document.documentElement
+ * @in supabase user_preferences table (user_id, theme column), window.matchMedia for system theme detection
+ * @out theme state (current resolved theme); setTheme (persists to Supabase + updates document class); 'dark' class on document.documentElement when dark mode active
+ * @err Supabase read failure (falls back to 'system' default); Supabase write failure on setTheme (preference not persisted, local state still updates — silent divergence)
+ * @hazard setTheme writes to Supabase asynchronously but updates local state synchronously — if the Supabase write fails, the UI shows the new theme while the stored preference remains the old value; on next login the user sees an unexpected theme
+ * @hazard System theme change events (prefers-color-scheme media query listener) are not cleaned up on unmount — if the component using this hook mounts/unmounts repeatedly, stale listeners accumulate and fire redundant theme updates
+ * @shared-edges supabase user_preferences table→READS and WRITES theme; document.documentElement→MUTATES 'dark' class; App.tsx or layout component→CONSUMES this hook; frontend/src/pages/SettingsPage.tsx→MAY RENDER theme selector using this hook
+ * @trail theme#1 | App mounts → useTheme loads preference from Supabase → applies dark class if needed → user selects dark in settings → setTheme('dark') → Supabase write + document class update
+ * @prompt Add matchMedia listener cleanup in useEffect return. Show error if Supabase write fails (preference not saved warning). Consider localStorage fallback for unauthenticated users.
+ */
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-applayout-shell
+ * @area UI/Layout
+ * @intent Authenticated app shell — persistent sidebar navigation, theme cycling, org logo, and user session controls wrapping all protected pages
+ * @responsibilities Render collapsible sidebar with 12 nav items, load/persist sidebarCollapsed preference to Supabase, fetch org logo, cycle light/dark/system theme, handle sign-out, render TrialExpiryBanner above all page content
+ * @contracts AppLayout({ children: ReactNode }) → JSX; expects authenticated user from useAuth; writes preferences.sidebarCollapsed to users table
+ * @in useAuth (user, signOut), useTheme (theme/resolvedTheme/setTheme), supabase users+organizations tables, ReactNode children
+ * @out Full-bleed flex layout with aside sidebar + main content area; TrialExpiryBanner always rendered at top of main
+ * @err Supabase users query failure (userData silently null → no collapse pref loaded, no org logo); signOut failure (navigate still fires)
+ * @hazard Sidebar collapse pref write fires on EVERY toggle — two sequential Supabase calls (SELECT preferences then UPDATE) with no debounce; rapid toggling causes write contention
+ * @hazard org logo fetch uses userData.org_id but no null guard — if users row missing org_id, organizations query silently skips (no logo, no error surfaced)
+ * @shared-edges frontend/src/hooks/useAuth.ts→CALLS for user+signOut; frontend/src/hooks/useTheme.ts→CALLS for theme; frontend/src/lib/supabase.ts→QUERIES users+organizations; frontend/src/components/TrialExpiryBanner.tsx→RENDERS in main; frontend/src/App.tsx→WRAPS authenticated routes
+ * @trail shell#1 | App mounts → AppLayout wraps route → loadUserData fetches user prefs + org logo → sidebar renders collapsed/expanded → NavLink active state from router → toggleSidebar persists to Supabase → TrialExpiryBanner checks subscription status
+ * @prompt Add debounce to toggleSidebar to prevent write contention on rapid toggling. Add null guard for userData.org_id before organizations query. Scripts page is absent from navItems — confirm intentional omission. Consider optimistic UI for collapse state rather than waiting for Supabase round-trip.
+ */
 import { useState, useEffect, ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-pipeline
+ * @area UI/Pages
+ * @intent Kanban deal pipeline — drag-and-drop deal management across configurable stages with deal value tracking
+ * @responsibilities Load deals with stage grouping, render kanban columns, handle drag-drop stage updates via @hello-pangea/dnd, open AddDealModal for creation, display deal value totals per stage
+ * @contracts Pipeline() → JSX; reads deals+contacts from Supabase; writes deal.stage on drop; uses DragDropContext/Droppable/Draggable from @hello-pangea/dnd
+ * @in supabase (deals table with stage field), AddDealModal for creation, @hello-pangea/dnd for drag interaction
+ * @out Kanban board with stage columns; deal cards show contact name, value, close date; drag to update stage
+ * @err Supabase update failure on drop (stage reverts optimistically if no rollback logic); deal load failure (empty board, no error UI)
+ * @hazard @hello-pangea/dnd is a fork of react-beautiful-dnd — known React 18 StrictMode double-invocation issue; drag events may fire twice in dev mode causing duplicate stage updates
+ * @hazard No optimistic rollback on failed stage update — if Supabase write fails, UI shows new stage but DB has old stage (silent desync)
+ * @shared-edges frontend/src/components/AddDealModal.tsx→LAUNCHES for new deals; frontend/src/lib/supabase.ts→QUERIES+UPDATES deals; frontend/src/App.tsx→ROUTES to /pipeline
+ * @trail pipeline#1 | Pipeline mounts → load deals grouped by stage → render DragDropContext with columns → drag deal → onDragEnd fires → update stage in Supabase → re-render column
+ * @prompt Add optimistic rollback for failed stage updates. Investigate @hello-pangea/dnd StrictMode double-fire in dev. Add deal value total in column header. Verify deals are scoped to org_id (multi-tenant isolation check).
+ */
 import { useState, useEffect } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Plus, DollarSign, Calendar, User } from 'lucide-react'

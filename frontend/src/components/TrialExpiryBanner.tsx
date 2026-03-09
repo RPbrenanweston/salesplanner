@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-trial-expiry-banner
+ * @area UI/Billing/Trial
+ * @intent Trial expiry banner — display a persistent warning when the org's trial is expiring or expired, with a CTA to upgrade and a dismiss option
+ * @responsibilities Fetch org subscription/trial status from Supabase, determine days remaining in trial, show banner with urgency level (warning vs critical), navigate to /pricing on upgrade click, allow banner dismissal
+ * @contracts TrialExpiryBanner({ orgId }) → JSX | null; reads orgs table for trial_ends_at and subscription_status; returns null if subscription active or no trial data; shows banner if trial_ends_at within threshold
+ * @in orgId (string), supabase orgs table (trial_ends_at, subscription_status fields), useNavigate for /pricing redirect
+ * @out Rendered banner with days-remaining message and upgrade CTA; or null if subscription active; navigation to /pricing on upgrade click
+ * @err Supabase read failure (banner silently not rendered — no error shown to user); missing trial_ends_at (banner does not show)
+ * @hazard Banner dismissal state is managed in React local state only — if the user navigates away and returns, the banner reappears; there is no persistent "dismissed" flag in Supabase or localStorage
+ * @hazard Trial end date comparison uses client-side Date.now() — if the user's system clock is wrong, the banner may show prematurely or not show when the trial has actually expired; server-side validation is required for gating
+ * @shared-edges supabase orgs table→READS trial_ends_at + subscription_status; frontend/src/pages/PricingPage.tsx→NAVIGATES to on upgrade click; App.tsx or layout component→RENDERS banner in global layout
+ * @trail trial-banner#1 | User loads page → TrialExpiryBanner fetches org → trial_ends_at within 7 days → banner renders → user clicks "Upgrade" → /pricing → Stripe checkout
+ * @prompt Persist banner dismissal to localStorage or Supabase user_preferences. Add server-side gating in RLS policies as primary control — client banner is secondary UX only. Show different messaging for expired vs expiring.
+ */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, X } from 'lucide-react';

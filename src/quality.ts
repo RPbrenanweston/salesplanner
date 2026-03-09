@@ -1,4 +1,21 @@
 /**
+ * @crumb
+ * @id backend-quality-hardening
+ * @area SEC
+ * @intent Quality hardening — run 4 automated passes on generated report to enforce citation coverage, signal quality, language alignment, and report clarity before delivery
+ * @responsibilities Evidence strictness pass (remove uncited sentences), signal quality pass (discard shallow profiles), language/scope alignment pass (verify target language relevance), report clarity pass (audit-ready formatting)
+ * @contracts runQualityPasses(report: string, profiles: ValidatedProfile[], config: GatingConfig) → QualityResult { passed: bool, report: string, removals: Removal[], warnings: string[] }; each pass returns modified report + log of changes
+ * @in Generated markdown report string, ValidatedProfile[], GatingConfig (for language alignment)
+ * @out Quality-hardened report string; removal log for transparency; pass/fail result
+ * @err Pass failures are non-fatal — each pass logs removals but does not throw; pipeline continues with modified report
+ * @hazard Quality passes run after report generation — profiles that fail quality checks are removed from the report but may already be counted in run statistics, causing a mismatch between "validated: N" and "in report: M" counts
+ * @hazard Language alignment pass uses string matching against GatingConfig.languages — if a profile is multilingual (C++ and Python developer targeting Python roles), the pass may incorrectly flag the profile as misaligned based on primary language detection
+ * @shared-edges src/report.ts→PASSES report string to this module; src/types.ts→IMPORTS ValidatedProfile + GatingConfig; src/index.ts→CALLS runQualityPasses after generateReport
+ * @trail quality#1 | generateReport produces report.md string → runQualityPasses(report, profiles, config) → 4 passes run sequentially → quality-hardened report returned → written to disk
+ * @prompt Add per-pass timing metrics. Make pass thresholds configurable via GatingConfig. Return structured diff of what each pass removed for easier debugging.
+ */
+
+/**
  * Quality Hardening Layer
  *
  * Four automated quality passes that run after report generation:

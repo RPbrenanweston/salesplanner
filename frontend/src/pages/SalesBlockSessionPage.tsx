@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-salesblock-session
+ * @area UI/Pages
+ * @intent Core session execution engine — step through contacts in a SalesBlock with live activity logging, elapsed timer, call script panel, and session completion summary
+ * @responsibilities Load SalesBlock + contacts list, run elapsed timer, advance contact index, log calls/emails/social/meetings via modals, display inline call script, mark session complete with stats summary, persist session_notes
+ * @contracts SalesBlockSessionPage() → JSX; receives salesblockId via useParams; reads salesblocks+lists+contacts from Supabase; writes activities on every log action; writes session_notes on complete
+ * @in useParams (salesblockId), useAuth (user/org_id), supabase (salesblocks, lists, contacts, activities tables), 4 activity modal components
+ * @out Full-screen session UI with contact card, action buttons, script panel, timer, progress bar; completion screen with stats breakdown
+ * @err Contact load failure (session starts with empty contacts array, no error shown); Supabase write failure on activity log (silent loss — no retry, no error toast)
+ * @hazard Elapsed timer uses setInterval with no cleanup guard — if component unmounts mid-session (navigate away), interval leaks and continues firing; causes memory leak + stale state updates
+ * @hazard Session completion writes sessionNotes to a field that may not exist on the salesblocks table — verify notes column exists before trusting completion persistence
+ * @shared-edges frontend/src/components/LogActivityModal.tsx→LAUNCHES for call/email/note; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES for social; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES for email compose; frontend/src/components/BookMeetingModal.tsx→LAUNCHES for meetings; frontend/src/components/ContactActivityTimeline.tsx→RENDERS below contact card; frontend/src/lib/supabase.ts→ALL queries
+ * @trail session#1 | Page mounts with salesblockId → load salesblock+contacts → start elapsed timer → show first contact → log activity via modal → advance index → script panel expandable → all contacts done → show completion screen with stats
+ * @prompt Fix setInterval cleanup — add clearInterval in useEffect return. Verify session_notes column exists on salesblocks table. Add error toast on activity log failure (currently silent). Consider persisting progress so session can be resumed if navigated away.
+ */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-contact-detail
+ * @area UI/Pages
+ * @intent Full contact record view — display and edit contact fields, log activities, compose email, book meeting, view activity timeline, and manage deal associations
+ * @responsibilities Load contact by id param, render editable fields (name/email/phone/company/title/notes), display activity timeline, open action modals (log/email/social/meeting/deal), navigate back with useLocation state
+ * @contracts ContactDetailPage() → JSX; receives contactId via useParams; reads contacts+activities+deals from Supabase; writes on field save and activity log
+ * @in useParams (contactId), useLocation (back navigation state), useAuth (user), supabase (contacts, activities, deals tables), 4 action modal components
+ * @out Contact detail card with inline edit, activity timeline, action button row, deal association panel
+ * @err Contact not found by id (undefined state — no 404 handling, page renders blank); Supabase update failure on field save (silent, no error feedback)
+ * @hazard useLocation back navigation depends on location.state.from — if navigated directly (not from list), state is null and back button may navigate to wrong route
+ * @hazard Inline field editing with no optimistic rollback — if save fails, input still shows new value but DB has old value (silent desync)
+ * @shared-edges frontend/src/components/LogActivityModal.tsx→LAUNCHES; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/components/ContactActivityTimeline.tsx→RENDERS; frontend/src/lib/supabase.ts→QUERIES+UPDATES; frontend/src/App.tsx→ROUTES to /contacts/:id
+ * @trail contact#1 | ContactDetailPage mounts with contactId → load contact record → render editable fields → user edits → save writes to Supabase → activity timeline loads in parallel → modal actions log to activities table
+ * @prompt Add 404 state when contact not found. Fix back navigation null guard (location.state?.from ?? '/lists'). Add error toast on field save failure. Confirm contacts table has org_id scoping on all queries.
+ */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, Building2, Briefcase, Share2, Calendar, Zap, X, Search } from 'lucide-react';

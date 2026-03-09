@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-script-modal
+ * @area UI/Content/Scripts
+ * @intent Script modal — create or edit a call/meeting script with rich text formatting, save to Supabase scripts table for use during sales calls
+ * @responsibilities Load existing script data if editing, render title field + RichTextEditor for script body, save new/updated script to Supabase scripts table, call onSave callback
+ * @contracts ScriptModal({ isOpen, onClose, onSave, orgId, scriptId? }) → JSX; reads scripts table if scriptId provided; calls supabase.from('scripts').insert or .update; calls onSave on success
+ * @in isOpen (boolean), onClose callback, onSave callback, orgId (string), scriptId (optional string — if provided, load and edit existing script)
+ * @out New or updated script row in scripts table; onSave called with script id; modal closed
+ * @err Supabase read failure (edit mode — script not loaded, form renders empty); Supabase insert/update failure (caught, error shown)
+ * @hazard RichTextEditor outputs raw HTML — script body is stored as HTML in Supabase; if the script is later rendered with dangerouslySetInnerHTML without sanitization, XSS is possible if a user embeds script tags in the body
+ * @hazard Script upsert does not validate title uniqueness per org — duplicate script titles are silently allowed, causing confusion in the script selector dropdown on Scripts page
+ * @shared-edges supabase scripts table→READS (edit) and INSERTS/UPDATES; frontend/src/components/RichTextEditor.tsx→RENDERS for body; frontend/src/pages/Scripts.tsx→RENDERS modal + READS scripts; parent→PASSES orgId + scriptId
+ * @trail script-edit#1 | User clicks Edit Script → ScriptModal loads with existing script → user edits title + body → handleSave → supabase update → onSave() → modal closes → Scripts page refreshes
+ * @prompt Sanitize HTML before storing (DOMPurify). Add title uniqueness validation. Add script tagging/categorization (discovery vs objection handling vs closing).
+ */
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';

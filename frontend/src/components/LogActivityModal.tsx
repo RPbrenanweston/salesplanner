@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-log-activity-modal
+ * @area UI/Activities
+ * @intent Log activity modal — record a sales activity (call, email, meeting, note) against a contact, with optional Salesforce sync
+ * @responsibilities Render activity type selector and notes/outcome fields, insert activity into Supabase activities table, optionally call markActivityForSync for Salesforce users, call onLogged callback
+ * @contracts LogActivityModal({ contactId, salesBlockId?, onClose, onLogged }) → JSX; calls supabase.from('activities').insert; calls markActivityForSync from lib/salesforce if Salesforce connected
+ * @in contactId (string), salesBlockId (optional string), supabase activities table, lib/salesforce.markActivityForSync (conditional), onClose callback, onLogged callback
+ * @out New activity row in activities table linked to contactId; markActivityForSync called if Salesforce connected; onLogged called; modal closed
+ * @err Supabase insert failure (caught, error shown); markActivityForSync failure (caught separately — Supabase insert may still succeed)
+ * @hazard markActivityForSync is called after the Supabase insert regardless of whether the user has Salesforce connected — if the connection check is missing or async race condition, it may attempt to sync with no Salesforce credentials, silently failing
+ * @hazard Activity type options are hardcoded in the component — if new activity types are added to the Supabase activities table (e.g. "LinkedIn message"), the modal will not include them without a code change
+ * @shared-edges supabase activities table→INSERTS to; lib/salesforce.ts→CALLS markActivityForSync; frontend/src/components/ContactActivityTimeline.tsx→READS activities logged here; parent page→RENDERS modal
+ * @trail log-activity#1 | User clicks "Log Activity" → LogActivityModal renders → user selects type + fills notes → handleLog → supabase insert → markActivityForSync (if connected) → onLogged() → modal closes → timeline updates
+ * @prompt Pre-check Salesforce connection before calling markActivityForSync. Make activity types configurable via org settings. Add outcome field for calls.
+ */
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';

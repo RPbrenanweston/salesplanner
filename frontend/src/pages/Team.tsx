@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-team
+ * @area UI/Pages
+ * @intent Team performance view — display all org members with their activity stats and navigate to individual rep detail
+ * @responsibilities Load all users in same org, aggregate their activity counts (calls/emails/meetings), render team leaderboard, navigate to individual contact/rep view
+ * @contracts Team() → JSX; reads users (by org_id) + activities aggregated per user from Supabase; uses useAuth for org scoping; uses useNavigate
+ * @in supabase (users table filtered by org_id, activities aggregated by user_id), useAuth (user/org_id)
+ * @out Team roster cards with activity stats, navigation to rep detail
+ * @err org_id null on user (empty team, no error state); Supabase query failure (empty team list); no distinction between active and inactive users
+ * @hazard Team query uses org_id from useAuth — if user's org_id is not set, query returns zero results silently (looks like solo account)
+ * @hazard Activity aggregation is all-time — no period filter; as team grows, aggregate query may slow significantly
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES users+activities; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/App.tsx→ROUTES to /team
+ * @trail team#1 | Team mounts → load org users → aggregate activity counts per user → render roster cards → navigate to rep detail
+ * @prompt Add time-range filter for activity aggregation. Add period selector (week/month). Handle empty org_id gracefully. Confirm user query is RLS-scoped to same org. Add invite member flow.
+ */
 import { useState, useEffect } from 'react'
 import { Clock, Mail, Phone, Users, Calendar, Target, ArrowRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-email-templates
+ * @area UI/Pages
+ * @intent Email template library — create, edit, share, and delete reusable email templates with usage and reply tracking
+ * @responsibilities Load user's templates (owned + shared), render template cards with stats, open TemplateModal for create/edit, delete with confirmation, toggle shared status
+ * @contracts EmailTemplates() → JSX; reads email_templates table by user_id from Supabase; writes on create/update/delete
+ * @in supabase (email_templates table, auth.getUser), TemplateModal component
+ * @out Grid of template cards with name, subject preview, usage stats, shared badge, edit/delete actions
+ * @err Supabase load failure (silent — empty list renders); delete error (silent — no feedback to user)
+ * @hazard Delete fires immediately on confirmation — no optimistic rollback if Supabase delete fails; UI shows card gone but DB may still have it
+ * @hazard Shared templates are visible to all org users — no RLS verification in crumb; if RLS misconfigured, templates leak across orgs
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES email_templates; frontend/src/components/TemplateModal.tsx→LAUNCHES for create/edit; frontend/src/App.tsx→ROUTES to /email-templates
+ * @trail email-templates#1 | EmailTemplates mounts → load templates → render cards with stats → user edits → TemplateModal saves → reload → user deletes → confirm → remove
+ * @prompt Add error toast on delete failure. Verify RLS on email_templates scopes to org_id. Add template preview before use. Add search/filter for large template libraries.
+ */
 import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2, Share2, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-salesblocks
+ * @area UI/Pages
+ * @intent SalesBlock management index — create, list, and launch timed outreach sessions targeting contact lists
+ * @responsibilities Display all org SalesBlocks with status/list/schedule info, open CreateSalesBlockModal, navigate to session on Play, show status badges (scheduled/in_progress/completed/cancelled)
+ * @contracts SalesBlocks() → JSX; reads salesblocks+lists from Supabase; uses useNavigate for session entry; launches CreateSalesBlockModal
+ * @in supabase (salesblocks joined to lists), useAuth (user/org_id), useNavigate, CreateSalesBlockModal
+ * @out Grid of SalesBlock cards with play/edit/delete actions and status indicators
+ * @err Supabase query failure (empty grid, no error state); delete without confirmation (currently no confirmation modal before delete)
+ * @hazard Delete fires immediately on click with no confirmation dialog — accidental clicks destroy sessions with logged activities
+ * @hazard salesblocks query may not be scoped to org_id — verify RLS policy or explicit org_id filter to prevent cross-org data leak
+ * @shared-edges frontend/src/components/CreateSalesBlockModal.tsx→LAUNCHES; frontend/src/pages/SalesBlockSessionPage.tsx→NAVIGATES to /salesblocks/:id/session; frontend/src/lib/supabase.ts→QUERIES; frontend/src/App.tsx→ROUTES to /salesblocks
+ * @trail salesblocks#1 | SalesBlocks mounts → load all org salesblocks with list names → render grid → Play navigates to session → CreateSalesBlockModal creates new block → grid refreshes
+ * @prompt Add delete confirmation dialog. Audit salesblocks Supabase query for org_id scoping. Add empty state UI when no SalesBlocks exist. Consider status filter tabs (scheduled / completed).
+ */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Play, Edit, X, Users, User, Linkedin, Mail, Phone, CheckCircle, Grid, Zap } from 'lucide-react'

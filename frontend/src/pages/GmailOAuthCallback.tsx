@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-gmail-oauth-callback
+ * @area UI/Auth/OAuth
+ * @intent Gmail OAuth callback — receive authorization code from Google, exchange for tokens, store Gmail integration, redirect to settings
+ * @responsibilities Parse code/state/error from URL params on mount, exchange code for tokens via backend, persist connection, navigate to /settings
+ * @contracts GmailOAuthCallback() → JSX; reads window.location.search for OAuth params; calls token exchange; uses useNavigate
+ * @in window.location.search (code, state, error params), backend token exchange, useNavigate
+ * @out Gmail access/refresh tokens stored; redirect to /settings on success; error state displayed on failure
+ * @err OAuth error param from Google (error displayed); missing code (error state set); token exchange failure (error displayed)
+ * @hazard state param CSRF validation depends entirely on the token exchange backend — if backend does not verify state against a stored nonce, CSRF attacks on Gmail OAuth are possible
+ * @hazard handleCallback runs once on mount with no guard against React.StrictMode double-invoke — OAuth codes are single-use; second invocation will fail and may show spurious error to user
+ * @shared-edges frontend/src/components/GmailOAuthButton.tsx→INITIATES OAuth flow; frontend/src/pages/SettingsPage.tsx→RETURNS to after success; frontend/src/App.tsx→ROUTES to /oauth/gmail/callback
+ * @trail gmail-oauth#1 | GmailOAuthButton redirects to Google → Google redirects to callback → parse params → exchange code → store tokens → navigate('/settings')
+ * @prompt Add CSRF state validation against sessionStorage nonce before token exchange. Guard against strict mode double-invoke with a ref flag. Add loading spinner during exchange.
+ */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 

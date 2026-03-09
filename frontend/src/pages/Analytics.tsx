@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-analytics
+ * @area UI/Pages
+ * @intent Activity analytics dashboard — aggregate and visualise rep performance metrics (calls, emails, social, meetings) with custom KPI tracking
+ * @responsibilities Load activity counts by type, render KPI cards with trend indicators, display custom KPIs from user-defined metrics, open CustomKPIModal for additions
+ * @contracts Analytics() → JSX; reads activities (aggregated by type) from Supabase; uses useAuth for user+org_id scoping; launches CustomKPIModal
+ * @in supabase (activities table), useAuth (user/org_id), CustomKPIModal component
+ * @out KPI summary cards (calls/emails/social/meetings), trend lines, custom KPI section with add button
+ * @err Supabase aggregation query failure (all metrics show 0 with no error state); custom KPI load failure (silently empty)
+ * @hazard No time-range filter on activity aggregation — loads all-time counts; grows unbounded and may cause slow queries as activity volume increases
+ * @hazard Custom KPI values are user-entered targets without server-side validation — negative or extremely large values render without bounds checking
+ * @shared-edges frontend/src/components/CustomKPIModal.tsx→LAUNCHES; frontend/src/lib/supabase.ts→QUERIES activities; frontend/src/hooks/useAuth.ts→CALLS for user; frontend/src/App.tsx→ROUTES to /analytics
+ * @trail analytics#1 | Analytics mounts → load activity aggregates + custom KPIs → render KPI cards → CustomKPIModal adds new metric → refresh KPI list
+ * @prompt Add time-range filter (today/week/month/all-time) to activity queries. Add loading skeleton per KPI card. Validate custom KPI bounds on input. Consider Recharts or similar for trend visualisation instead of manual counts.
+ */
 import { useEffect, useState } from 'react';
 import { Phone, Mail, Share2, Calendar, Plus, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
