@@ -56,6 +56,7 @@ const CARDS = [
   },
 ]
 
+
 const PROSPECTS = [
   { name: 'Sarah Chen', company: 'Stripe', status: 'CALLING', active: true, hue: 220 },
   { name: 'Marcus Webb', company: 'Rippling', status: 'QUEUED', active: false, hue: 280 },
@@ -66,12 +67,82 @@ const PROSPECTS = [
 
 const SIDEBAR_ICONS = ['rocket_launch', 'timer', 'manage_search', 'map', 'leaderboard', 'bar_chart']
 
+// ─── Canvas scroll animation ──────────────────────────────────────────────────
+
+const TOTAL_FRAMES = 160
+const FRAME_PATH = (i: number) => `/frames/frame-${String(i).padStart(4, '0')}.jpg`
+
+function drawOnCanvas(canvas: HTMLCanvasElement, img: HTMLImageElement, progress: number) {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const cw = canvas.width
+  const ch = canvas.height
+  const bw = img.naturalWidth || img.width
+  const bh = img.naturalHeight || img.height
+  if (!bw || !bh) return
+  const deg = -4 + progress * 12
+  const rad = (deg * Math.PI) / 180
+  const scale = Math.max(cw / bw, ch / bh)
+  ctx.clearRect(0, 0, cw, ch)
+  ctx.save()
+  ctx.translate(cw / 2, ch / 2)
+  ctx.rotate(rad)
+  ctx.drawImage(img, (-bw * scale) / 2, (-bh * scale) / 2, bw * scale, bh * scale)
+  ctx.restore()
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MarketingPage() {
   const scrollSectionRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const framesRef = useRef<(HTMLImageElement | null)[]>(Array(TOTAL_FRAMES).fill(null))
   const [scrollProgress, setScrollProgress] = useState(0)
   const [activeCards, setActiveCards] = useState([false, false, false, false])
+
+  // ── Canvas sizing ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const sync = () => {
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+    }
+    sync()
+    window.addEventListener('resize', sync)
+    return () => window.removeEventListener('resize', sync)
+  }, [])
+
+  // ── Frame preloading ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const frames = framesRef.current
+
+    // Load first frame immediately so canvas shows something on arrival
+    const first = new Image()
+    first.onload = () => {
+      frames[0] = first
+      const canvas = canvasRef.current
+      if (canvas) drawOnCanvas(canvas, first, 0)
+    }
+    first.src = FRAME_PATH(1)
+
+    // Load the rest asynchronously
+    for (let i = 1; i < TOTAL_FRAMES; i++) {
+      const idx = i
+      const img = new Image()
+      img.onload = () => { frames[idx] = img }
+      img.src = FRAME_PATH(idx + 1)
+    }
+  }, [])
+
+  // ── Draw on scroll ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const frameIdx = Math.min(TOTAL_FRAMES - 1, Math.round(scrollProgress * (TOTAL_FRAMES - 1)))
+    const img = framesRef.current[frameIdx]
+    if (img) drawOnCanvas(canvas, img, scrollProgress)
+  }, [scrollProgress])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -87,8 +158,6 @@ export default function MarketingPage() {
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
-
-  const activePhase = activeCards.findIndex(Boolean)
 
   return (
     <div style={{ fontFamily: 'Inter, sans-serif', background: '#f8fafc', color: '#1e293b', minHeight: '100vh' }}>
@@ -338,106 +407,17 @@ export default function MarketingPage() {
             transition: 'width 0.08s linear',
           }} />
 
-          {/* Dashboard mockup (center) */}
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3%' }}>
-            <div style={{
-              width: '58%', maxWidth: 700,
-              background: '#0f172a', borderRadius: 16,
-              boxShadow: '0 30px 70px -12px rgba(0,0,0,0.45), 0 0 0 1px rgba(99,102,241,0.15)',
-              overflow: 'hidden',
-              transform: `rotate(${-2 + scrollProgress * 6}deg) scale(${0.85 + scrollProgress * 0.04})`,
-              transition: 'transform 0.15s ease-out',
-            }}>
-              {/* Chrome */}
-              <div style={{ background: '#1e293b', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ display: 'flex', gap: 5 }}>
-                  {['#ff5f57', '#febb2d', '#28c840'].map(c => (
-                    <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />
-                  ))}
-                </div>
-                <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                  <div style={{
-                    background: 'rgba(255,255,255,0.06)', borderRadius: 6,
-                    padding: '3px 20px', fontSize: 11,
-                    fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.35)',
-                    transition: 'color 0.4s ease',
-                  }}>
-                    {activePhase >= 0 ? CARDS[activePhase].title.toUpperCase() : 'SALESBLOCK · COCKPIT'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Body */}
-              <div style={{ display: 'flex', height: 380 }}>
-                {/* Sidebar */}
-                <div style={{ width: 52, background: '#0d1829', padding: '14px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                  {SIDEBAR_ICONS.map((icon, i) => {
-                    const highlighted = activePhase >= 0 && i === activePhase + 1
-                    return (
-                      <div key={icon} style={{
-                        width: 32, height: 32, borderRadius: 8,
-                        background: highlighted ? 'rgba(99,102,241,0.25)' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'background 0.4s ease',
-                      }}>
-                        <span className="material-symbols-outlined" style={{
-                          fontSize: 16,
-                          color: highlighted ? '#6366f1' : 'rgba(255,255,255,0.2)',
-                          transition: 'color 0.4s ease',
-                        }}>{icon}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Main panel */}
-                <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {/* Metric strip */}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {[{ l: 'CALLS', v: '47', c: '#6366f1' }, { l: 'CONNECTS', v: '12', c: '#8b5cf6' }, { l: 'PIPELINE', v: '$84K', c: '#0db9f2' }].map(({ l, v, c }) => (
-                      <div key={l} style={{ flex: 1, background: `${c}10`, border: `1px solid ${c}20`, borderRadius: 8, padding: '8px 12px' }}>
-                        <div style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em' }}>{l}</div>
-                        <div style={{ fontSize: 20, fontWeight: 700, color: c, fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>{v}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Prospect list */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                    {PROSPECTS.map(({ name, company, status, hue }, rowIdx) => {
-                      const rowActive = activePhase < 0 ? rowIdx === 0 : rowIdx === activePhase % PROSPECTS.length
-                      return (
-                        <div key={name} style={{
-                          display: 'flex', alignItems: 'center', gap: 10,
-                          padding: '7px 10px', borderRadius: 8,
-                          background: rowActive ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
-                          border: `1px solid ${rowActive ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}`,
-                          transition: 'all 0.4s ease',
-                        }}>
-                          <div style={{
-                            width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                            background: `hsl(${hue}, 65%, 55%)`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, fontWeight: 700, color: 'white',
-                          }}>{name[0]}</div>
-                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', fontFamily: 'JetBrains Mono, monospace', flex: 1 }}>
-                            {name} · {company}
-                          </div>
-                          <div style={{
-                            fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700,
-                            padding: '2px 8px', borderRadius: 4,
-                            color: rowActive ? '#6366f1' : 'rgba(255,255,255,0.2)',
-                            background: rowActive ? 'rgba(99,102,241,0.15)' : 'transparent',
-                            transition: 'all 0.4s ease',
-                          }}>{rowActive && activePhase >= 0 ? CARDS[activePhase].badge1.split(':')[0] : status}</div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Canvas scroll animation */}
+          <canvas
+            ref={canvasRef}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              display: 'block',
+            }}
+          />
 
           {/* Feature cards */}
           {CARDS.map((card, i) => {
