@@ -194,94 +194,101 @@ export default function MarketingPage() {
               </div>
             </div>
 
-            {/* Dashboard preview */}
+            {/* Dashboard preview — 16:9 video preview style */}
             <div style={{ position: 'relative' }}>
+              {/* Gradient halo blur */}
               <div style={{
                 position: 'absolute', inset: -8, borderRadius: 24,
                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #0db9f2)',
-                opacity: 0.18, filter: 'blur(28px)',
+                opacity: 0.22, filter: 'blur(32px)',
               }} />
+
+              {/* 16:9 aspect-video container */}
               <div style={{
-                position: 'relative', borderRadius: 16, overflow: 'hidden',
+                position: 'relative', width: '100%', paddingTop: '56.25%',
+                borderRadius: 16, overflow: 'hidden',
                 border: '1px solid rgba(255,255,255,0.8)',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.2)',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
               }}>
-                {/* Browser chrome */}
-                <div style={{ background: '#1e293b', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ display: 'flex', gap: 5 }}>
-                    {['#ff5f57', '#febb2d', '#28c840'].map(c => (
-                      <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />
-                    ))}
-                  </div>
-                  <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                    <div style={{
-                      background: 'rgba(255,255,255,0.06)', borderRadius: 6,
-                      padding: '3px 20px', fontSize: 11,
-                      fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.35)',
-                    }}>salesblock.io/cockpit</div>
-                  </div>
-                </div>
-
-                {/* Dashboard body */}
-                <div style={{ background: '#0f172a', display: 'flex', height: 280 }}>
-                  {/* Sidebar */}
-                  <div style={{ width: 48, background: '#0d1829', padding: '12px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                    {SIDEBAR_ICONS.map((icon, i) => (
-                      <div key={icon} style={{
-                        width: 30, height: 30, borderRadius: 6,
-                        background: i === 0 ? 'rgba(99,102,241,0.25)' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 15, color: i === 0 ? '#6366f1' : 'rgba(255,255,255,0.2)' }}>{icon}</span>
-                      </div>
-                    ))}
+                {/* Dashboard UI — absolutely fills the 16:9 frame */}
+                <div style={{ position: 'absolute', inset: 0, background: '#0f172a', display: 'flex', flexDirection: 'column' }}>
+                  {/* Browser chrome */}
+                  <div style={{ background: '#1e293b', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: 5 }}>
+                      {['#ff5f57', '#febb2d', '#28c840'].map(c => (
+                        <div key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c }} />
+                      ))}
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                      <div style={{
+                        background: 'rgba(255,255,255,0.06)', borderRadius: 5,
+                        padding: '2px 18px', fontSize: 10,
+                        fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.3)',
+                      }}>salesblock.io/cockpit</div>
+                    </div>
                   </div>
 
-                  {/* Main */}
-                  <div style={{ flex: 1, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {/* Metric strip */}
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {[{ l: 'CALLS', v: '47', c: '#6366f1' }, { l: 'CONNECTS', v: '12', c: '#8b5cf6' }, { l: 'PIPELINE', v: '$84K', c: '#0db9f2' }].map(({ l, v, c }) => (
-                        <div key={l} style={{ flex: 1, background: `${c}10`, border: `1px solid ${c}20`, borderRadius: 8, padding: '6px 10px' }}>
-                          <div style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em' }}>{l}</div>
-                          <div style={{ fontSize: 18, fontWeight: 700, color: c, fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>{v}</div>
+                  {/* Dashboard body */}
+                  <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                    {/* Sidebar */}
+                    <div style={{ width: 44, background: '#0d1829', padding: '10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      {SIDEBAR_ICONS.map((icon, i) => (
+                        <div key={icon} style={{
+                          width: 28, height: 28, borderRadius: 6,
+                          background: i === 0 ? 'rgba(99,102,241,0.25)' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: i === 0 ? '#6366f1' : 'rgba(255,255,255,0.2)' }}>{icon}</span>
                         </div>
                       ))}
                     </div>
 
-                    {/* Prospect rows */}
-                    {PROSPECTS.map(({ name, company, status, active, hue }) => (
-                      <div key={name} style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '5px 8px', borderRadius: 7,
-                        background: active ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
-                        border: `1px solid ${active ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}`,
-                      }}>
-                        <div style={{
-                          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                          background: `hsl(${hue}, 65%, 55%)`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 9, fontWeight: 700, color: 'white',
-                        }}>{name[0]}</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontFamily: 'JetBrains Mono, monospace', flex: 1 }}>{name} · {company}</div>
-                        <div style={{
-                          fontSize: 9, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700,
-                          padding: '2px 7px', borderRadius: 4,
-                          color: active ? '#6366f1' : 'rgba(255,255,255,0.2)',
-                          background: active ? 'rgba(99,102,241,0.15)' : 'transparent',
-                        }}>{status}</div>
+                    {/* Main */}
+                    <div style={{ flex: 1, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden' }}>
+                      {/* Metric strip */}
+                      <div style={{ display: 'flex', gap: 7 }}>
+                        {[{ l: 'CALLS', v: '47', c: '#6366f1' }, { l: 'CONNECTS', v: '12', c: '#8b5cf6' }, { l: 'PIPELINE', v: '$84K', c: '#0db9f2' }].map(({ l, v, c }) => (
+                          <div key={l} style={{ flex: 1, background: `${c}10`, border: `1px solid ${c}20`, borderRadius: 7, padding: '5px 9px' }}>
+                            <div style={{ fontSize: 8, fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em' }}>{l}</div>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: c, fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>{v}</div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+
+                      {/* Prospect rows */}
+                      {PROSPECTS.map(({ name, company, status, active, hue }) => (
+                        <div key={name} style={{
+                          display: 'flex', alignItems: 'center', gap: 7,
+                          padding: '4px 7px', borderRadius: 6,
+                          background: active ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
+                          border: `1px solid ${active ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}`,
+                        }}>
+                          <div style={{
+                            width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                            background: `hsl(${hue}, 65%, 55%)`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 8, fontWeight: 700, color: 'white',
+                          }}>{name[0]}</div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', fontFamily: 'JetBrains Mono, monospace', flex: 1 }}>{name} · {company}</div>
+                          <div style={{
+                            fontSize: 8, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700,
+                            padding: '2px 6px', borderRadius: 4,
+                            color: active ? '#6366f1' : 'rgba(255,255,255,0.2)',
+                            background: active ? 'rgba(99,102,241,0.15)' : 'transparent',
+                          }}>{status}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Play overlay */}
+                {/* Play overlay — centered over the full 16:9 frame */}
                 <div style={{
-                  position: 'absolute', inset: 0, top: 32,
+                  position: 'absolute', inset: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(15,23,42,0.25)',
+                  background: 'rgba(15,23,42,0.2)',
                 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 60, color: 'rgba(99,102,241,0.55)', fontVariationSettings: "'FILL' 1" }}>play_circle</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 64, color: 'rgba(99,102,241,0.5)', fontVariationSettings: "'FILL' 1" }}>play_circle</span>
                 </div>
               </div>
             </div>
