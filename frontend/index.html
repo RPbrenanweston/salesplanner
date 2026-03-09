@@ -19,9 +19,9 @@
         // Try to get saved theme from localStorage (fallback if not logged in)
         let theme = localStorage.getItem('theme');
 
-        // If no saved theme, use system preference
+        // If no saved theme, default to dark (dark-first app)
         if (!theme || theme === 'system') {
-          theme = getSystemPreference();
+          theme = 'dark';
         }
 
         // Apply theme immediately
