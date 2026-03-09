@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+!/usr/bin / env;
+node;
 import { loadConfig } from './config.js';
 import { collectGatingAnswers } from './gating.js';
 async function main() {

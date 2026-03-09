@@ -199,6 +199,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
       let imported = 0;
       let skipped = 0;
       let errors = 0;
+      const contactsToAddToList: string[] = []; // Track IDs of skipped/updated contacts
 
       for (const row of csvData) {
         try {
@@ -233,6 +234,10 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
           if (existing) {
             if (duplicateStrategy === 'skip') {
               skipped++;
+              // Track for list assignment if list is selected
+              if (selectedListId) {
+                contactsToAddToList.push(existing.id);
+              }
               continue;
             } else if (duplicateStrategy === 'update') {
               const { error: updateError } = await supabase
@@ -245,6 +250,10 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                 errors++;
               } else {
                 imported++;
+                // Track for list assignment if list is selected
+                if (selectedListId) {
+                  contactsToAddToList.push(existing.id);
+                }
               }
               continue;
             }
@@ -270,14 +279,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
 
             // Add to list if selected
             if (selectedListId && newContact) {
-              const { error: listError } = await supabase.from('list_contacts').insert({
-                list_id: selectedListId,
-                contact_id: newContact.id,
-                position: 0,
-              });
-              if (listError) {
-                console.error('List assignment error:', listError);
-              }
+              contactsToAddToList.push(newContact.id);
             }
           }
 
@@ -286,6 +288,20 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
           console.error('Row processing error:', rowErr);
           errors++;
           setImportProgress({ imported, skipped, errors });
+        }
+      }
+
+      // Bulk insert all tracked contacts into list_contacts if a list is selected
+      if (selectedListId && contactsToAddToList.length > 0) {
+        const listContactsToInsert = contactsToAddToList.map((contactId) => ({
+          list_id: selectedListId,
+          contact_id: contactId,
+          position: 0,
+        }));
+
+        const { error: bulkListError } = await supabase.from('list_contacts').insert(listContactsToInsert);
+        if (bulkListError) {
+          console.error('Bulk list assignment error:', bulkListError);
         }
       }
 
