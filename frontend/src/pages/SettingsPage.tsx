@@ -12,7 +12,7 @@
  * @hazard Logo upload uses Supabase Storage with a hardcoded bucket name — if the bucket name or path conventions change, uploads silently store to wrong location and the logo_url in orgs will be stale/broken
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES orgs+pipeline_stages+users; frontend/src/hooks/useAuth.ts→READS current user; frontend/src/components/GmailOAuthButton.tsx→RENDERS; frontend/src/components/OutlookOAuthButton.tsx→RENDERS; frontend/src/components/GoogleCalendarOAuthButton.tsx→RENDERS; frontend/src/components/OutlookCalendarOAuthButton.tsx→RENDERS; frontend/src/components/SalesforceOAuthButton.tsx→RENDERS; frontend/src/App.tsx→ROUTES to /settings
  * @trail settings#1 | SettingsPage mounts → load org + pipeline stages → render tabs → user edits profile or org → save → user connects integration → OAuth button redirects → callback page returns → user edits pipeline → save
- * @prompt Wrap each OAuth button in its own ErrorBoundary to isolate render crashes. Add success/error toasts for all save actions. Validate org logo URL before displaying. Extract each tab into a sub-component for maintainability.
+ * @prompt Wrap each OAuth button in its own ErrorBoundary to isolate render crashes. Add success/error toasts for all save actions. Validate org logo URL before displaying. Extract each tab into a sub-component for maintainability. VV design applied: void-950 page bg, glass-card panels, indigo-electric active tab + CTAs + toggles ON, red-alert danger zone + destructive actions, vv-section-title labels, font-display headings, font-mono stats, white/10 borders, VV inline spinners (hierarchy/team/stages/billing), bg-black/60 modal backdrop, disabled inputs dark:bg-white/5 dark:text-white/50, ease-snappy transitions.
  */
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
@@ -845,20 +845,23 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-        Settings
-      </h1>
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      <div>
+        <p className="vv-section-title mb-1">Account</p>
+        <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">
+          Settings
+        </h1>
+      </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+      <div className="border-b border-gray-200 dark:border-white/10 mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('profile')}
             className={`${
               activeTab === 'profile'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+                ? 'border-indigo-electric text-indigo-electric'
+                : 'border-transparent text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:border-white/20'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
             Profile
@@ -867,8 +870,8 @@ export default function SettingsPage() {
             onClick={() => setActiveTab('organization')}
             className={`${
               activeTab === 'organization'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+                ? 'border-indigo-electric text-indigo-electric'
+                : 'border-transparent text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:border-white/20'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
             Organization
@@ -878,8 +881,8 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('team')}
               className={`${
                 activeTab === 'team'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+                  ? 'border-indigo-electric text-indigo-electric'
+                  : 'border-transparent text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:border-white/20'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
               Team
@@ -889,8 +892,8 @@ export default function SettingsPage() {
             onClick={() => setActiveTab('integrations')}
             className={`${
               activeTab === 'integrations'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+                ? 'border-indigo-electric text-indigo-electric'
+                : 'border-transparent text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:border-white/20'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
             Integrations
@@ -899,8 +902,8 @@ export default function SettingsPage() {
             onClick={() => setActiveTab('pipeline')}
             className={`${
               activeTab === 'pipeline'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+                ? 'border-indigo-electric text-indigo-electric'
+                : 'border-transparent text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:border-white/20'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
             Pipeline
@@ -909,8 +912,8 @@ export default function SettingsPage() {
             onClick={() => setActiveTab('billing')}
             className={`${
               activeTab === 'billing'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300'
+                ? 'border-indigo-electric text-indigo-electric'
+                : 'border-transparent text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:border-white/20'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
             Billing
@@ -921,10 +924,10 @@ export default function SettingsPage() {
       {/* Tab Content */}
       {activeTab === 'profile' && (
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Profile Settings
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-white/50">
             Profile customization coming soon.
           </p>
         </div>
@@ -932,36 +935,36 @@ export default function SettingsPage() {
 
       {activeTab === 'organization' && (
         <div className="max-w-4xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Organization Settings
           </h2>
 
           {/* Organization Name */}
           <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="vv-section-title block mb-2">
               Organization Name
             </label>
             <input
               type="text"
               value={orgName}
               disabled
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+              className="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/50 cursor-not-allowed"
             />
           </div>
 
           {/* Logo Upload */}
           <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="vv-section-title block mb-2">
               Organization Logo
             </label>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 dark:text-white/50 mb-4">
               Upload your company logo (PNG, JPG, or SVG, max 2MB). This will appear in the sidebar and sign-in page.
             </p>
 
             {/* Current Logo Preview */}
             {logoUrl && (
-              <div className="mb-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="mb-4 glass-card p-4">
+                <p className="text-sm font-medium text-gray-700 dark:text-white/70 mb-2">
                   Current Logo
                 </p>
                 <div className="flex items-center space-x-4">
@@ -973,7 +976,7 @@ export default function SettingsPage() {
                   <button
                     onClick={handleRemoveLogo}
                     disabled={uploading}
-                    className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                    className="px-3 py-1 text-sm text-red-alert hover:text-red-alert/70 disabled:opacity-50 transition-colors duration-150"
                   >
                     Remove
                   </button>
@@ -983,7 +986,7 @@ export default function SettingsPage() {
 
             {/* Upload Button */}
             <div className="flex items-center space-x-4">
-              <label className="flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+              <label className="flex items-center justify-center px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-medium text-gray-700 dark:text-white/70 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 cursor-pointer transition-all duration-150 ease-snappy">
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/svg+xml"
@@ -1010,37 +1013,40 @@ export default function SettingsPage() {
 
           {/* Hierarchy Management */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="font-display text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Organizational Hierarchy
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-600 dark:text-white/50 mb-4">
               Configure divisions and teams to organize your sales organization. Users can be assigned to teams.
             </p>
 
             {loadingHierarchy ? (
-              <div className="text-gray-500 dark:text-gray-400">Loading hierarchy...</div>
+              <div className="flex items-center gap-3 text-gray-400 dark:text-white/40 py-8">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Hierarchy...</span>
+        </div>
             ) : (
               <div className="space-y-6">
                 {/* Divisions Section */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                <div className="glass-card p-4">
                   <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">
                     Divisions ({divisions.length})
                   </h4>
 
                   {divisions.map((division) => (
-                    <div key={division.id} className="mb-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                    <div key={division.id} className="mb-3 p-3 border border-white/10 rounded-lg">
                       {editingDivisionId === division.id ? (
                         <div className="flex items-center space-x-2">
                           <input
                             type="text"
                             value={editingDivisionName}
                             onChange={(e) => setEditingDivisionName(e.target.value)}
-                            className="flex-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            className="flex-1 px-3 py-1 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none"
                             autoFocus
                           />
                           <button
                             onClick={() => handleRenameDivision(division.id, editingDivisionName)}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            className="px-3 py-1 text-sm bg-indigo-electric text-white rounded-md hover:bg-indigo-electric/80"
                           >
                             Save
                           </button>
@@ -1049,7 +1055,7 @@ export default function SettingsPage() {
                               setEditingDivisionId(null)
                               setEditingDivisionName('')
                             }}
-                            className="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                            className="px-3 py-1 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-md hover:bg-gray-50 dark:hover:bg-white/10 transition-colors duration-150"
                           >
                             Cancel
                           </button>
@@ -1065,13 +1071,13 @@ export default function SettingsPage() {
                                 setEditingDivisionId(division.id)
                                 setEditingDivisionName(division.name)
                               }}
-                              className="px-2 py-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                              className="px-2 py-1 text-xs text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                             >
                               Rename
                             </button>
                             <button
                               onClick={() => handleDeleteDivision(division.id)}
-                              className="px-2 py-1 text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                              className="px-2 py-1 text-xs text-red-alert hover:text-red-alert/70 transition-colors duration-150"
                             >
                               Delete
                             </button>
@@ -1082,7 +1088,7 @@ export default function SettingsPage() {
                       {/* Teams in this division */}
                       <div className="mt-2 ml-4 space-y-1">
                         {teams.filter(t => t.division_id === division.id).map(team => (
-                          <div key={team.id} className="text-xs text-gray-600 dark:text-gray-400">
+                          <div key={team.id} className="text-xs text-gray-600 dark:text-white/50">
                             • {team.name}
                           </div>
                         ))}
@@ -1097,12 +1103,12 @@ export default function SettingsPage() {
                       value={newDivisionName}
                       onChange={(e) => setNewDivisionName(e.target.value)}
                       placeholder="New division name"
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none"
                     />
                     <button
                       onClick={handleCreateDivision}
                       disabled={!newDivisionName.trim()}
-                      className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 text-sm bg-indigo-electric text-white rounded-md hover:bg-indigo-electric/80 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Add Division
                     </button>
@@ -1110,25 +1116,25 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Teams Section */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                <div className="glass-card p-4">
                   <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">
                     Teams ({teams.length})
                   </h4>
 
                   {teams.map((team) => (
-                    <div key={team.id} className="mb-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg">
+                    <div key={team.id} className="mb-3 p-3 border border-white/10 rounded-lg">
                       {editingTeamId === team.id ? (
                         <div className="flex items-center space-x-2">
                           <input
                             type="text"
                             value={editingTeamName}
                             onChange={(e) => setEditingTeamName(e.target.value)}
-                            className="flex-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            className="flex-1 px-3 py-1 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none"
                             autoFocus
                           />
                           <button
                             onClick={() => handleRenameTeam(team.id, editingTeamName)}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            className="px-3 py-1 text-sm bg-indigo-electric text-white rounded-md hover:bg-indigo-electric/80"
                           >
                             Save
                           </button>
@@ -1137,7 +1143,7 @@ export default function SettingsPage() {
                               setEditingTeamId(null)
                               setEditingTeamName('')
                             }}
-                            className="px-3 py-1 text-sm bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                            className="px-3 py-1 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-md hover:bg-gray-50 dark:hover:bg-white/10 transition-colors duration-150"
                           >
                             Cancel
                           </button>
@@ -1153,13 +1159,13 @@ export default function SettingsPage() {
                                 setEditingTeamId(team.id)
                                 setEditingTeamName(team.name)
                               }}
-                              className="px-2 py-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                              className="px-2 py-1 text-xs text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                             >
                               Rename
                             </button>
                             <button
                               onClick={() => handleDeleteTeam(team.id)}
-                              className="px-2 py-1 text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                              className="px-2 py-1 text-xs text-red-alert hover:text-red-alert/70 transition-colors duration-150"
                             >
                               Delete
                             </button>
@@ -1169,13 +1175,13 @@ export default function SettingsPage() {
 
                       {/* Division Assignment */}
                       <div className="flex items-center space-x-2">
-                        <label className="text-xs text-gray-600 dark:text-gray-400">
+                        <label className="text-xs text-gray-600 dark:text-white/50">
                           Division:
                         </label>
                         <select
                           value={team.division_id || ''}
                           onChange={(e) => handleAssignTeamToDivision(team.id, e.target.value || null)}
-                          className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="px-2 py-1 text-xs border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white"
                         >
                           <option value="">No division</option>
                           {divisions.map(div => (
@@ -1196,12 +1202,12 @@ export default function SettingsPage() {
                         value={newTeamName}
                         onChange={(e) => setNewTeamName(e.target.value)}
                         placeholder="New team name"
-                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none"
                       />
                       <select
                         value={newTeamDivisionId || ''}
                         onChange={(e) => setNewTeamDivisionId(e.target.value || null)}
-                        className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className="px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white"
                       >
                         <option value="">No division</option>
                         {divisions.map(div => (
@@ -1213,7 +1219,7 @@ export default function SettingsPage() {
                       <button
                         onClick={handleCreateTeam}
                         disabled={!newTeamName.trim()}
-                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 text-sm bg-indigo-electric text-white rounded-md hover:bg-indigo-electric/80 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Add Team
                       </button>
@@ -1222,26 +1228,26 @@ export default function SettingsPage() {
                 </div>
 
                 {/* User Reassignment Section */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+                <div className="glass-card p-4">
                   <h4 className="text-md font-medium text-gray-900 dark:text-white mb-3">
                     User Team Assignments ({teamMembers.length})
                   </h4>
 
                   <div className="space-y-2">
                     {teamMembers.map((member) => (
-                      <div key={member.id} className="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-600 rounded-md">
+                      <div key={member.id} className="flex items-center justify-between p-2 border border-gray-200 dark:border-white/10 rounded-md">
                         <div>
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
                             {member.display_name}
                           </span>
-                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                          <span className="ml-2 text-xs text-gray-500 dark:text-white/50">
                             ({member.role.toUpperCase()})
                           </span>
                         </div>
                         <select
                           value={member.team_id || ''}
                           onChange={(e) => handleReassignUser(member.id, e.target.value || null)}
-                          className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="px-3 py-1 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white"
                         >
                           <option value="">No team</option>
                           {teams.map(team => (
@@ -1267,61 +1273,64 @@ export default function SettingsPage() {
         <div className="max-w-4xl">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Team Management
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-white/50">
                 Invite team members and manage access to your organization.
               </p>
             </div>
             <button
               onClick={() => setShowInviteModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-4 py-2 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 transition-colors font-medium"
             >
               Invite Member
             </button>
           </div>
 
           {loadingTeam ? (
-            <div className="text-gray-500 dark:text-gray-400">Loading team data...</div>
+            <div className="flex items-center gap-3 text-gray-400 dark:text-white/40 py-8">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Team...</span>
+        </div>
           ) : (
             <>
               {/* Pending Invitations */}
               {teamInvitations.length > 0 && (
                 <div className="mb-8">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
                     Pending Invitations ({teamInvitations.length})
                   </h3>
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <div className="glass-card overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-gray-50 dark:bg-gray-800">
+                      <thead className="bg-gray-50 dark:bg-white/5">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left vv-section-title">
                             Email
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left vv-section-title">
                             Role
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left vv-section-title">
                             Expires
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left vv-section-title">
                             Actions
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                      <tbody className="divide-y divide-gray-200 dark:divide-white/10">
                         {teamInvitations.map((invite) => (
                           <tr key={invite.id}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                               {invite.email}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-white/50">
                               <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
                                 {invite.role.toUpperCase()}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-white/50">
                               {new Date(invite.expires_at).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -1342,35 +1351,35 @@ export default function SettingsPage() {
 
               {/* Team Members */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
                   Team Members ({teamMembers.length})
                 </h3>
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="glass-card overflow-hidden">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-800">
+                    <thead className="bg-gray-50 dark:bg-white/5">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left vv-section-title">
                           Name
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left vv-section-title">
                           Email
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left vv-section-title">
                           Role
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody className="divide-y divide-gray-200 dark:divide-white/10">
                       {teamMembers.map((member) => (
                         <tr key={member.id}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                             {member.display_name}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-white/50">
                             {member.email}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                            <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-white/50">
+                            <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white/70 rounded">
                               {member.role.toUpperCase()}
                             </span>
                           </td>
@@ -1385,15 +1394,15 @@ export default function SettingsPage() {
 
           {/* Invite Modal */}
           {showInviteModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+              <div className="glass-card max-w-md w-full mx-4 p-6">
+                <h3 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-4">
                   Invite Team Member
                 </h3>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="vv-section-title block mb-2">
                       Email Address
                     </label>
                     <input
@@ -1401,18 +1410,18 @@ export default function SettingsPage() {
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       placeholder="colleague@company.com"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none transition-colors duration-150"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="vv-section-title block mb-2">
                       Role
                     </label>
                     <select
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value as 'sdr' | 'ae' | 'manager')}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none transition-colors duration-150"
                     >
                       <option value="sdr">SDR - Sales Development Rep</option>
                       <option value="ae">AE - Account Executive</option>
@@ -1422,13 +1431,13 @@ export default function SettingsPage() {
 
                   {availableTeams.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="vv-section-title block mb-2">
                         Team (Optional)
                       </label>
                       <select
                         value={inviteTeamId || ''}
                         onChange={(e) => setInviteTeamId(e.target.value || null)}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none transition-colors duration-150"
                       >
                         <option value="">No team assignment</option>
                         {availableTeams.map((team) => (
@@ -1450,14 +1459,14 @@ export default function SettingsPage() {
                       setInviteTeamId(null)
                     }}
                     disabled={sendingInvite}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSendInvite}
                     disabled={sendingInvite || !inviteEmail}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {sendingInvite ? 'Sending...' : 'Send Invitation'}
                   </button>
@@ -1470,16 +1479,16 @@ export default function SettingsPage() {
 
       {activeTab === 'integrations' && (
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-2">
             Integrations
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-gray-600 dark:text-white/50 mb-6">
             Connect your email, calendar, and CRM to sync data and send messages directly from SalesBlock.
           </p>
 
           {/* Email Providers */}
           <div className="mb-8">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
               Email
             </h3>
             <div className="space-y-4">
@@ -1490,7 +1499,7 @@ export default function SettingsPage() {
 
           {/* Calendar Providers */}
           <div className="mb-8">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
               Calendar
             </h3>
             <div className="space-y-4">
@@ -1501,20 +1510,20 @@ export default function SettingsPage() {
 
           {/* CRM */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
               CRM
             </h3>
             <div className="space-y-4">
               <SalesforceOAuthButton />
 
               {/* Salesforce Activity Sync Settings */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+              <div className="glass-card p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                       Auto-push Activities to Salesforce
                     </h4>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-xs text-gray-600 dark:text-white/50 mt-1">
                       Automatically create Salesforce Tasks when you log activities in SalesBlock
                     </p>
                   </div>
@@ -1522,7 +1531,7 @@ export default function SettingsPage() {
                     onClick={handleSfAutoPushToggle}
                     disabled={sfAutoPushLoading}
                     className={`${
-                      sfAutoPush ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                      sfAutoPush ? 'bg-indigo-electric' : 'dark:bg-white/10 bg-gray-300'
                     } relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50`}
                   >
                     <span
@@ -1536,11 +1545,11 @@ export default function SettingsPage() {
                 <div className="mt-4 flex items-center space-x-2">
                   <button
                     onClick={handleSyncNow}
-                    className="px-3 py-1 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
+                    className="px-3 py-1 text-sm font-medium text-white bg-indigo-electric hover:bg-indigo-electric/80 rounded-md transition-all duration-150 ease-snappy"
                   >
                     Sync Now
                   </button>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="text-xs text-gray-500 dark:text-white/50">
                     Manually sync pending activities
                   </span>
                 </div>
@@ -1552,22 +1561,25 @@ export default function SettingsPage() {
 
       {activeTab === 'pipeline' && (
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-2">
             Pipeline Stages
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-gray-600 dark:text-white/50 mb-6">
             Configure probability percentages for each pipeline stage. These values are used to calculate weighted revenue forecasts.
           </p>
 
           {loadingStages ? (
-            <div className="text-gray-500 dark:text-gray-400">Loading stages...</div>
+            <div className="flex items-center gap-3 text-gray-400 dark:text-white/40 py-8">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Stages...</span>
+        </div>
           ) : (
             <>
               <div className="space-y-4 mb-6">
                 {pipelineStages.map((stage) => (
                   <div
                     key={stage.id}
-                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800"
+                    className="glass-card p-4"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -1579,7 +1591,7 @@ export default function SettingsPage() {
                           {stage.name}
                         </h3>
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="text-sm text-gray-600 dark:text-white/50">
                         {stage.probability}% probability
                       </div>
                     </div>
@@ -1592,7 +1604,7 @@ export default function SettingsPage() {
                         step="5"
                         value={stage.probability}
                         onChange={(e) => handleProbabilityChange(stage.id, parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        className="flex-1 h-2 bg-gray-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-electric"
                       />
                       <input
                         type="number"
@@ -1600,9 +1612,9 @@ export default function SettingsPage() {
                         max="100"
                         value={stage.probability}
                         onChange={(e) => handleProbabilityChange(stage.id, parseInt(e.target.value) || 0)}
-                        className="w-20 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className="w-20 px-3 py-1 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none"
                       />
-                      <span className="text-sm text-gray-500 dark:text-gray-400">%</span>
+                      <span className="text-sm text-gray-500 dark:text-white/50">%</span>
                     </div>
                   </div>
                 ))}
@@ -1612,11 +1624,11 @@ export default function SettingsPage() {
                 <button
                   onClick={handleSaveProbabilities}
                   disabled={savingStages}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-4 py-2 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {savingStages ? 'Saving...' : 'Save Changes'}
                 </button>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-white/50">
                   Changes will apply to forecast calculations immediately
                 </p>
               </div>
@@ -1627,20 +1639,23 @@ export default function SettingsPage() {
 
       {activeTab === 'billing' && (
         <div className="max-w-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-2">
             Billing & Subscription
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-gray-600 dark:text-white/50 mb-6">
             Manage your subscription, payment method, and billing information.
           </p>
 
           {loadingBilling ? (
-            <div className="text-gray-500 dark:text-gray-400">Loading billing data...</div>
+            <div className="flex items-center gap-3 text-gray-400 dark:text-white/40 py-8">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Billing...</span>
+        </div>
           ) : (
             <div className="space-y-6">
               {/* Current Plan */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              <div className="glass-card p-6">
+                <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
                   Current Plan
                 </h3>
                 <div className="flex items-center justify-between">
@@ -1649,7 +1664,7 @@ export default function SettingsPage() {
                       {billingData.currentPlan || 'Free Trial'}
                     </p>
                     {billingData.nextBillingDate && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-sm text-gray-600 dark:text-white/50 mt-1">
                         Next billing date: {new Date(billingData.nextBillingDate).toLocaleDateString()}
                       </p>
                     )}
@@ -1659,16 +1674,16 @@ export default function SettingsPage() {
 
               {/* Payment Method & Portal */}
               {billingData.stripeCustomerId && (
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                <div className="glass-card p-6">
+                  <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
                     Payment Method
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <p className="text-sm text-gray-600 dark:text-white/50 mb-4">
                     Update your payment method, view invoices, and manage billing details in the Stripe Customer Portal.
                   </p>
                   <button
                     onClick={handleOpenCustomerPortal}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 transition-colors"
                   >
                     Manage Payment Method
                   </button>
@@ -1677,8 +1692,8 @@ export default function SettingsPage() {
 
               {/* Cancel Subscription */}
               {billingData.stripeCustomerId && billingData.currentPlan !== 'Free Trial' && (
-                <div className="border border-red-200 dark:border-red-900 rounded-lg p-6 bg-red-50 dark:bg-red-900/10">
-                  <h3 className="text-lg font-medium text-red-900 dark:text-red-200 mb-2">
+                <div className="border border-red-alert/30 rounded-lg p-6 bg-red-50 dark:bg-red-alert/10">
+                  <h3 className="font-display text-lg font-medium text-red-700 dark:text-red-alert mb-2">
                     Cancel Subscription
                   </h3>
                   <p className="text-sm text-red-700 dark:text-red-300 mb-4">
@@ -1686,7 +1701,7 @@ export default function SettingsPage() {
                   </p>
                   <button
                     onClick={handleCancelSubscription}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    className="px-4 py-2 bg-red-alert text-white rounded-lg hover:bg-red-alert/80 transition-all duration-150 ease-snappy"
                   >
                     Cancel Subscription
                   </button>
@@ -1694,11 +1709,11 @@ export default function SettingsPage() {
               )}
 
               {/* Team Billing Note */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-gray-50 dark:bg-gray-800/50">
+              <div className="glass-card p-6">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
                   Team Plans
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-white/50">
                   Team plans are billed per seat based on role (SDR: $3.50/wk, AE: $4.50/wk, Manager: $5.50/wk). Minimum 2 users required for team plans.
                 </p>
               </div>

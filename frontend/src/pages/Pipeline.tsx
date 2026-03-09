@@ -12,7 +12,7 @@
  * @hazard No optimistic rollback on failed stage update — if Supabase write fails, UI shows new stage but DB has old stage (silent desync)
  * @shared-edges frontend/src/components/AddDealModal.tsx→LAUNCHES for new deals; frontend/src/lib/supabase.ts→QUERIES+UPDATES deals; frontend/src/App.tsx→ROUTES to /pipeline
  * @trail pipeline#1 | Pipeline mounts → load deals grouped by stage → render DragDropContext with columns → drag deal → onDragEnd fires → update stage in Supabase → re-render column
- * @prompt Add optimistic rollback for failed stage updates. Investigate @hello-pangea/dnd StrictMode double-fire in dev. Add deal value total in column header. Verify deals are scoped to org_id (multi-tenant isolation check).
+ * @prompt Add optimistic rollback for failed stage updates. Investigate @hello-pangea/dnd StrictMode double-fire in dev. Add deal value total in column header. Verify deals are scoped to org_id (multi-tenant isolation check). VV design applied: glass-card forecast panel + kanban columns, indigo-electric Add Deal CTA, vv-section-title forecast labels, emerald-signal closing-this-month, indigo-electric drag-over highlight, white/10 card borders, font-mono values, void-950 page bg.
  */
 import { useState, useEffect } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
@@ -245,54 +245,53 @@ export default function Pipeline() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500 dark:text-gray-400">Loading pipeline...</div>
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Pipeline...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Pipeline</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Track deals through your sales pipeline
-          </p>
+          <p className="vv-section-title mb-1">Revenue</p>
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">Pipeline</h1>
         </div>
         <button
           onClick={() => openAddDealModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
           Add Deal
         </button>
       </div>
 
       {/* Forecast Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Forecast</h2>
+      <div className="glass-card p-6">
+        <h2 className="font-display text-base font-semibold text-gray-900 dark:text-white mb-4">Revenue Forecast</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="flex flex-col">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Pipeline Value</div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="vv-section-title mb-1">Total Pipeline Value</div>
+            <div className="font-mono text-2xl font-bold text-gray-900 dark:text-white">
               {formatCurrency(totalPipelineValue)}
             </div>
           </div>
           <div className="flex flex-col">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Weighted Forecast</div>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="vv-section-title mb-1">Weighted Forecast</div>
+            <div className="font-mono text-2xl font-bold text-indigo-electric">
               {formatCurrency(weightedForecast)}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            <div className="text-xs text-gray-400 dark:text-white/30 font-mono mt-1">
               Based on stage probabilities
             </div>
           </div>
           <div className="flex flex-col">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Closing This Month</div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="vv-section-title mb-1">Closing This Month</div>
+            <div className="font-mono text-2xl font-bold text-emerald-signal">
               {dealsClosingThisMonth} {dealsClosingThisMonth === 1 ? 'deal' : 'deals'}
             </div>
           </div>
@@ -304,28 +303,28 @@ export default function Pipeline() {
           {columns.map((column) => (
             <div
               key={column.stage.id}
-              className="flex-shrink-0 w-80 bg-gray-50 dark:bg-gray-800 rounded-lg"
+              className="flex-shrink-0 w-80 glass-card"
             >
               {/* Column Header */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-4 border-b border-gray-200 dark:border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: column.stage.color }}
                     />
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                    <h3 className="font-display font-semibold text-gray-900 dark:text-white">
                       {column.stage.name}
                     </h3>
                   </div>
                   <button
                     onClick={() => openAddDealModal(column.stage.id)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white transition-colors duration-150 ease-snappy"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm text-gray-500 dark:text-white/40 font-mono">
                   {column.count} {column.count === 1 ? 'deal' : 'deals'} • {formatCurrency(column.totalValue)}
                 </div>
               </div>
@@ -337,7 +336,7 @@ export default function Pipeline() {
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={`p-4 space-y-3 min-h-[200px] ${
-                      snapshot.isDraggingOver ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                      snapshot.isDraggingOver ? 'bg-indigo-electric/5 dark:bg-indigo-electric/10' : ''
                     }`}
                   >
                     {column.deals.map((deal, index) => (
@@ -348,15 +347,15 @@ export default function Pipeline() {
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             onClick={() => openDealDetail(deal.id)}
-                            className={`bg-white dark:bg-gray-700 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-600 cursor-pointer hover:shadow-md transition-shadow ${
-                              snapshot.isDragging ? 'shadow-lg ring-2 ring-blue-500' : ''
+                            className={`bg-white dark:bg-white/5 rounded-lg p-4 border border-gray-200 dark:border-white/10 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy ${
+                              snapshot.isDragging ? 'shadow-lg ring-2 ring-indigo-electric' : ''
                             }`}
                           >
                             <h4 className="font-medium text-gray-900 dark:text-white mb-2 line-clamp-2">
                               {deal.title}
                             </h4>
 
-                            <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="space-y-1 text-sm text-gray-500 dark:text-white/50">
                               <div className="flex items-center gap-2">
                                 <User className="w-3.5 h-3.5" />
                                 <span className="truncate">
@@ -371,8 +370,8 @@ export default function Pipeline() {
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                                <span className="font-semibold text-gray-900 dark:text-white">
+                              <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-white/10">
+                                <span className="font-mono font-semibold text-gray-900 dark:text-white">
                                   {formatCurrency(deal.value)}
                                 </span>
                                 {deal.close_date && (
@@ -383,7 +382,7 @@ export default function Pipeline() {
                                 )}
                               </div>
 
-                              <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              <div className="text-xs text-gray-400 dark:text-white/30 font-mono mt-1">
                                 {getDaysInStage(deal.created_at)} days in stage
                               </div>
                             </div>
@@ -394,7 +393,7 @@ export default function Pipeline() {
                     {provided.placeholder}
 
                     {column.deals.length === 0 && (
-                      <div className="text-center py-8 text-sm text-gray-400 dark:text-gray-500">
+                      <div className="text-center py-8 text-sm text-gray-400 dark:text-white/30">
                         No deals in this stage
                       </div>
                     )}

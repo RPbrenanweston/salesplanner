@@ -12,11 +12,12 @@
  * @hazard Session completion writes sessionNotes to a field that may not exist on the salesblocks table — verify notes column exists before trusting completion persistence
  * @shared-edges frontend/src/components/LogActivityModal.tsx→LAUNCHES for call/email/note; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES for social; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES for email compose; frontend/src/components/BookMeetingModal.tsx→LAUNCHES for meetings; frontend/src/components/ContactActivityTimeline.tsx→RENDERS below contact card; frontend/src/lib/supabase.ts→ALL queries
  * @trail session#1 | Page mounts with salesblockId → load salesblock+contacts → start elapsed timer → show first contact → log activity via modal → advance index → script panel expandable → all contacts done → show completion screen with stats
- * @prompt Fix setInterval cleanup — add clearInterval in useEffect return. Verify session_notes column exists on salesblocks table. Add error toast on activity log failure (currently silent). Consider persisting progress so session can be resumed if navigated away.
+ * @prompt Fix setInterval cleanup — add clearInterval in useEffect return. Verify session_notes column exists on salesblocks table. Add error toast on activity log failure (currently silent). Consider persisting progress so session can be resumed if navigated away. VV design applied: void-950 bg, VV spinner, font-display headings, glass-card summary cards with indigo-electric/emerald-signal/cyan-neon/purple-neon labels, indigo-electric progress bars, VV secondary outlined buttons, indigo-electric active queue item, white/10 borders, font-mono timer, dark:text-white/40 muted text, ease-snappy CTAs.
  */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { ROUTES } from '../lib/routes';
 import { useAuth } from '../hooks/useAuth';
 import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home, Calendar } from 'lucide-react';
 import LogActivityModal from '../components/LogActivityModal';
@@ -365,21 +366,26 @@ export default function SalesBlockSessionPage() {
 
   const handleBackToHome = async () => {
     await handleSaveNotes();
-    navigate('/');
+    navigate(ROUTES.HOME);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-gray-500 dark:text-gray-400">Loading session...</p>
+      <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-void-950">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Session...</span>
+        </div>
       </div>
     );
   }
 
   if (!salesblock) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-red-500">SalesBlock not found</p>
+      <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-void-950">
+        <div className="glass-card p-6 border-l-4 border-red-alert">
+          <p className="text-red-600 dark:text-red-alert text-sm font-semibold">SalesBlock not found</p>
+        </div>
       </div>
     );
   }
@@ -398,106 +404,109 @@ export default function SalesBlockSessionPage() {
       sessionStats.connects > 0 ? Math.round((sessionStats.meetings / sessionStats.connects) * 100) : 0;
 
     return (
-      <div className="flex flex-col h-full bg-white dark:bg-gray-900 p-8 overflow-y-auto">
-        <div className="max-w-4xl mx-auto w-full">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Session Complete</h1>
-          <h2 className="text-xl text-gray-600 dark:text-gray-300 mb-8">{salesblock.title}</h2>
+      <div className="flex flex-col h-full bg-gray-50 dark:bg-void-950 p-8 overflow-y-auto">
+        <div className="max-w-4xl mx-auto w-full space-y-6">
+          <div>
+            <p className="vv-section-title mb-1">Session Complete</p>
+            <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-1">{salesblock.title}</h1>
+            <p className="text-sm text-gray-500 dark:text-white/50">Great work — here's your session summary</p>
+          </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-blue-50 dark:bg-blue-900 p-6 rounded-lg">
-              <p className="text-sm text-blue-600 dark:text-blue-300 font-semibold mb-1">Contacts Worked</p>
-              <p className="text-3xl font-bold text-blue-700 dark:text-blue-200">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="glass-card p-6">
+              <p className="vv-section-title mb-1">Contacts Worked</p>
+              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
                 {sessionStats.contactsWorked}
               </p>
-              <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
+              <p className="text-xs text-gray-400 dark:text-white/40 font-mono mt-1">
                 of {sessionStats.totalContacts} ({contactWorkedPercentage}%)
               </p>
             </div>
 
-            <div className="bg-green-50 dark:bg-green-900 p-6 rounded-lg">
-              <p className="text-sm text-green-600 dark:text-green-300 font-semibold mb-1">Calls Made</p>
-              <p className="text-3xl font-bold text-green-700 dark:text-green-200">{sessionStats.calls}</p>
+            <div className="glass-card p-6">
+              <p className="vv-section-title mb-1">Calls Made</p>
+              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">{sessionStats.calls}</p>
             </div>
 
-            <div className="bg-purple-50 dark:bg-purple-900 p-6 rounded-lg">
-              <p className="text-sm text-purple-600 dark:text-purple-300 font-semibold mb-1">Emails Sent</p>
-              <p className="text-3xl font-bold text-purple-700 dark:text-purple-200">{sessionStats.emails}</p>
+            <div className="glass-card p-6">
+              <p className="vv-section-title mb-1">Emails Sent</p>
+              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">{sessionStats.emails}</p>
             </div>
 
-            <div className="bg-orange-50 dark:bg-orange-900 p-6 rounded-lg">
-              <p className="text-sm text-orange-600 dark:text-orange-300 font-semibold mb-1">Social Touches</p>
-              <p className="text-3xl font-bold text-orange-700 dark:text-orange-200">{sessionStats.social}</p>
+            <div className="glass-card p-6">
+              <p className="vv-section-title mb-1">Social Touches</p>
+              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">{sessionStats.social}</p>
             </div>
 
-            <div className="bg-pink-50 dark:bg-pink-900 p-6 rounded-lg">
-              <p className="text-sm text-pink-600 dark:text-pink-300 font-semibold mb-1">Meetings Booked</p>
-              <p className="text-3xl font-bold text-pink-700 dark:text-pink-200">{sessionStats.meetings}</p>
+            <div className="glass-card p-6">
+              <p className="vv-section-title mb-1">Meetings Booked</p>
+              <p className="font-display text-3xl font-bold text-emerald-signal">{sessionStats.meetings}</p>
             </div>
 
-            <div className="bg-indigo-50 dark:bg-indigo-900 p-6 rounded-lg">
-              <p className="text-sm text-indigo-600 dark:text-indigo-300 font-semibold mb-1">Duration</p>
-              <p className="text-3xl font-bold text-indigo-700 dark:text-indigo-200">
+            <div className="glass-card p-6">
+              <p className="vv-section-title mb-1">Duration</p>
+              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white font-mono">
                 {Math.round(elapsedSeconds / 60)} min
               </p>
             </div>
           </div>
 
           {/* Conversion Ratios */}
-          <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Conversion Ratios</h3>
+          <div className="glass-card p-6">
+            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-4">Conversion Ratios</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Contacts Worked / Total</p>
-                <div className="flex items-center space-x-3">
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Contacts Worked / Total</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
                     <div
-                      className="bg-blue-600 h-3 rounded-full transition-all"
+                      className="bg-indigo-electric h-2 rounded-full transition-all"
                       style={{ width: `${contactWorkedPercentage}%` }}
                     />
                   </div>
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">{contactWorkedPercentage}%</span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{contactWorkedPercentage}%</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Calls to Connects</p>
-                <div className="flex items-center space-x-3">
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Calls to Connects</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
                     <div
-                      className="bg-green-600 h-3 rounded-full transition-all"
+                      className="bg-emerald-signal h-2 rounded-full transition-all"
                       style={{ width: `${callsToConnects}%` }}
                     />
                   </div>
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">{callsToConnects}%</span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{callsToConnects}%</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Connects to Meetings</p>
-                <div className="flex items-center space-x-3">
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Connects to Meetings</p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
                     <div
-                      className="bg-pink-600 h-3 rounded-full transition-all"
+                      className="bg-purple-neon h-2 rounded-full transition-all"
                       style={{ width: `${connectsToMeetings}%` }}
                     />
                   </div>
-                  <span className="text-lg font-bold text-gray-900 dark:text-white">{connectsToMeetings}%</span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{connectsToMeetings}%</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Session Notes */}
-          <div className="mb-8">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <div className="glass-card p-6">
+            <label className="vv-section-title block mb-2">
               Session Notes
             </label>
             <textarea
               value={sessionNotes}
               onChange={(e) => setSessionNotes(e.target.value)}
               placeholder="Add any observations or follow-up items from this session..."
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-electric text-sm"
               rows={4}
             />
           </div>
@@ -505,7 +514,7 @@ export default function SalesBlockSessionPage() {
           {/* Back to Home */}
           <button
             onClick={handleBackToHome}
-            className="flex items-center justify-center space-x-2 w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-6 py-3 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg font-semibold transition-all duration-200 ease-snappy"
           >
             <Home className="w-5 h-5" />
             <span>Back to Home</span>
@@ -516,26 +525,26 @@ export default function SalesBlockSessionPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-void-950">
       {/* Timer Bar */}
-      <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-white dark:bg-white/5 border-b border-gray-200 dark:border-white/10 p-4">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{salesblock.title}</h2>
-          <div className="flex items-center space-x-4">
-            <div className="text-sm text-gray-600 dark:text-gray-300">
+          <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-white">{salesblock.title}</h2>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-600 dark:text-white/50 font-mono">
               {formatTime(elapsedSeconds)} / {salesblock.duration_minutes} min
             </div>
             <button
               onClick={handleEndSession}
-              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+              className="px-4 py-2 bg-red-alert text-white text-sm rounded-lg hover:bg-red-alert/80 transition-all duration-200 ease-snappy"
             >
               End Session
             </button>
           </div>
         </div>
-        <div className="w-full bg-gray-300 dark:bg-gray-700 rounded-full h-2">
+        <div className="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            className="bg-indigo-electric h-2 rounded-full transition-all duration-300"
             style={{ width: `${Math.min(progressPercentage, 100)}%` }}
           />
         </div>
@@ -544,20 +553,20 @@ export default function SalesBlockSessionPage() {
       {/* Main Content: Queue + Active Contact */}
       <div className="flex flex-1 overflow-hidden">
         {/* Contact Queue (Left Sidebar) */}
-        <div className="w-80 border-r border-gray-200 dark:border-gray-700 overflow-y-auto bg-gray-50 dark:bg-gray-800">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+        <div className="w-80 border-r border-gray-200 dark:border-white/10 overflow-y-auto bg-gray-50 dark:bg-white/[0.02]">
+          <div className="p-4 border-b border-gray-200 dark:border-white/10">
+            <h3 className="vv-section-title">
               Contact Queue ({contacts.length})
             </h3>
           </div>
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-white/10">
             {contacts.map((contact, index) => (
               <div
                 key={contact.id}
-                className={`p-4 cursor-pointer transition-colors ${
+                className={`p-4 cursor-pointer transition-all duration-150 ease-snappy ${
                   index === activeIndex
-                    ? 'bg-blue-100 dark:bg-blue-900 border-l-4 border-blue-600'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-indigo-electric/10 dark:bg-indigo-electric/10 border-l-4 border-indigo-electric'
+                    : 'hover:bg-gray-50 dark:hover:bg-white/[0.08]'
                 }`}
                 onClick={() => setActiveIndex(index)}
               >
@@ -566,17 +575,17 @@ export default function SalesBlockSessionPage() {
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {contact.first_name} {contact.last_name}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{contact.company || 'No company'}</p>
+                    <p className="text-xs text-gray-500 dark:text-white/40 truncate">{contact.company || 'No company'}</p>
                   </div>
                   {contact.hasActivity && (
-                    <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 ml-2" />
+                    <Check className="w-5 h-5 text-emerald-signal flex-shrink-0 ml-2" />
                   )}
                 </div>
               </div>
             ))}
             {contacts.length === 0 && (
               <div className="p-8 text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">No contacts in this list</p>
+                <p className="text-sm text-gray-500 dark:text-white/40">No contacts in this list</p>
               </div>
             )}
           </div>
@@ -587,31 +596,31 @@ export default function SalesBlockSessionPage() {
           {activeContact ? (
             <div>
               <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   {activeContact.first_name} {activeContact.last_name}
                 </h1>
-                <p className="text-lg text-gray-600 dark:text-gray-300">
+                <p className="text-lg text-gray-600 dark:text-white/50">
                   {activeContact.title || 'No title'} at {activeContact.company || 'No company'}
                 </p>
               </div>
 
               <div className="space-y-4 mb-6">
                 {activeContact.phone && (
-                  <div className="flex items-center space-x-3">
-                    <Phone className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-gray-500 dark:text-white/40" />
                     <a
                       href={`tel:${activeContact.phone}`}
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                     >
                       {activeContact.phone}
                     </a>
                   </div>
                 )}
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-gray-500 dark:text-white/40" />
                   <a
                     href={`mailto:${activeContact.email}`}
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                    className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                   >
                     {activeContact.email}
                   </a>
@@ -620,25 +629,25 @@ export default function SalesBlockSessionPage() {
 
               {activeContact.notes && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Notes</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{activeContact.notes}</p>
+                  <h3 className="vv-section-title mb-2">Notes</h3>
+                  <p className="text-sm text-gray-600 dark:text-white/40 whitespace-pre-wrap">{activeContact.notes}</p>
                 </div>
               )}
 
               {/* Quick Actions */}
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Quick Actions</h3>
+                <h3 className="vv-section-title mb-3">Quick Actions</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setIsEmailModalOpen(true)}
-                    className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 transition-all duration-200 ease-snappy"
                   >
                     <Mail className="w-5 h-5" />
                     <span>Send Email</span>
                   </button>
                   <button
                     onClick={() => setIsMeetingModalOpen(true)}
-                    className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-signal text-white rounded-lg hover:bg-emerald-signal/80 transition-all duration-200 ease-snappy"
                   >
                     <Calendar className="w-5 h-5" />
                     <span>Book Meeting</span>
@@ -648,32 +657,32 @@ export default function SalesBlockSessionPage() {
 
               {/* Activity Buttons */}
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Log Activity</h3>
+                <h3 className="vv-section-title mb-3">Log Activity</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => openActivityModal('call')}
-                    className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
                   >
                     <PhoneCall className="w-5 h-5" />
                     <span>Log Call</span>
                   </button>
                   <button
                     onClick={() => openActivityModal('email')}
-                    className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
                   >
                     <Send className="w-5 h-5" />
                     <span>Log Email</span>
                   </button>
                   <button
                     onClick={openSocialModal}
-                    className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
                   >
                     <Share2 className="w-5 h-5" />
                     <span>Log Social</span>
                   </button>
                   <button
                     onClick={() => openActivityModal('note')}
-                    className="flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
                   >
                     <FileText className="w-5 h-5" />
                     <span>Log Note</span>
@@ -685,18 +694,18 @@ export default function SalesBlockSessionPage() {
               <div className="mb-6">
                 <button
                   onClick={() => setScriptExpanded(!scriptExpanded)}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-all duration-150 ease-snappy"
                 >
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Call Script</span>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-white/70">Call Script</span>
                   {scriptExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <ChevronUp className="w-5 h-5 text-gray-500 dark:text-white/40" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <ChevronDown className="w-5 h-5 text-gray-500 dark:text-white/40" />
                   )}
                 </button>
                 {scriptExpanded && (
-                  <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                  <div className="mt-3 p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-white/50 whitespace-pre-wrap">
                       {/* Placeholder: Future integration with call_scripts table */}
                       Hi, this is [Your Name] from [Company]. I'm reaching out because we help companies like{' '}
                       {activeContact.company || '[Company]'} with [Value Proposition].
@@ -711,8 +720,8 @@ export default function SalesBlockSessionPage() {
 
               {/* Activity Timeline */}
               <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Activity Timeline</h3>
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h3 className="vv-section-title mb-3">Activity Timeline</h3>
+                <div className="glass-card p-4">
                   <ContactActivityTimeline
                     contactId={activeContact.id}
                     showAddNote={false}
@@ -722,11 +731,11 @@ export default function SalesBlockSessionPage() {
               </div>
 
               {/* Navigation Buttons */}
-              <div className="flex space-x-3 mt-8">
+              <div className="flex gap-3 mt-8">
                 <button
                   onClick={handleNext}
                   disabled={activeIndex >= contacts.length - 1}
-                  className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-snappy"
                 >
                   <span>Next Contact</span>
                   <ChevronRight className="w-5 h-5" />
@@ -734,7 +743,7 @@ export default function SalesBlockSessionPage() {
                 <button
                   onClick={handleSkip}
                   disabled={contacts.length <= 1}
-                  className="flex items-center space-x-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 ease-snappy"
                 >
                   <SkipForward className="w-5 h-5" />
                   <span>Skip</span>
@@ -743,7 +752,7 @@ export default function SalesBlockSessionPage() {
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500 dark:text-gray-400">No contact selected</p>
+              <p className="text-gray-500 dark:text-white/40">No contact selected</p>
             </div>
           )}
         </div>

@@ -12,7 +12,7 @@
  * @hazard No feedback differentiation between "email not found" and "email sent" — Supabase intentionally shows the same message for both to prevent user enumeration, but this means broken accounts get no recovery guidance
  * @shared-edges frontend/src/lib/supabase.ts→CALLS auth.resetPasswordForEmail; frontend/src/App.tsx→ROUTES to /forgot-password; frontend/src/pages/SignIn.tsx→LINKED
  * @trail forgot-password#1 | ForgotPassword renders → user enters email → handleResetPassword → resetPasswordForEmail → setMessage (success) | setError (failure) → user checks email → clicks link → /reset-password
- * @prompt Add client-side email format validation. Ensure SITE_URL is set correctly in Supabase Auth settings to avoid localhost redirect links in production emails.
+ * @prompt VV tokens applied — void-950 background, glass-card form, indigo-electric CTA with spinner, white/5 input with indigo-electric focus ring, red-alert error banner, green-signal success banner. Remaining: add client-side email format validation. Ensure SITE_URL is set correctly in Supabase Auth settings to avoid localhost redirect links in production emails.
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -46,32 +46,37 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-void-950 via-void-900 to-void-950 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-white">
+          <div className="flex justify-center mb-6">
+            <div className="text-3xl font-black font-display text-indigo-electric">
+              SalesBlock.io
+            </div>
+          </div>
+          <h2 className="text-center text-3xl font-bold font-display text-white">
             Reset your password
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-center text-sm text-white/60">
             Remember your password?{' '}
-            <Link to="/signin" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link to="/signin" className="font-medium text-indigo-electric hover:text-indigo-electric/80 transition-colors ease-snappy">
               Sign in
             </Link>
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleResetPassword}>
           {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4">
+              <p className="text-sm text-red-alert">{error}</p>
             </div>
           )}
           {message && (
-            <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
-              <p className="text-sm text-green-800 dark:text-green-200">{message}</p>
+            <div className="rounded-lg bg-green-500/10 border border-green-500/30 p-4">
+              <p className="text-sm text-green-400">{message}</p>
             </div>
           )}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <div className="glass-card p-6">
+            <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-1">
               Email address
             </label>
             <input
@@ -82,8 +87,8 @@ export default function ForgotPassword() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 sm:text-sm"
-              placeholder="Email address"
+              className="appearance-none block w-full px-3 py-2 bg-white/5 border border-white/10 placeholder-white/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-electric focus:border-indigo-electric text-sm transition-colors ease-snappy"
+              placeholder="you@company.com"
             />
           </div>
 
@@ -91,8 +96,9 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-electric text-white font-semibold rounded-lg hover:bg-indigo-electric/80 focus:outline-none focus:ring-2 focus:ring-indigo-electric/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all ease-snappy"
             >
+              {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {loading ? 'Sending...' : 'Send reset link'}
             </button>
           </div>

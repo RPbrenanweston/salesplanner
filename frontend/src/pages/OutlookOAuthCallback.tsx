@@ -12,7 +12,7 @@
  * @hazard Outlook and Gmail OAuth callbacks share nearly identical structure — any divergence in error handling or token exchange logic between the two will create inconsistent user experiences across integrations
  * @shared-edges frontend/src/components/OutlookOAuthButton.tsx→INITIATES OAuth flow; frontend/src/pages/SettingsPage.tsx→RETURNS to after success; frontend/src/App.tsx→ROUTES to /oauth/outlook/callback
  * @trail outlook-oauth#1 | OutlookOAuthButton redirects to Microsoft → Microsoft redirects to callback → parse params → exchange code → store tokens → navigate('/settings')
- * @prompt Consolidate all OAuth callbacks into a shared hook with provider param. Sanitize error_description before display. Add CSRF state validation.
+ * @prompt VV tokens applied — void-950 gradient background, glass-card container, red-alert error heading, white/70 error body, indigo-electric CTA button with ease-snappy, VV spinner (border-indigo-electric border-t-transparent). Remaining: Consolidate all OAuth callbacks into a shared hook with provider param. Sanitize error_description before display. Add CSRF state validation.
  */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -71,17 +71,17 @@ export default function OutlookOAuthCallback() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-        <div className="max-w-md w-full p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-          <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-void-950 via-void-900 to-void-950">
+        <div className="max-w-md w-full p-6 glass-card">
+          <h1 className="text-2xl font-bold font-display text-red-alert mb-4">
             OAuth Error
           </h1>
-          <p className="text-gray-700 dark:text-gray-300 mb-4">
+          <p className="text-white/70 mb-4">
             {error}
           </p>
           <button
             onClick={() => window.close()}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg transition-colors ease-snappy"
           >
             Close Window
           </button>
@@ -91,13 +91,13 @@ export default function OutlookOAuthCallback() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="max-w-md w-full p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-void-950 via-void-900 to-void-950">
+      <div className="max-w-md w-full p-6 glass-card text-center">
+        <div className="w-12 h-12 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <h1 className="text-xl font-semibold text-white mb-2">
           Completing OAuth...
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-white/60">
           This window will close automatically.
         </p>
       </div>

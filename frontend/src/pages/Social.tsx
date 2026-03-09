@@ -12,7 +12,7 @@
  * @hazard Platform filter assumes activity.platform field exists — if field not present in schema, filter silently shows all activities regardless of selection
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES activities+contacts; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/App.tsx→ROUTES to /social
  * @trail social#1 | Social mounts → load social activities with contact join → render activity feed → platform filter updates query → empty state if none
- * @prompt Add null guard for deleted contacts in activity join. Verify platform field exists on activities table schema. Add empty state with CTA to log first social activity. Add date range filter.
+ * @prompt Add null guard for deleted contacts in activity join. Verify platform field exists on activities table schema. Add empty state with CTA to log first social activity. Add date range filter. VV design applied: void-950 page bg, VV spinner, vv-section-title "Engagement", font-display headings, glass-card filters + activity cards, indigo-electric focus rings, white/10 borders, indigo-electric/15 platform badge, white/10 type badge, font-mono timestamps, dark:text-white/50 body text.
  */
 import { useEffect, useState } from 'react';
 import { Share2, Linkedin, Twitter, Filter } from 'lucide-react';
@@ -170,11 +170,11 @@ export default function Social() {
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
       case 'linkedin':
-        return <Linkedin className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
+        return <Linkedin className="w-5 h-5 text-indigo-electric" />;
       case 'twitter':
-        return <Twitter className="w-5 h-5 text-sky-500 dark:text-sky-400" />;
+        return <Twitter className="w-5 h-5 text-cyan-neon" />;
       default:
-        return <Share2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />;
+        return <Share2 className="w-5 h-5 text-gray-400 dark:text-white/30" />;
     }
   };
 
@@ -217,36 +217,41 @@ export default function Social() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <p className="text-gray-600 dark:text-gray-400">Loading social activities...</p>
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Social...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Social Outreach</h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-6">
-        Track LinkedIn and social media activity
-      </p>
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      {/* Header */}
+      <div>
+        <p className="vv-section-title mb-1">Engagement</p>
+        <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">Social Outreach</h1>
+        <p className="text-sm text-gray-500 dark:text-white/50 mt-1">
+          Track LinkedIn and social media activity
+        </p>
+      </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
-        <div className="flex items-center space-x-2 mb-4">
-          <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>
+      <div className="glass-card p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="w-4 h-4 text-gray-400 dark:text-white/30" />
+          <h2 className="font-display font-semibold text-gray-900 dark:text-white text-sm">Filters</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Platform Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Platform
-            </label>
+            <label className="vv-section-title block mb-1">Platform</label>
             <select
               value={platformFilter}
               onChange={(e) => setPlatformFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-electric focus:outline-none bg-white dark:bg-white/5 text-gray-900 dark:text-white text-sm transition-colors duration-150"
             >
               <option value="all">All Platforms</option>
               <option value="linkedin">LinkedIn</option>
@@ -257,13 +262,11 @@ export default function Social() {
 
           {/* Type Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Activity Type
-            </label>
+            <label className="vv-section-title block mb-1">Activity Type</label>
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-electric focus:outline-none bg-white dark:bg-white/5 text-gray-900 dark:text-white text-sm transition-colors duration-150"
             >
               <option value="all">All Types</option>
               <option value="connection_request">Connection Request</option>
@@ -276,13 +279,11 @@ export default function Social() {
 
           {/* Date Range Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Date Range
-            </label>
+            <label className="vv-section-title block mb-1">Date Range</label>
             <select
               value={dateRangeFilter}
               onChange={(e) => setDateRangeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-electric focus:outline-none bg-white dark:bg-white/5 text-gray-900 dark:text-white text-sm transition-colors duration-150"
             >
               <option value="all">All Time</option>
               <option value="today">Today</option>
@@ -295,56 +296,59 @@ export default function Social() {
 
       {/* Activities List */}
       {filteredActivities.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-          <Share2 className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">
+        <div className="glass-card text-center py-16">
+          <Share2 className="w-10 h-10 text-gray-300 dark:text-white/20 mx-auto mb-3" />
+          <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">
+            {activities.length === 0 ? 'No social activities yet' : 'No activities match filters'}
+          </p>
+          <p className="text-sm text-gray-400 dark:text-white/40">
             {activities.length === 0
-              ? 'No social activities logged yet. Start logging from contact detail pages or during salesblocks.'
-              : 'No activities match the selected filters.'}
+              ? 'Log social touchpoints from contact pages or during SalesBlocks'
+              : 'Try adjusting your filter selections'}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredActivities.map((activity) => {
             const parsed = parseNotes(activity.notes);
             return (
               <div
                 key={activity.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700"
+                className="glass-card p-4 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <div className="mt-1">{getPlatformIcon(parsed.platform)}</div>
+                <div className="flex items-start gap-4">
+                  <div className="mt-0.5 flex-shrink-0">{getPlatformIcon(parsed.platform)}</div>
 
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-1">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {getContactName(activity.contact)}
-                        </h3>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="font-display font-semibold text-gray-900 dark:text-white">
+                        {getContactName(activity.contact)}
+                      </h3>
+                      {getContactCompany(activity.contact) && (
+                        <span className="text-sm text-gray-500 dark:text-white/40">
                           {getContactCompany(activity.contact)}
                         </span>
-                      </div>
-
-                      <div className="flex items-center space-x-4 mb-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          {getPlatformLabel(parsed.platform)}
-                        </span>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                          {getActivityTypeLabel(parsed.activity_type)}
-                        </span>
-                      </div>
-
-                      {parsed.user_notes && (
-                        <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
-                          {parsed.user_notes}
-                        </p>
                       )}
-
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {formatDate(activity.created_at)}
-                      </p>
                     </div>
+
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-electric/15 text-indigo-electric">
+                        {getPlatformLabel(parsed.platform)}
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/50">
+                        {getActivityTypeLabel(parsed.activity_type)}
+                      </span>
+                    </div>
+
+                    {parsed.user_notes && (
+                      <p className="text-sm text-gray-600 dark:text-white/50 mb-2">
+                        {parsed.user_notes}
+                      </p>
+                    )}
+
+                    <p className="text-xs text-gray-400 dark:text-white/30 font-mono">
+                      {formatDate(activity.created_at)}
+                    </p>
                   </div>
                 </div>
               </div>

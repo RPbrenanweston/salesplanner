@@ -12,7 +12,7 @@
  * @hazard RLS on both tables must scope to same org — if one table has tighter RLS than the other, the views will show inconsistent ownership across content types
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES email_templates+call_scripts; frontend/src/components/TemplateModal.tsx→LAUNCHES; frontend/src/components/ScriptModal.tsx→LAUNCHES; frontend/src/App.tsx→ROUTES to /content-library
  * @trail content-library#1 | ContentLibrary mounts → load templates + scripts → render unified list → user filters by type → user creates/edits via modal → reload
- * @prompt Surface load errors per content type. Merge with EmailTemplates and Scripts pages or remove redundancy. Add bulk actions. Verify org-scoped RLS on both tables.
+ * @prompt VV tokens applied — glass-card, indigo-electric CTAs, cyan-neon script accents, red-alert delete, VV spinners on load states. Surface load errors per content type with distinct error banners. Merge with EmailTemplates and Scripts pages or remove redundancy. Add bulk actions. Verify org-scoped RLS on both tables.
  */
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Share2, Lock, Mail, FileText } from 'lucide-react';
@@ -169,7 +169,7 @@ export default function ContentLibrary() {
             <FileText className="w-8 h-8 text-indigo-electric" />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-white">Content Armory</h1>
+            <h1 className="text-3xl font-black font-display text-white">Content Armory</h1>
             <p className="text-white/60 mt-1">Manage email templates and call scripts</p>
           </div>
         </div>
@@ -215,7 +215,7 @@ export default function ContentLibrary() {
                 setEditingTemplate(null);
                 setTemplateModalOpen(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 border border-white/20 transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 transition-all ease-snappy"
             >
               <Plus className="w-5 h-5" />
               Create Template
@@ -224,8 +224,9 @@ export default function ContentLibrary() {
 
           {/* Content */}
           {loadingTemplates ? (
-            <div className="glass-card p-12 text-center">
-              <p className="text-white/60">Loading templates...</p>
+            <div className="glass-card p-12 flex items-center justify-center gap-3 text-white/60">
+              <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+              Loading templates...
             </div>
           ) : templates.length === 0 ? (
             <div className="glass-card p-12 text-center">
@@ -236,7 +237,7 @@ export default function ContentLibrary() {
                   setEditingTemplate(null);
                   setTemplateModalOpen(true);
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 border border-white/20 transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 transition-all ease-snappy"
               >
                 <Plus className="w-4 h-4" />
                 Create Your First Template
@@ -331,7 +332,7 @@ export default function ContentLibrary() {
                 setEditingScriptId(null);
                 setScriptModalOpen(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 border border-white/20 transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-neon text-void-950 rounded-lg hover:bg-cyan-neon/80 font-semibold transition-all ease-snappy"
             >
               <Plus className="w-5 h-5" />
               Create Script
@@ -340,8 +341,9 @@ export default function ContentLibrary() {
 
           {/* Content */}
           {loadingScripts ? (
-            <div className="glass-card p-12 text-center">
-              <p className="text-white/60">Loading scripts...</p>
+            <div className="glass-card p-12 flex items-center justify-center gap-3 text-white/60">
+              <div className="w-5 h-5 border-2 border-cyan-neon border-t-transparent rounded-full animate-spin" />
+              Loading scripts...
             </div>
           ) : scripts.length === 0 ? (
             <div className="glass-card p-12 text-center">
@@ -352,7 +354,7 @@ export default function ContentLibrary() {
                   setEditingScriptId(null);
                   setScriptModalOpen(true);
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 border border-white/20 transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-neon text-void-950 rounded-lg hover:bg-cyan-neon/80 font-semibold transition-all ease-snappy"
               >
                 <Plus className="w-4 h-4" />
                 Create Your First Script

@@ -12,7 +12,7 @@
  * @hazard list_contacts count is a separate aggregation query per list — N+1 pattern if many lists exist; page load time scales linearly with list count
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES lists+list_contacts; frontend/src/lib/salesforce.ts→CALLS getSalesforceConnection; frontend/src/components/ImportCSVModal.tsx→LAUNCHES; frontend/src/components/ListBuilderModal.tsx→LAUNCHES; frontend/src/pages/ListDetailPage.tsx→NAVIGATES to; frontend/src/App.tsx→ROUTES to /lists
  * @trail lists#1 | Lists mounts → load lists + contact counts → render cards → user clicks list → navigate to ListDetailPage → user creates → ListBuilderModal → user imports → CSV or Salesforce modal
- * @prompt Add error catch around getSalesforceConnection. Batch list_contacts count into single query. Add list sorting (by size, recency). Add list search.
+ * @prompt Add error catch around getSalesforceConnection. Batch list_contacts count into single query. Add list sorting (by size, recency). Add list search. VV design applied: glass-card table wrapper, indigo-electric action buttons, vv-section-title column headers, emerald-signal auto-refresh, white/10 dividers, void-950 page bg.
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -175,42 +175,40 @@ export default function Lists() {
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <p className="vv-section-title mb-1">Prospecting</p>
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">
             Contact Lists
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage your contact lists and segments
-          </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end">
           <button
             onClick={() => setIsCreateSalesBlockOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
           >
             <Clock className="w-4 h-4" />
             Create SalesBlock
           </button>
           <button
             onClick={() => setIsListBuilderOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
           >
             <List className="w-4 h-4" />
             Create List
           </button>
           <button
             onClick={() => setIsAddContactModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
           >
             <Plus className="w-4 h-4" />
             Add Contact
           </button>
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
           >
             <Upload className="w-4 h-4" />
             Import CSV
@@ -218,7 +216,7 @@ export default function Lists() {
           {salesforceConnection && (
             <button
               onClick={() => setIsImportSalesforceModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
             >
               <Database className="w-4 h-4" />
               Import from Salesforce
@@ -228,44 +226,47 @@ export default function Lists() {
       </div>
 
       {/* Lists Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+            <thead className="bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Name
+                <th className="px-6 py-3 text-left">
+                  <span className="vv-section-title">Name</span>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Description
+                <th className="px-6 py-3 text-left">
+                  <span className="vv-section-title">Description</span>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Contacts
+                <th className="px-6 py-3 text-left">
+                  <span className="vv-section-title">Contacts</span>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Owner
+                <th className="px-6 py-3 text-left">
+                  <span className="vv-section-title">Owner</span>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Last Updated
+                <th className="px-6 py-3 text-left">
+                  <span className="vv-section-title">Last Updated</span>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Auto-Refresh
+                <th className="px-6 py-3 text-left">
+                  <span className="vv-section-title">Auto-Refresh</span>
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-200 dark:divide-white/10">
               {isLoadingLists ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                    Loading lists...
+                  <td colSpan={6} className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center gap-3 text-gray-400 dark:text-white/40">
+                      <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+                      <span className="font-mono text-sm tracking-widest uppercase">Loading Lists...</span>
+                    </div>
                   </td>
                 </tr>
               ) : lists.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <List className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-500 dark:text-gray-400 mb-2">No lists created yet</p>
-                    <p className="text-sm text-gray-400 dark:text-gray-500">
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <List className="w-10 h-10 text-gray-300 dark:text-white/20 mx-auto mb-3" />
+                    <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">No lists yet</p>
+                    <p className="text-sm text-gray-400 dark:text-white/40">
                       Click "Create List" to build your first filtered contact list
                     </p>
                   </td>
@@ -275,7 +276,7 @@ export default function Lists() {
                   <tr
                     key={list.id}
                     onClick={() => navigate(`/lists/${list.id}`)}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                    className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors duration-150 ease-snappy"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -283,30 +284,30 @@ export default function Lists() {
                           {list.name}
                         </div>
                         {list.is_shared && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-electric/15 text-indigo-electric">
                             Shared
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
+                      <div className="text-sm text-gray-600 dark:text-white/50 max-w-xs truncate">
                         {list.description || '—'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 text-sm text-gray-900 dark:text-white">
-                        <Users className="w-4 h-4 text-gray-400" />
+                        <Users className="w-4 h-4 text-gray-400 dark:text-white/30" />
                         {list.contact_count}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="text-sm text-gray-600 dark:text-white/50">
                         {list.owner_name}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="text-sm text-gray-600 dark:text-white/50 font-mono">
                         {formatDate(list.updated_at)}
                       </div>
                     </td>
@@ -314,11 +315,11 @@ export default function Lists() {
                       <div className="flex items-center gap-1">
                         {list.filter_criteria?.autoRefresh ? (
                           <>
-                            <RefreshCw className="w-4 h-4 text-green-600 dark:text-green-400" />
-                            <span className="text-sm text-green-600 dark:text-green-400">On</span>
+                            <RefreshCw className="w-4 h-4 text-emerald-signal" />
+                            <span className="text-sm text-emerald-signal font-semibold">On</span>
                           </>
                         ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">Off</span>
+                          <span className="text-sm text-gray-400 dark:text-white/30">Off</span>
                         )}
                       </div>
                     </td>

@@ -12,7 +12,7 @@
  * @hazard salesblocks query may not be scoped to org_id — verify RLS policy or explicit org_id filter to prevent cross-org data leak
  * @shared-edges frontend/src/components/CreateSalesBlockModal.tsx→LAUNCHES; frontend/src/pages/SalesBlockSessionPage.tsx→NAVIGATES to /salesblocks/:id/session; frontend/src/lib/supabase.ts→QUERIES; frontend/src/App.tsx→ROUTES to /salesblocks
  * @trail salesblocks#1 | SalesBlocks mounts → load all org salesblocks with list names → render grid → Play navigates to session → CreateSalesBlockModal creates new block → grid refreshes
- * @prompt Add delete confirmation dialog. Audit salesblocks Supabase query for org_id scoping. Add empty state UI when no SalesBlocks exist. Consider status filter tabs (scheduled / completed).
+ * @prompt Add delete confirmation dialog. Audit salesblocks Supabase query for org_id scoping. Add empty state UI when no SalesBlocks exist. Consider status filter tabs (scheduled / completed). VV design applied: void-950 page bg, vv-section-title "Outreach" label, font-display headings, glass-card list cards, indigo-electric active display/view toggles + Create CTA + tab underlines, emerald-signal Start button, red-alert/10 Cancel button, VV spinner, VV status badges (indigo-electric/scheduled, emerald-signal/completed, cyan-neon/in_progress, red-alert/cancelled), CampaignViewGrid: glass-card wrappers, font-display titles, gray-100 dark:bg-white/10 step circles, vv-section-title Outreach Flow label, font-mono summary values, border-gray-200 dark:border-white/10 dividers.
  */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -69,14 +69,14 @@ const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
       {salesblocks.map((sb) => (
         <div
           key={sb.id}
-          className="backdrop-blur-md bg-gradient-to-br from-void-900/50 to-void-950/80 border border-white/10 rounded-xl p-6 hover:border-white/20 transition-all group"
+          className="glass-card p-6 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy group"
         >
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="text-lg font-bold text-white mb-1">{sb.title}</h3>
-                <p className="text-sm text-gray-400">{sb.list?.name}</p>
+                <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-1">{sb.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-white/40">{sb.list?.name}</p>
               </div>
               <div className="flex items-center gap-2">
                 <span
@@ -92,14 +92,14 @@ const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
                 </span>
               </div>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-white/40">
               {sb.duration_minutes} min session {sb.contact_count ? `• ${sb.contact_count} prospects` : ''}
             </p>
           </div>
 
           {/* Multi-step Sequence */}
           <div className="space-y-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Outreach Flow</p>
+            <p className="vv-section-title">Outreach Flow</p>
             <div className="space-y-3">
               {touchpointSequence.map((tp, idx) => {
                 const Icon = tp.icon
@@ -116,13 +116,13 @@ const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
                 return (
                   <div key={tp.step} className="flex items-center gap-3">
                     {/* Step circle */}
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 border border-white/20 flex-shrink-0">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/20 flex-shrink-0">
                       <Icon className={`w-4 h-4 ${tp.color}`} />
                     </div>
                     {/* Label and count */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-white">{tp.label}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{tp.label}</span>
                         {count > 0 && (
                           <span className="text-xs font-bold text-cyan-neon bg-cyan-neon/10 px-2 py-1 rounded">
                             {count} {tp.label === 'Follow-up' ? 'sent' : 'completed'}
@@ -132,7 +132,7 @@ const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
                     </div>
                     {/* Arrow */}
                     {idx < touchpointSequence.length - 1 && (
-                      <div className="text-white/30">→</div>
+                      <div className="text-gray-300 dark:text-white/30">→</div>
                     )}
                   </div>
                 )
@@ -142,16 +142,16 @@ const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
 
           {/* Summary */}
           {sb.contacts_worked !== undefined && (
-            <div className="mt-6 pt-6 border-t border-white/10">
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-white/10">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 mb-1">Prospects Worked</p>
-                  <p className="text-lg font-bold text-white">
-                    {sb.contacts_worked} <span className="text-xs text-gray-500">/ {sb.contact_count}</span>
+                <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 dark:text-white/40 mb-1">Prospects Worked</p>
+                  <p className="font-mono text-lg font-bold text-gray-900 dark:text-white">
+                    {sb.contacts_worked} <span className="text-xs text-gray-500 dark:text-white/40">/ {sb.contact_count}</span>
                   </p>
                 </div>
-                <div className="bg-white/5 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 mb-1">Total Actions</p>
+                <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 dark:text-white/40 mb-1">Total Actions</p>
                   <p className="text-lg font-bold text-cyan-neon">
                     {(sb.calls_made || 0) + (sb.emails_sent || 0) + (sb.social_touches || 0) + (sb.meetings_booked || 0)}
                   </p>
@@ -355,15 +355,15 @@ export default function SalesBlocks() {
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'scheduled':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+        return 'bg-indigo-electric/15 text-indigo-electric'
       case 'in_progress':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+        return 'bg-cyan-neon/15 text-cyan-neon'
       case 'completed':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+        return 'bg-emerald-signal/15 text-emerald-signal'
       case 'cancelled':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+        return 'bg-red-alert/15 text-red-alert'
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+        return 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/50'
     }
   }
 
@@ -390,24 +390,25 @@ export default function SalesBlocks() {
   ]
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <p className="vv-section-title mb-1">Sessions</p>
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">
             SalesBlocks
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-white/50 mt-1">
             Manage your timed focus sessions
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-1">
             <button
               onClick={() => setDisplayMode('list')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 ease-snappy ${
                 displayMode === 'list'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-indigo-electric text-white'
+                  : 'text-gray-600 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/10'
               }`}
               title="List View"
             >
@@ -416,10 +417,10 @@ export default function SalesBlocks() {
             </button>
             <button
               onClick={() => setDisplayMode('campaign')}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 ease-snappy ${
                 displayMode === 'campaign'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-indigo-electric text-white'
+                  : 'text-gray-600 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/10'
               }`}
               title="Campaign View"
             >
@@ -429,13 +430,13 @@ export default function SalesBlocks() {
           </div>
 
           {isManager && (
-            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-1">
               <button
                 onClick={() => setViewType('my')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 ease-snappy ${
                   viewType === 'my'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-indigo-electric text-white'
+                    : 'text-gray-600 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/10'
                 }`}
               >
                 <User className="w-4 h-4" />
@@ -443,10 +444,10 @@ export default function SalesBlocks() {
               </button>
               <button
                 onClick={() => setViewType('team')}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 ease-snappy ${
                   viewType === 'team'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-indigo-electric text-white'
+                    : 'text-gray-600 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/10'
                 }`}
               >
                 <Users className="w-4 h-4" />
@@ -456,7 +457,7 @@ export default function SalesBlocks() {
           )}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
           >
             <Plus className="w-4 h-4" />
             Create SalesBlock
@@ -465,15 +466,15 @@ export default function SalesBlocks() {
       </div>
 
       {/* Tab Filters */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-white/10">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeTab === tab.key
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                ? 'border-indigo-electric text-indigo-electric'
+                : 'border-transparent text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white/80'
             }`}
           >
             {tab.label}
@@ -482,15 +483,20 @@ export default function SalesBlocks() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
+        <div className="flex items-center justify-center py-16">
+          <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+            <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+            <span className="font-mono text-sm tracking-widest uppercase">Loading SalesBlocks...</span>
+          </div>
+        </div>
       ) : salesblocks.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+        <div className="glass-card text-center py-16">
+          <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">
             No {activeTab !== 'all' ? activeTab : ''} salesblocks
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-indigo-electric hover:text-indigo-electric/70 text-sm transition-colors duration-150"
           >
             Create your first SalesBlock
           </button>
@@ -502,12 +508,12 @@ export default function SalesBlocks() {
           {salesblocks.map((sb) => (
             <div
               key={sb.id}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-white dark:bg-gray-800"
+              className="glass-card p-6"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h3 className="font-display font-semibold text-gray-900 dark:text-white">
                       {sb.title}
                     </h3>
                     <span
@@ -518,7 +524,7 @@ export default function SalesBlocks() {
                       {getStatusLabel(sb.status)}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <div className="text-sm text-gray-600 dark:text-white/50 space-y-1">
                     <p>
                       <span className="font-medium">List:</span>{' '}
                       {sb.list?.name || 'Unknown'}
@@ -532,48 +538,48 @@ export default function SalesBlocks() {
                       minutes
                     </p>
                     {sb.status === 'completed' && sb.contact_count !== undefined && (
-                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <p className="font-medium text-gray-900 dark:text-white mb-2">
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10">
+                        <p className="font-display font-medium text-gray-900 dark:text-white mb-2">
                           Session Summary
                         </p>
                         <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-white/40">
                               Contacts Worked:
                             </span>{' '}
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-mono font-medium text-gray-900 dark:text-white">
                               {sb.contacts_worked} / {sb.contact_count}
                             </span>
                           </div>
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-white/40">
                               Calls:
                             </span>{' '}
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-mono font-medium text-gray-900 dark:text-white">
                               {sb.calls_made}
                             </span>
                           </div>
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-white/40">
                               Emails:
                             </span>{' '}
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-mono font-medium text-gray-900 dark:text-white">
                               {sb.emails_sent}
                             </span>
                           </div>
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-white/40">
                               Social:
                             </span>{' '}
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-mono font-medium text-gray-900 dark:text-white">
                               {sb.social_touches}
                             </span>
                           </div>
                           <div>
-                            <span className="text-gray-500 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-white/40">
                               Meetings:
                             </span>{' '}
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-mono font-medium text-gray-900 dark:text-white">
                               {sb.meetings_booked}
                             </span>
                           </div>
@@ -589,21 +595,21 @@ export default function SalesBlocks() {
                     <>
                       <button
                         onClick={() => handleStart(sb.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-signal hover:bg-emerald-signal/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
                       >
                         <Play className="w-4 h-4" />
                         Start
                       </button>
                       <button
                         onClick={() => handleEdit(sb.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 text-sm font-semibold transition-all duration-150 ease-snappy"
                       >
                         <Edit className="w-4 h-4" />
                         Edit
                       </button>
                       <button
                         onClick={() => handleCancel(sb.id)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-red-alert/10 text-red-alert rounded-lg hover:bg-red-alert/20 text-sm font-semibold transition-all duration-150 ease-snappy"
                       >
                         <X className="w-4 h-4" />
                         Cancel

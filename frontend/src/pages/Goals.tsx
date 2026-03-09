@@ -12,7 +12,7 @@
  * @hazard No confirmation on goal delete — single click permanently removes goal and history
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES goals+activities; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/App.tsx→ROUTES to /goals
  * @trail goals#1 | Goals mounts → load goals with period aggregates → render progress bars → create goal writes to goals table → delete removes immediately
- * @prompt Add delete confirmation. Fix time-zone boundary for daily/weekly progress aggregation (use UTC consistently). Add empty state when no goals set. Verify goals are user-scoped not org-scoped.
+ * @prompt Add delete confirmation. Fix time-zone boundary for daily/weekly progress aggregation (use UTC consistently). Add empty state when no goals set. Verify goals are user-scoped not org-scoped. VV design applied: glass-card goal cards, indigo-electric CTA + submit, emerald-signal progress bars, void-900 modal, vv-section-title form labels, white/10 borders.
  */
 import { useState, useEffect } from 'react'
 import { Plus, Target, Trash2, TrendingUp } from 'lucide-react'
@@ -266,98 +266,94 @@ export default function Goals() {
   }
 
   function getProgressBarColor(percentage: number): string {
-    if (percentage >= 100) return 'bg-green-600'
-    if (percentage >= 75) return 'bg-green-500'
-    if (percentage >= 50) return 'bg-yellow-500'
-    return 'bg-blue-600'
+    if (percentage >= 100) return 'bg-emerald-signal'
+    if (percentage >= 75) return 'bg-emerald-signal/70'
+    if (percentage >= 50) return 'bg-cyan-neon'
+    return 'bg-indigo-electric'
   }
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500 dark:text-gray-400">Loading goals...</div>
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-8 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Goals...</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Goals</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Set and track your daily, weekly, and monthly targets
-          </p>
+          <p className="vv-section-title mb-1">Performance</p>
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">Goals</h1>
         </div>
         <button
           onClick={() => setIsAddGoalModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
           Add Goal
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {goals.map((goal) => (
-          <div
-            key={goal.id}
-            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
-          >
+          <div key={goal.id} className="glass-card p-5">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${
-                  goal.percentage >= 100 ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                  goal.percentage >= 100 ? 'bg-emerald-signal/15' : 'bg-indigo-electric/15'
                 }`}>
                   {goal.percentage >= 100 ? (
-                    <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <TrendingUp className="w-5 h-5 text-emerald-signal" />
                   ) : (
-                    <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <Target className="w-5 h-5 text-indigo-electric" />
                   )}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                  <h3 className="font-display font-semibold text-gray-900 dark:text-white">
                     {getMetricLabel(goal.metric, goal.custom_metric_name)}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {getPeriodLabel(goal.period)} • {goal.users.display_name}
+                  <p className="text-xs text-gray-500 dark:text-white/40 font-mono mt-0.5">
+                    {getPeriodLabel(goal.period)} · {goal.users.display_name}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => handleDeleteGoal(goal.id)}
-                className="text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                className="text-gray-400 dark:text-white/30 hover:text-red-600 dark:hover:text-red-alert transition-colors duration-150 ease-snappy"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Progress</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
+              <div className="flex items-center justify-between">
+                <span className="vv-section-title">Progress</span>
+                <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">
                   {goal.currentValue} / {goal.target_value}
                 </span>
               </div>
 
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+              <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-2 overflow-hidden">
                 <div
-                  className={`h-full ${getProgressBarColor(goal.percentage)} transition-all duration-300`}
+                  className={`h-full ${getProgressBarColor(goal.percentage)} transition-all duration-500`}
                   style={{ width: `${Math.min(goal.percentage, 100)}%` }}
                 />
               </div>
 
               <div className="flex items-center justify-between">
-                <span className={`text-sm font-medium ${
-                  goal.percentage >= 100 ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'
+                <span className={`font-mono text-xs font-semibold ${
+                  goal.percentage >= 100 ? 'text-emerald-signal' : 'text-gray-400 dark:text-white/40'
                 }`}>
-                  {goal.percentage}% complete
+                  {goal.percentage}%
                 </span>
                 {goal.percentage >= 100 && (
-                  <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase">
-                    Goal Achieved! 🎉
+                  <span className="text-xs font-semibold text-emerald-signal uppercase tracking-widest">
+                    Goal Achieved
                   </span>
                 )}
               </div>
@@ -366,19 +362,19 @@ export default function Goals() {
         ))}
 
         {goals.length === 0 && (
-          <div className="col-span-2 text-center py-12">
-            <Target className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No goals yet
+          <div className="col-span-2 glass-card p-12 text-center">
+            <Target className="w-10 h-10 text-gray-300 dark:text-white/20 mx-auto mb-4" />
+            <h3 className="font-display text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              No goals set
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-sm text-gray-500 dark:text-white/40 mb-6">
               Set your first goal to start tracking progress
             </p>
             <button
               onClick={() => setIsAddGoalModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
               Add Goal
             </button>
           </div>
@@ -387,21 +383,21 @@ export default function Goals() {
 
       {/* Add Goal Modal */}
       {isAddGoalModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add Goal</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-void-900 border border-gray-200 dark:border-white/10 rounded-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="p-6 border-b border-gray-200 dark:border-white/10">
+              <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Add Goal</h2>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="vv-section-title block mb-2">
                   Metric
                 </label>
                 <select
                   value={selectedMetric}
                   onChange={(e) => setSelectedMetric(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/50"
                 >
                   <option value="calls">Calls</option>
                   <option value="emails">Emails</option>
@@ -414,7 +410,7 @@ export default function Goals() {
 
               {selectedMetric === 'custom' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="vv-section-title block mb-2">
                     Custom Metric Name
                   </label>
                   <input
@@ -422,13 +418,13 @@ export default function Goals() {
                     value={customMetricName}
                     onChange={(e) => setCustomMetricName(e.target.value)}
                     placeholder="e.g., Demos Completed"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/50"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="vv-section-title block mb-2">
                   Target Value
                 </label>
                 <input
@@ -437,18 +433,18 @@ export default function Goals() {
                   onChange={(e) => setTargetValue(e.target.value)}
                   placeholder="e.g., 50"
                   min="1"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/50"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="vv-section-title block mb-2">
                   Period
                 </label>
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/50"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -457,7 +453,7 @@ export default function Goals() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+            <div className="p-6 border-t border-gray-200 dark:border-white/10 flex gap-3 justify-end">
               <button
                 onClick={() => {
                   setIsAddGoalModalOpen(false)
@@ -466,14 +462,14 @@ export default function Goals() {
                   setSelectedPeriod('daily')
                   setCustomMetricName('')
                 }}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                className="px-4 py-2 text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-sm transition-colors duration-150 ease-snappy"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddGoal}
                 disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy disabled:opacity-50"
               >
                 {saving ? 'Creating...' : 'Add Goal'}
               </button>

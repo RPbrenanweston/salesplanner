@@ -12,7 +12,7 @@
  * @hazard Salesforce OAuth returns an instance_url alongside the code that must be used as the base URL for all subsequent API calls — if the backend token exchange does not store instance_url, all Salesforce API calls will target the wrong org endpoint
  * @shared-edges frontend/src/components/SalesforceOAuthButton.tsx→INITIATES OAuth flow; frontend/src/pages/SettingsPage.tsx→RETURNS to after success; frontend/src/App.tsx→ROUTES to /oauth/salesforce/callback
  * @trail salesforce-oauth#1 | SalesforceOAuthButton redirects to Salesforce → Salesforce redirects to callback → parse params → exchange code → store tokens + instance_url → navigate('/settings')
- * @prompt Align useSearchParams with window.location.search pattern used by other callbacks, or standardise all to useSearchParams. Verify backend stores instance_url. Add CSRF state validation.
+ * @prompt VV tokens applied — void-950 gradient background, glass-card container, VV spinner (border-indigo-electric border-t-transparent), emerald-signal success icon/ring, red-alert error icon/ring, white text headers, white/60 body text, white/40 secondary text. Remaining: Align useSearchParams with window.location.search pattern used by other callbacks, or standardise all to useSearchParams. Verify backend stores instance_url. Add CSRF state validation.
  */
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -106,15 +106,15 @@ export default function SalesforceOAuthCallback() {
   }, [searchParams, navigate])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-void-950 via-void-900 to-void-950">
+      <div className="max-w-md w-full glass-card p-8">
         {status === 'processing' && (
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <div className="w-12 h-12 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-white mb-2">
               Connecting Salesforce...
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-white/60">
               Please wait while we complete the connection.
             </p>
           </div>
@@ -122,15 +122,15 @@ export default function SalesforceOAuthCallback() {
 
         {status === 'success' && (
           <div className="text-center">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 bg-emerald-signal/20 border border-emerald-signal/40 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-emerald-signal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-xl font-semibold text-white mb-2">
               Salesforce Connected!
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-white/60">
               This window will close automatically.
             </p>
           </div>
@@ -138,18 +138,18 @@ export default function SalesforceOAuthCallback() {
 
         {status === 'error' && (
           <div className="text-center">
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 bg-red-alert/20 border border-red-alert/40 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-red-alert" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-xl font-semibold text-white mb-2">
               Connection Failed
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-white/60 mb-4">
               {errorMessage || 'An error occurred while connecting to Salesforce.'}
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
+            <p className="text-sm text-white/40">
               This window will close automatically.
             </p>
           </div>

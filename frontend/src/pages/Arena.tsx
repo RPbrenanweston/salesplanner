@@ -13,7 +13,7 @@
  * @fixed Added ArrowLeft to lucide-react destructure — resolved TS2304 "Cannot find name 'ArrowLeft'" (2026-03-08)
  * @shared-edges frontend/src/hooks/useAuth.ts→CALLS for current user; frontend/src/lib/supabase.ts→QUERIES activities; frontend/src/App.tsx→ROUTES to /arena
  * @trail leaderboard#1 | User navigates to /arena → Arena mounts → loadStats fetches aggregated activity counts → sorted by total_activity → rendered with rank badges (🥇🥈🥉 for top 3) → back button navigates to /
- * @prompt Add void-700 to tailwind.config.js for rank fallback colour. Consider real-time subscription on activities table for live leaderboard updates. Add time-range filter (today/week/month). Ensure leaderboard only shows users in same org (multi-tenant isolation).
+ * @prompt VV-native at build time — uses void-950/900/800, cyan-neon, indigo-electric throughout. Remaining: add void-700 to tailwind.config.js for rank fallback colour. Consider real-time subscription on activities table for live leaderboard. Add time-range filter (today/week/month). Enforce org-scoped leaderboard for multi-tenant isolation.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -131,7 +131,10 @@ export default function Arena() {
       <div className="mx-auto max-w-6xl px-6 py-8">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="text-white/60">Loading leaderboard...</div>
+            <div className="flex items-center gap-3 text-white/60">
+              <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+              Loading leaderboard...
+            </div>
           </div>
         ) : stats.length === 0 ? (
           <div className="rounded-lg border border-white/10 bg-void-900/40 p-12 text-center">

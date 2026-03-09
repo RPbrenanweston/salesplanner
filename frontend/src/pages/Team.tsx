@@ -12,7 +12,7 @@
  * @hazard Activity aggregation is all-time — no period filter; as team grows, aggregate query may slow significantly
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES users+activities; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/App.tsx→ROUTES to /team
  * @trail team#1 | Team mounts → load org users → aggregate activity counts per user → render roster cards → navigate to rep detail
- * @prompt Add time-range filter for activity aggregation. Add period selector (week/month). Handle empty org_id gracefully. Confirm user query is RLS-scoped to same org. Add invite member flow.
+ * @prompt Add time-range filter for activity aggregation. Add period selector (week/month). Handle empty org_id gracefully. Confirm user query is RLS-scoped to same org. Add invite member flow. VV design applied: void-950 page bg, VV spinner, vv-section-title "Performance", font-display headings, glass-card leaderboard + chart panels, indigo-electric active tab + Assign CTA + View Details links, white/10 table dividers + dark hover rows, font-mono numeric cells, font-display member names, bar chart recolored to VV palette (indigo-electric/emerald-signal/cyan-neon/purple-neon).
  */
 import { useState, useEffect } from 'react'
 import { Clock, Mail, Phone, Users, Calendar, Target, ArrowRight } from 'lucide-react'
@@ -194,17 +194,20 @@ export default function Team() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Loading team data...</div>
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Team...</span>
+        </div>
       </div>
     )
   }
 
   if (!isManager) {
     return (
-      <div className="p-8">
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-          <p className="text-yellow-800 dark:text-yellow-200">
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6">
+        <div className="glass-card p-4 border-l-4 border-amber-400">
+          <p className="text-amber-700 dark:text-amber-300 text-sm">
             Team dashboard is only available to users with manager role.
           </p>
         </div>
@@ -214,21 +217,35 @@ export default function Team() {
 
   const chartData = getComparisonChartData()
 
+  const dateRangeBtn = (value: typeof dateRange, label: string) => (
+    <button
+      onClick={() => setDateRange(value)}
+      className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
+        dateRange === value
+          ? 'bg-indigo-electric border-indigo-electric text-white'
+          : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
+      }`}
+    >
+      {label}
+    </button>
+  )
+
   return (
-    <div className="p-8">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <p className="vv-section-title mb-1">Performance</p>
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">
             Team Performance
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-500 dark:text-white/50 mt-1">
             Track your team's activity and results
           </p>
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
         >
           <Clock className="w-4 h-4" />
           Assign SalesBlock
@@ -236,125 +253,98 @@ export default function Team() {
       </div>
 
       {/* Date Range Selector */}
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setDateRange('today')}
-          className={`px-4 py-2 rounded-lg border ${
-            dateRange === 'today'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-          }`}
-        >
-          Today
-        </button>
-        <button
-          onClick={() => setDateRange('week')}
-          className={`px-4 py-2 rounded-lg border ${
-            dateRange === 'week'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-          }`}
-        >
-          Last 7 Days
-        </button>
-        <button
-          onClick={() => setDateRange('month')}
-          className={`px-4 py-2 rounded-lg border ${
-            dateRange === 'month'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-          }`}
-        >
-          Last 30 Days
-        </button>
+      <div className="flex gap-2">
+        {dateRangeBtn('today', 'Today')}
+        {dateRangeBtn('week', 'Last 7 Days')}
+        {dateRangeBtn('month', 'Last 30 Days')}
       </div>
 
       {/* Leaderboard */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Leaderboard</h2>
+      <div className="glass-card">
+        <div className="p-4 border-b border-gray-200 dark:border-white/10">
+          <h2 className="font-display font-semibold text-gray-900 dark:text-white">Leaderboard</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-900">
+            <thead className="bg-gray-50 dark:bg-white/5">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left vv-section-title">
                   Rep
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right vv-section-title">
                   <div className="flex items-center justify-end gap-1">
                     <Phone className="w-3 h-3" />
                     Calls
                   </div>
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right vv-section-title">
                   <div className="flex items-center justify-end gap-1">
                     <Mail className="w-3 h-3" />
                     Emails
                   </div>
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right vv-section-title">
                   <div className="flex items-center justify-end gap-1">
                     <Users className="w-3 h-3" />
                     Social
                   </div>
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right vv-section-title">
                   <div className="flex items-center justify-end gap-1">
                     <Calendar className="w-3 h-3" />
                     Meetings
                   </div>
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right vv-section-title">
                   <div className="flex items-center justify-end gap-1">
                     <Target className="w-3 h-3" />
                     Pipeline
                   </div>
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right vv-section-title">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-200 dark:divide-white/10">
               {teamMetrics.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={7} className="px-6 py-8 text-center text-sm text-gray-500 dark:text-white/40">
                     No team members found
                   </td>
                 </tr>
               ) : (
                 teamMetrics.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-colors duration-150">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="font-medium text-gray-900 dark:text-white">
+                        <div className="font-display font-semibold text-gray-900 dark:text-white">
                           {member.display_name}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <div className="text-xs text-gray-500 dark:text-white/40 font-mono mt-0.5">
                           {member.email}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white font-mono">
                       {member.calls}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white font-mono">
                       {member.emails}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white font-mono">
                       {member.social_touches}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white font-mono">
                       {member.meetings_booked}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white font-mono">
                       ${member.pipeline_value.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
                         onClick={() => handleMemberClick(member.id)}
-                        className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
+                        className="inline-flex items-center gap-1 text-indigo-electric hover:text-indigo-electric/70 text-sm transition-colors duration-150"
                       >
                         View Details
                         <ArrowRight className="w-3 h-3" />
@@ -370,25 +360,26 @@ export default function Team() {
 
       {/* Comparison Chart */}
       {chartData.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Activity Comparison</h2>
+        <div className="glass-card p-6">
+          <h2 className="font-display font-semibold text-gray-900 dark:text-white mb-4">Activity Comparison</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-300 dark:stroke-gray-700" />
-              <XAxis dataKey="name" className="text-gray-600 dark:text-gray-400" />
-              <YAxis className="text-gray-600 dark:text-gray-400" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-white/10" />
+              <XAxis dataKey="name" tick={{ fill: 'currentColor' }} className="text-gray-500 dark:text-white/40 text-xs" />
+              <YAxis tick={{ fill: 'currentColor' }} className="text-gray-500 dark:text-white/40 text-xs" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'var(--tooltip-bg)',
-                  border: '1px solid var(--tooltip-border)',
-                  borderRadius: '0.5rem'
+                  backgroundColor: '#0F172A',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '0.5rem',
+                  color: 'rgba(255,255,255,0.9)'
                 }}
               />
               <Legend />
-              <Bar dataKey="calls" fill="#3b82f6" name="Calls" />
-              <Bar dataKey="emails" fill="#10b981" name="Emails" />
-              <Bar dataKey="social" fill="#f59e0b" name="Social" />
-              <Bar dataKey="meetings" fill="#8b5cf6" name="Meetings" />
+              <Bar dataKey="calls" fill="#6366F1" name="Calls" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="emails" fill="#10b981" name="Emails" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="social" fill="#0db9f2" name="Social" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="meetings" fill="#8b5cf6" name="Meetings" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

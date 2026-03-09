@@ -66,14 +66,14 @@ export function useTheme() {
         } else {
           // No saved preference, check localStorage or use system
           const localTheme = localStorage.getItem('theme') as Theme | null;
-          const themeToUse = localTheme || 'system';
+          const themeToUse = localTheme || 'dark';
           setTheme(themeToUse);
           applyTheme(resolveTheme(themeToUse));
         }
       } else {
         // Not logged in, use localStorage or system
         const localTheme = localStorage.getItem('theme') as Theme | null;
-        const themeToUse = localTheme || 'system';
+        const themeToUse = localTheme || 'dark';
         setTheme(themeToUse);
         applyTheme(resolveTheme(themeToUse));
       }

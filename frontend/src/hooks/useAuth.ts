@@ -15,7 +15,7 @@
  * @prompt Consider adding auth token refresh wrapper to handle expired tokens proactively. Add telemetry for loading delays >1s. Verify cleanup unsubscribe fires on component unmount under rapid mount/unmount scenarios (React.StrictMode double-mount). Test offline scenarios.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
@@ -23,22 +23,26 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  // Prevents onAuthStateChange from prematurely clearing loading=true
+  // before the initial getSession resolves (race condition fix)
+  const initialised = useRef(false)
 
   useEffect(() => {
-    // Get initial session
+    // Authoritative first load — getSession is the source of truth on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      initialised.current = true
       setLoading(false)
     })
 
-    // Listen for auth changes
+    // Only handle subsequent auth changes (sign in, sign out, token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!initialised.current) return // skip if getSession hasn't resolved yet
       setSession(session)
       setUser(session?.user ?? null)
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()

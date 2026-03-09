@@ -12,7 +12,7 @@
  * @hazard Custom KPI values are user-entered targets without server-side validation — negative or extremely large values render without bounds checking
  * @shared-edges frontend/src/components/CustomKPIModal.tsx→LAUNCHES; frontend/src/lib/supabase.ts→QUERIES activities; frontend/src/hooks/useAuth.ts→CALLS for user; frontend/src/App.tsx→ROUTES to /analytics
  * @trail analytics#1 | Analytics mounts → load activity aggregates + custom KPIs → render KPI cards → CustomKPIModal adds new metric → refresh KPI list
- * @prompt Add time-range filter (today/week/month/all-time) to activity queries. Add loading skeleton per KPI card. Validate custom KPI bounds on input. Consider Recharts or similar for trend visualisation instead of manual counts.
+ * @prompt Add time-range filter (today/week/month/all-time) to activity queries. Add loading skeleton per KPI card. Validate custom KPI bounds on input. Consider Recharts or similar for trend visualisation instead of manual counts. VV design applied: void-950 page bg, min-h-full p-6, VV spinner loading state, vv-section-title "Insights" label, font-display headings, glass-card KPI + chart panels, indigo-electric active date tab, indigo-electric CTA buttons (Add KPI, Custom KPI), ease-snappy transitions, font-mono numeric values, white/10 borders, recharts recolored to VV palette (indigo-electric/emerald-signal/cyan-neon/purple-neon).
  */
 import { useEffect, useState } from 'react';
 import { Phone, Mail, Share2, Calendar, Plus, TrendingUp } from 'lucide-react';
@@ -406,56 +406,60 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <p className="text-gray-500 dark:text-gray-400">Loading analytics...</p>
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Analytics...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-void-950 text-white p-8">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6">
       <div className="mb-8">
-        <h1 className="font-display text-4xl font-black text-white mb-2">Command Center</h1>
-        <p className="text-white/60 mb-6">Real-time sales velocity and team performance</p>
+        <p className="vv-section-title mb-1">Insights</p>
+        <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-1">Command Center</h1>
+        <p className="text-sm text-gray-500 dark:text-white/50 mb-6">Real-time sales velocity and team performance</p>
 
         {/* Date Range Selector */}
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => setDateRange('today')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
               dateRange === 'today'
-                ? 'bg-white/10 text-indigo-electric border border-indigo-electric'
-                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                ? 'bg-indigo-electric border-indigo-electric text-white'
+                : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
             }`}
           >
             Today
           </button>
           <button
             onClick={() => setDateRange('this_week')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
               dateRange === 'this_week'
-                ? 'bg-white/10 text-indigo-electric border border-indigo-electric'
-                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                ? 'bg-indigo-electric border-indigo-electric text-white'
+                : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
             }`}
           >
             This Week
           </button>
           <button
             onClick={() => setDateRange('this_month')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
               dateRange === 'this_month'
-                ? 'bg-white/10 text-indigo-electric border border-indigo-electric'
-                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                ? 'bg-indigo-electric border-indigo-electric text-white'
+                : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
             }`}
           >
             This Month
           </button>
           <button
             onClick={() => setDateRange('custom')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
               dateRange === 'custom'
-                ? 'bg-white/10 text-indigo-electric border border-indigo-electric'
-                : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/10'
+                ? 'bg-indigo-electric border-indigo-electric text-white'
+                : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
             }`}
           >
             Custom
@@ -488,9 +492,9 @@ export default function Analytics() {
             <div className="p-3 bg-indigo-electric/10 rounded-lg">
               <Phone className="w-6 h-6 text-indigo-electric" />
             </div>
-            <h3 className="text-xs font-medium text-white/70 uppercase tracking-wider">Total Calls</h3>
+            <h3 className="vv-section-title">Total Calls</h3>
           </div>
-          <p className="text-4xl font-black text-white">{metrics.totalCalls}</p>
+          <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{metrics.totalCalls}</p>
         </div>
 
         <div className="glass-card p-6">
@@ -498,9 +502,9 @@ export default function Analytics() {
             <div className="p-3 bg-cyan-neon/10 rounded-lg">
               <Mail className="w-6 h-6 text-cyan-neon" />
             </div>
-            <h3 className="text-xs font-medium text-white/70 uppercase tracking-wider">Total Emails</h3>
+            <h3 className="vv-section-title">Total Emails</h3>
           </div>
-          <p className="text-4xl font-black text-white">{metrics.totalEmails}</p>
+          <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{metrics.totalEmails}</p>
         </div>
 
         <div className="glass-card p-6">
@@ -508,9 +512,9 @@ export default function Analytics() {
             <div className="p-3 bg-amber-400/10 rounded-lg">
               <Share2 className="w-6 h-6 text-amber-400" />
             </div>
-            <h3 className="text-xs font-medium text-white/70 uppercase tracking-wider">Social Touches</h3>
+            <h3 className="vv-section-title">Social Touches</h3>
           </div>
-          <p className="text-4xl font-black text-white">{metrics.totalSocial}</p>
+          <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{metrics.totalSocial}</p>
         </div>
 
         <div className="glass-card p-6">
@@ -518,15 +522,15 @@ export default function Analytics() {
             <div className="p-3 bg-red-alert/10 rounded-lg">
               <Calendar className="w-6 h-6 text-red-alert" />
             </div>
-            <h3 className="text-xs font-medium text-white/70 uppercase tracking-wider">Meetings Booked</h3>
+            <h3 className="vv-section-title">Meetings Booked</h3>
           </div>
-          <p className="text-4xl font-black text-white">{metrics.totalMeetings}</p>
+          <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{metrics.totalMeetings}</p>
         </div>
       </div>
 
       {/* Activity Trend Chart */}
       <div className="glass-card mb-8 p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Activity Trend</h2>
+        <h2 className="font-display font-semibold text-gray-900 dark:text-white mb-4">Activity Trend</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={dailyData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -565,7 +569,7 @@ export default function Analytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Stacked Bar Chart */}
         <div className="glass-card p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
+          <h2 className="font-display font-semibold text-gray-900 dark:text-white mb-4">
             Daily Activity Breakdown
           </h2>
           <ResponsiveContainer width="100%" height={300}>
@@ -598,7 +602,7 @@ export default function Analytics() {
 
         {/* Pie Chart */}
         <div className="glass-card p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">
+          <h2 className="font-display font-semibold text-gray-900 dark:text-white mb-4">
             Activity Type Distribution
           </h2>
           <ResponsiveContainer width="100%" height={300}>
@@ -636,10 +640,10 @@ export default function Analytics() {
       {customKPIs.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-white">Custom KPIs</h2>
+            <h2 className="font-display font-semibold text-gray-900 dark:text-white">Custom KPIs</h2>
             <button
               onClick={() => setShowKPIModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 border border-white/20 transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
             >
               <Plus className="w-4 h-4" />
               Add KPI
@@ -658,13 +662,13 @@ export default function Analytics() {
         <div className="mb-8 glass-card p-6">
           <div className="text-center">
             <TrendingUp className="w-12 h-12 text-white/40 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-white mb-2">No Custom KPIs Yet</h3>
-            <p className="text-white/60 mb-4">
+            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-2">No Custom KPIs Yet</h3>
+            <p className="text-sm text-gray-500 dark:text-white/50 mb-4">
               Create custom KPIs to track metrics specific to your workflow.
             </p>
             <button
               onClick={() => setShowKPIModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 border border-white/20 transition-all mx-auto"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy mx-auto"
             >
               <Plus className="w-4 h-4" />
               Add Custom KPI
@@ -675,7 +679,7 @@ export default function Analytics() {
 
       {/* Conversion Funnel */}
       <div className="glass-card p-6">
-        <h2 className="text-xl font-semibold text-white mb-6">Conversion Funnel</h2>
+        <h2 className="font-display font-semibold text-gray-900 dark:text-white mb-6">Conversion Funnel</h2>
 
         {/* Funnel Stages */}
         <div className="space-y-4">
@@ -683,11 +687,11 @@ export default function Analytics() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-white/80">
+                <span className="text-sm font-medium text-gray-700 dark:text-white/70">
                   Calls → Connects
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-white">
+                  <span className="font-mono text-lg font-bold text-gray-900 dark:text-white">
                     {conversionMetrics.callToConnectRate.toFixed(1)}%
                   </span>
                   {previousPeriod.callToConnectChange !== 0 && (
@@ -704,12 +708,12 @@ export default function Analytics() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-white/60">
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-white/50">
                 <span>{conversionMetrics.totalCalls} calls</span>
                 <span>→</span>
                 <span>{conversionMetrics.connects} connects</span>
               </div>
-              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
+              <div className="mt-2 w-full bg-gray-100 dark:bg-white/10 rounded-full h-2">
                 <div
                   className="bg-indigo-electric h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(conversionMetrics.callToConnectRate, 100)}%` }}
@@ -722,11 +726,11 @@ export default function Analytics() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-white/80">
+                <span className="text-sm font-medium text-gray-700 dark:text-white/70">
                   Connects → Meetings
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-white">
+                  <span className="font-mono text-lg font-bold text-gray-900 dark:text-white">
                     {conversionMetrics.connectToMeetingRate.toFixed(1)}%
                   </span>
                   {previousPeriod.connectToMeetingChange !== 0 && (
@@ -743,12 +747,12 @@ export default function Analytics() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-white/60">
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-white/50">
                 <span>{conversionMetrics.connects} connects</span>
                 <span>→</span>
                 <span>{conversionMetrics.meetings} meetings</span>
               </div>
-              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
+              <div className="mt-2 w-full bg-gray-100 dark:bg-white/10 rounded-full h-2">
                 <div
                   className="bg-cyan-neon h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(conversionMetrics.connectToMeetingRate, 100)}%` }}
@@ -761,11 +765,11 @@ export default function Analytics() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-white/80">
+                <span className="text-sm font-medium text-gray-700 dark:text-white/70">
                   Emails → Replies
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-white">
+                  <span className="font-mono text-lg font-bold text-gray-900 dark:text-white">
                     {conversionMetrics.emailToReplyRate.toFixed(1)}%
                   </span>
                   {previousPeriod.emailToReplyChange !== 0 && (
@@ -782,12 +786,12 @@ export default function Analytics() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-white/60">
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-white/50">
                 <span>{conversionMetrics.totalEmails} emails</span>
                 <span>→</span>
                 <span>{conversionMetrics.replies} replies</span>
               </div>
-              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
+              <div className="mt-2 w-full bg-gray-100 dark:bg-white/10 rounded-full h-2">
                 <div
                   className="bg-amber-400 h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(conversionMetrics.emailToReplyRate, 100)}%` }}
@@ -797,14 +801,14 @@ export default function Analytics() {
           </div>
 
           {/* Calls to Meetings (End-to-End) */}
-          <div className="flex items-center gap-4 pt-4 border-t border-white/10">
+          <div className="flex items-center gap-4 pt-4 border-t border-gray-200 dark:border-white/10">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-white/80">
+                <span className="text-sm font-medium text-gray-700 dark:text-white/70">
                   Calls → Meetings (End-to-End)
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-white">
+                  <span className="font-mono text-lg font-bold text-gray-900 dark:text-white">
                     {conversionMetrics.totalCalls > 0
                       ? ((conversionMetrics.meetings / conversionMetrics.totalCalls) * 100).toFixed(1)
                       : 0}
@@ -812,12 +816,12 @@ export default function Analytics() {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-white/60">
+              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-white/50">
                 <span>{conversionMetrics.totalCalls} calls</span>
                 <span>→</span>
                 <span>{conversionMetrics.meetings} meetings</span>
               </div>
-              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
+              <div className="mt-2 w-full bg-gray-100 dark:bg-white/10 rounded-full h-2">
                 <div
                   className="bg-emerald-signal h-2 rounded-full transition-all"
                   style={{
@@ -891,13 +895,13 @@ function CustomKPICard({ kpi, calculateValue }: CustomKPICardProps) {
         <div className="p-2 bg-purple-neon/10 rounded-lg">
           <TrendingUp className="w-6 h-6 text-purple-neon" />
         </div>
-        <h3 className="text-sm font-medium text-white/70">{kpi.name}</h3>
+        <h3 className="vv-section-title">{kpi.name}</h3>
       </div>
-      <p className="text-3xl font-bold text-white mb-1">
+      <p className="font-display font-mono text-3xl font-bold text-gray-900 dark:text-white mb-1">
         {loading ? '...' : formatValue()}
       </p>
-      <p className="text-xs text-white/60">{getFormulaDescription()}</p>
-      <p className="text-xs text-white/50 mt-1 capitalize">{kpi.period}</p>
+      <p className="text-xs text-gray-500 dark:text-white/50">{getFormulaDescription()}</p>
+      <p className="text-xs text-gray-400 dark:text-white/40 mt-1 capitalize">{kpi.period}</p>
     </div>
   );
 }
