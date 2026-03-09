@@ -145,7 +145,8 @@ export default function SalesBlockSessionPage() {
 
           const filters = listData?.filter_criteria?.filters;
           if (filters && filters.length > 0) {
-            let contactQuery = supabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let contactQuery: any = supabase
               .from('contacts')
               .select('id')
               .eq('org_id', listData.org_id);
@@ -166,15 +167,16 @@ export default function SalesBlockSessionPage() {
             }
 
             const { data: resolvedContacts } = await contactQuery;
-            if (resolvedContacts && resolvedContacts.length > 0) {
+            const resolved = (resolvedContacts ?? []) as { id: string }[];
+            if (resolved.length > 0) {
               // Re-populate list_contacts so future sessions load instantly
-              const junctionRecords = resolvedContacts.map((c, index) => ({
+              const junctionRecords = resolved.map((c, index) => ({
                 list_id: sbData.list_id,
                 contact_id: c.id,
                 position: index,
               }));
               await supabase.from('list_contacts').insert(junctionRecords);
-              contactIds = resolvedContacts.map((c) => c.id);
+              contactIds = resolved.map((c) => c.id);
             }
           }
 
