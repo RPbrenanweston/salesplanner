@@ -13,7 +13,7 @@
  * @hazard scrollProgress computed from window.scrollY — does not account for dynamic header heights; pinned section top must match fixed offset (currently 0)
  * @shared-edges frontend/src/lib/routes.ts→READS ROUTES; frontend/public/frames/→READS 160 static JPEGs; frontend/src/pages/PricingPage.tsx→LINKS TO; frontend/src/pages/SignUp.tsx→LINKS TO; frontend/src/pages/SignIn.tsx→LINKS TO
  * @trail marketing#1 | Visitor lands on "/" → frames preload → scroll animation activates → scroll section unpins → feature cards visible → CTA links to /signup or /pricing
- * @prompt Add IntersectionObserver to gate frame preloading until hero section enters viewport; add <noscript> fallback image for SEO; consider extracting canvas animation into a reusable hook
+ * @prompt VV tokens applied — void-950 (#04060f) root bg, dark glass nav (rgba(4,6,15,0.85)), dark glassCard panels (rgba(10,15,40,0.75)), white/65 body text, white headings, rgba(255,255,255,0.06) borders, indigo-electric (#6366f1) accents, cyan-neon (#0db9f2) accents, purple-neon (#8b5cf6) gradient preserved. Remaining: Add IntersectionObserver to gate frame preloading until hero section enters viewport; add <noscript> fallback image for SEO; consider extracting canvas animation into a reusable hook.
  */
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -22,10 +22,10 @@ import { ROUTES } from '../lib/routes'
 // ─── Design tokens ───────────────────────────────────────────────────────────
 
 const glassCard: React.CSSProperties = {
-  background: 'rgba(255, 255, 255, 0.7)',
+  background: 'rgba(10, 15, 40, 0.75)',
   backdropFilter: 'blur(12px)',
-  border: '1px solid rgba(99, 102, 241, 0.1)',
-  boxShadow: 'inset 0 0 20px rgba(99, 102, 241, 0.02)',
+  border: '1px solid rgba(99, 102, 241, 0.15)',
+  boxShadow: 'inset 0 0 20px rgba(99, 102, 241, 0.04)',
 }
 
 const velocityGradient: React.CSSProperties = {
@@ -177,13 +177,13 @@ export default function MarketingPage() {
   }, [])
 
   return (
-    <div style={{ fontFamily: 'Inter, sans-serif', background: '#f8fafc', color: '#1e293b', minHeight: '100vh' }}>
+    <div style={{ fontFamily: 'Inter, sans-serif', background: '#04060f', color: 'white', minHeight: '100vh' }}>
 
       {/* ── Nav ── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
-        borderBottom: '1px solid #e2e8f0',
-        background: 'rgba(255,255,255,0.82)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        background: 'rgba(4,6,15,0.85)',
         backdropFilter: 'blur(12px)',
       }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -193,7 +193,7 @@ export default function MarketingPage() {
             <div style={{ width: 32, height: 32, borderRadius: 8, background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'white', fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
             </div>
-            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: '#0f172a' }}>
+            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: 'white' }}>
               Salesblock<span style={{ color: '#6366f1' }}>.io</span>
             </span>
           </div>
@@ -201,18 +201,18 @@ export default function MarketingPage() {
           {/* Nav links (hidden on mobile) */}
           <nav className="sb-nav-links">
             {['Product', 'Solutions', 'Philosophy', 'Pricing'].map(item => (
-              <a key={item} href="#" style={{ fontSize: 14, fontWeight: 500, color: '#475569', textDecoration: 'none' }}>{item}</a>
+              <a key={item} href="#" style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.65)', textDecoration: 'none' }}>{item}</a>
             ))}
           </nav>
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <Link to={ROUTES.SIGNIN} style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', textDecoration: 'none' }}>Log In</Link>
+            <Link to={ROUTES.SIGNIN} style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>Log In</Link>
             <Link to={ROUTES.SIGNUP} style={{
               background: '#6366f1', color: 'white',
               padding: '10px 20px', borderRadius: 8,
               fontSize: 14, fontWeight: 700, textDecoration: 'none',
-              boxShadow: '0 4px 14px rgba(99,102,241,0.25)',
+              boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
             }}>Enter the Cockpit</Link>
           </div>
         </div>
@@ -230,7 +230,7 @@ export default function MarketingPage() {
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8, width: 'fit-content',
                 borderRadius: 999, border: '1px solid rgba(99,102,241,0.2)',
-                background: 'rgba(99,102,241,0.05)', padding: '4px 12px',
+                background: 'rgba(99,102,241,0.08)', padding: '4px 12px',
               }}>
                 <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
                   <span className="sb-ping" style={{
@@ -248,13 +248,13 @@ export default function MarketingPage() {
                 fontFamily: 'Space Grotesk, sans-serif',
                 fontSize: 'clamp(2.5rem, 5.5vw, 4.5rem)',
                 fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.025em',
-                color: '#0f172a', margin: 0,
+                color: 'white', margin: 0,
               }}>
                 The System of Action for{' '}
                 <span style={{ color: '#6366f1' }}>High-Velocity</span> Sales
               </h1>
 
-              <p style={{ fontSize: 18, lineHeight: 1.65, color: '#475569', maxWidth: 480, margin: 0 }}>
+              <p style={{ fontSize: 18, lineHeight: 1.65, color: 'rgba(255,255,255,0.65)', maxWidth: 480, margin: 0 }}>
                 Stop recording data. Start driving revenue. The cockpit for elite sales teams to execute at light speed without the CRM friction.
               </p>
 
@@ -272,8 +272,8 @@ export default function MarketingPage() {
                 <button style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8,
                   padding: '1rem 2rem', borderRadius: 12,
-                  fontSize: 18, fontWeight: 700, color: '#0f172a',
-                  background: 'white', border: '1px solid #e2e8f0', cursor: 'pointer',
+                  fontSize: 18, fontWeight: 700, color: 'white',
+                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer',
                 }}>
                   View Demo
                 </button>
@@ -293,8 +293,8 @@ export default function MarketingPage() {
               <div style={{
                 position: 'relative', width: '100%', paddingTop: '56.25%',
                 borderRadius: 16, overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.8)',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
               }}>
                 {/* Dashboard UI — absolutely fills the 16:9 frame */}
                 <div style={{ position: 'absolute', inset: 0, background: '#0f172a', display: 'flex', flexDirection: 'column' }}>
@@ -384,18 +384,18 @@ export default function MarketingPage() {
       </section>
 
       {/* ── Metrics ── */}
-      <section style={{ borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', background: 'white', padding: '3rem 1.5rem' }}>
+      <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '3rem 1.5rem' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div className="sb-metrics-grid">
             {[
               { value: '+40%', label: 'Pipeline Velocity', color: '#6366f1' },
               { value: '2x',   label: 'Rep Engagement',   color: '#6366f1' },
-              { value: '14ms', label: 'Action Latency',   color: '#0f172a' },
+              { value: '14ms', label: 'Action Latency',   color: 'white' },
               { value: '99%',  label: 'Data Hygiene',     color: '#0db9f2' },
             ].map(({ value, label, color }) => (
               <div key={label} style={{ textAlign: 'center' }}>
                 <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 700, color }}>{value}</div>
-                <div style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginTop: 6 }}>{label}</div>
+                <div style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>{label}</div>
               </div>
             ))}
           </div>
@@ -403,18 +403,18 @@ export default function MarketingPage() {
       </section>
 
       {/* ── Feature Section Header ── */}
-      <div style={{ textAlign: 'center', padding: '4rem 1.5rem 0', background: '#f8fafc' }}>
-        <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 'clamp(1.75rem, 4vw, 3rem)', fontWeight: 700, color: '#0f172a', margin: '0 0 16px' }}>
+      <div style={{ textAlign: 'center', padding: '4rem 1.5rem 0' }}>
+        <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 'clamp(1.75rem, 4vw, 3rem)', fontWeight: 700, color: 'white', margin: '0 0 16px' }}>
           Engineered for Peak Performance
         </h2>
-        <p style={{ fontSize: 18, color: '#475569', maxWidth: 512, margin: '0 auto' }}>
+        <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.65)', maxWidth: 512, margin: '0 auto' }}>
           The first workspace that prioritizes flow-state for sales professionals.
         </p>
       </div>
 
       {/* ── Scroll Frame Section ── */}
       <div ref={scrollSectionRef} style={{ height: '400vh', position: 'relative', marginTop: '2rem' }}>
-        <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
+        <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: '#04060f' }}>
 
           {/* Progress bar */}
           <div style={{
@@ -453,30 +453,30 @@ export default function MarketingPage() {
                 borderRadius: 16, padding: 24,
                 ...glassCard,
                 border: isActive ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(99,102,241,0.1)',
-                boxShadow: isActive ? '0 0 40px rgba(99,102,241,0.15), inset 0 0 20px rgba(99,102,241,0.02)' : 'none',
+                boxShadow: isActive ? '0 0 40px rgba(99,102,241,0.15), inset 0 0 20px rgba(99,102,241,0.04)' : 'none',
                 pointerEvents: isActive ? 'auto' : 'none',
               }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, marginBottom: 16,
-                  background: 'rgba(99,102,241,0.1)', color: '#6366f1',
+                  background: 'rgba(99,102,241,0.12)', color: '#6366f1',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <span className="material-symbols-outlined">{card.icon}</span>
                 </div>
-                <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>
+                <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 700, color: 'white', margin: '0 0 8px' }}>
                   {card.title}
                 </h3>
-                <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, margin: '0 0 16px' }}>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: '0 0 16px' }}>
                   {card.desc}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{
                     fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700,
-                    color: '#6366f1', background: 'rgba(99,102,241,0.1)',
+                    color: '#6366f1', background: 'rgba(99,102,241,0.12)',
                     padding: '3px 8px', borderRadius: 4,
                   }}>{card.badge1}</span>
                   {card.badge2 && (
-                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#94a3b8' }}>
+                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
                       {card.badge2}
                     </span>
                   )}
@@ -492,16 +492,16 @@ export default function MarketingPage() {
       <section style={{ padding: 'clamp(3rem,6vw,6rem) 1.5rem' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div style={{ ...velocityGradient, padding: 4, borderRadius: 24 }}>
-            <div style={{ background: 'white', borderRadius: 22, padding: 'clamp(2rem,5vw,4rem)' }}>
+            <div style={{ background: '#06091a', borderRadius: 22, padding: 'clamp(2rem,5vw,4rem)' }}>
               <div className="sb-philosophy-grid">
 
                 {/* Copy */}
                 <div>
-                  <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 900, color: '#0f172a', margin: '0 0 24px', lineHeight: 1.15 }}>
+                  <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 900, color: 'white', margin: '0 0 24px', lineHeight: 1.15 }}>
                     System of Action <br />
                     <span style={{ color: '#6366f1' }}>vs. System of Record</span>
                   </h2>
-                  <p style={{ fontSize: 18, color: '#475569', lineHeight: 1.7, margin: 0 }}>
+                  <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, margin: 0 }}>
                     Traditional CRMs were built for managers to report on history. Salesblock was built for reps to create the future.<br /><br />
                     One is a graveyard for data; the other is an engine for execution. It's time to stop reporting and start performing.
                   </p>
@@ -518,11 +518,11 @@ export default function MarketingPage() {
                 {/* Comparison table */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   {/* Legacy */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 24 }}>
-                    <h4 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', margin: '0 0 16px' }}>Legacy CRM</h4>
+                  <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }}>
+                    <h4 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', margin: '0 0 16px' }}>Legacy CRM</h4>
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {['Manual Entry', 'Slow Interface', 'Admin Focus'].map(item => (
-                        <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#94a3b8', textDecoration: 'line-through' }}>
+                        <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>
                           <span className="material-symbols-outlined" style={{ fontSize: 16, textDecoration: 'none' }}>close</span>
                           {item}
                         </li>
@@ -531,11 +531,11 @@ export default function MarketingPage() {
                   </div>
 
                   {/* Salesblock */}
-                  <div style={{ border: '1px solid rgba(99,102,241,0.2)', background: 'rgba(99,102,241,0.04)', borderRadius: 16, padding: 24 }}>
+                  <div style={{ border: '1px solid rgba(99,102,241,0.25)', background: 'rgba(99,102,241,0.08)', borderRadius: 16, padding: 24 }}>
                     <h4 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6366f1', margin: '0 0 16px' }}>Salesblock</h4>
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {['Auto-Capture', 'Sub-ms Flow', 'Rep-Centric'].map(item => (
-                        <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                        <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'white' }}>
                           <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#6366f1', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                           {item}
                         </li>
@@ -552,7 +552,7 @@ export default function MarketingPage() {
 
       {/* ── CTA ── */}
       <section style={{ position: 'relative', padding: 'clamp(3rem,6vw,6rem) 1.5rem', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: '#0f172a' }}>
+        <div style={{ position: 'absolute', inset: 0, background: '#04060f' }}>
           <div style={{
             position: 'absolute', inset: 0, opacity: 0.1,
             backgroundImage: 'radial-gradient(#6366f1 1px, transparent 1px)',
@@ -563,7 +563,7 @@ export default function MarketingPage() {
           <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, color: 'white', margin: '0 0 24px' }}>
             Ready for Takeoff?
           </h2>
-          <p style={{ fontSize: 20, color: '#64748b', margin: '0 0 40px' }}>
+          <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.5)', margin: '0 0 40px' }}>
             Join 500+ elite sales organizations moving at the speed of light.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
@@ -576,7 +576,7 @@ export default function MarketingPage() {
             }}>
               Claim Your Cockpit
             </Link>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, color: '#475569' }}>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
               Waitlist: <span style={{ color: '#0db9f2' }}>Active</span>
             </span>
           </div>
@@ -584,20 +584,20 @@ export default function MarketingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer style={{ borderTop: '1px solid #e2e8f0', background: 'white', padding: '3rem 1.5rem' }}>
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '3rem 1.5rem' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 24, height: 24, borderRadius: 4, background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'white', fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
             </div>
-            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 700, color: '#0f172a' }}>Salesblock.io</span>
+            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 700, color: 'white' }}>Salesblock.io</span>
           </div>
           <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 500 }}>
             {['Twitter', 'LinkedIn', 'Privacy', 'Terms'].map(item => (
-              <a key={item} href="#" style={{ color: '#64748b', textDecoration: 'none' }}>{item}</a>
+              <a key={item} href="#" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>{item}</a>
             ))}
           </div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: '#94a3b8' }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
             © 2025 SB_ACTION_SYSTEM
           </div>
         </div>
