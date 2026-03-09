@@ -14,7 +14,7 @@
  * @trail list-builder#1 | User clicks "New List" → ListBuilderModal renders → user adds filter rows → preview count updates → handleSave → supabase upsert → onSaved(list) → modal closes → list appears in Lists page
  * @prompt Debounce preview queries. Add schema-versioning to filter criteria JSON so migrations can update stored filters. Add filter validation before save.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -56,6 +56,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Pre-fill when editing, reset when closing or creating new
   useEffect(() => {
@@ -89,13 +90,28 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
     }
   }, [isOpen, existingList]);
 
-  // Live preview: count matching contacts whenever filters change
+  // Live preview: count matching contacts whenever filters change (debounced)
   useEffect(() => {
+    // Clear previous timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
     if (isOpen && filters.length > 0) {
-      updateMatchingCount();
+      // Debounce the preview query by 400ms to avoid firing on every keystroke
+      debounceTimeoutRef.current = setTimeout(() => {
+        updateMatchingCount();
+      }, 400);
     } else {
       setMatchingCount(null);
     }
+
+    // Cleanup timeout on unmount or when deps change
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
   }, [filters, isOpen]);
 
   const addFilter = () => {
