@@ -32,10 +32,12 @@ interface CreateSalesBlockModalProps {
 export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedListId }: CreateSalesBlockModalProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
-  // Data hooks (handles caching + loading)
+  // Data hooks (handles caching + loading) — only load when user is available
   const { data: lists = [] } = useUserLists(isOpen && user?.id ? user.id : undefined)
-  const { data: scripts = [] } = useCallScripts(isOpen ? user?.id : undefined)
+  const { data: scripts = [] } = useCallScripts(isOpen && user?.id ? user.id : undefined)
   const { data: userTeamInfo } = useUserTeamInfo(isOpen && user?.id ? user.id : undefined)
   const { data: teamMembers } = useTeamMembers(userTeamInfo?.team_id ?? null, user?.id)
   const { data: userProfile } = useUserProfile(user?.id)
@@ -68,6 +70,8 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
     if (!user || !selectedListId || !scheduledDate || !scheduledTime || !userProfile?.org_id) return
 
     setLoading(true)
+    setErrorMessage('')
+    setSuccessMessage('')
 
     try {
       // Combine date and time into ISO timestamp
@@ -108,31 +112,47 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
 
       if (error) throw error
 
-      // Create calendar event (async, non-blocking)
-      const calendarResult = await createCalendarEvent({
-        title: `SalesBlock: ${title}`,
-        description: `List: ${listName}\nContacts: ${contactCount || 0}\nDuration: ${duration} minutes`,
-        start: scheduledStart.toISOString(),
-        end: scheduledEnd.toISOString(),
-      })
+      // Create calendar event (separate error handling)
+      let calendarSuccess = false
+      try {
+        const calendarResult = await createCalendarEvent({
+          title: `SalesBlock: ${title}`,
+          description: `List: ${listName}\nContacts: ${contactCount || 0}\nDuration: ${duration} minutes`,
+          start: scheduledStart.toISOString(),
+          end: scheduledEnd.toISOString(),
+        })
 
-      // Update salesblock with calendar_event_id and provider if successful
-      if (calendarResult && salesblockData) {
-        await supabase
-          .from('salesblocks')
-          .update({
-            calendar_event_id: calendarResult.eventId,
-            calendar_provider: calendarResult.provider
-          })
-          .eq('id', salesblockData.id)
+        // Update salesblock with calendar_event_id and provider if successful
+        if (calendarResult && salesblockData) {
+          await supabase
+            .from('salesblocks')
+            .update({
+              calendar_event_id: calendarResult.eventId,
+              calendar_provider: calendarResult.provider
+            })
+            .eq('id', salesblockData.id)
+          calendarSuccess = true
+        }
+      } catch (calendarError) {
+        console.error('Calendar event creation failed:', calendarError)
+        // SalesBlock was created successfully, but calendar failed
+        calendarSuccess = false
       }
 
-      alert('SalesBlock created successfully!')
-      resetAndClose()
-      if (onSuccess) onSuccess()
+      // Set success message based on calendar result
+      if (calendarSuccess) {
+        setSuccessMessage('SalesBlock created successfully! Calendar event added.')
+      } else {
+        setSuccessMessage('SalesBlock created. Calendar event could not be added (calendar may not be connected).')
+      }
+
+      setTimeout(() => {
+        resetAndClose()
+        if (onSuccess) onSuccess()
+      }, 2000)
     } catch (error) {
       console.error('Error creating salesblock:', error)
-      alert('Failed to create SalesBlock. Please try again.')
+      setErrorMessage('Failed to create SalesBlock. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -146,10 +166,27 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
     setScheduledTime('')
     setDuration(String(DURATION.DEFAULT_SALESBLOCK_MINUTES))
     setAssignedToUserId('')
+    setSuccessMessage('')
+    setErrorMessage('')
     onClose()
   }
 
   if (!isOpen) return null
+
+  // Guard: don't show form until user is authenticated
+  if (!user) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create SalesBlock</h2>
+          </div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -163,6 +200,20 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-sm font-medium text-green-800 dark:text-green-200">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm font-medium text-red-800 dark:text-red-200">{errorMessage}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* List Selection */}
