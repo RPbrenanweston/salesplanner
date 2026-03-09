@@ -30,6 +30,7 @@ const GoogleCalendarOAuthCallback = lazy(() => import('./pages/GoogleCalendarOAu
 const OutlookCalendarOAuthCallback = lazy(() => import('./pages/OutlookCalendarOAuthCallback'))
 const SalesforceOAuthCallback = lazy(() => import('./pages/SalesforceOAuthCallback'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
+const MarketingPage = lazy(() => import('./pages/MarketingPage'))
 
 const queryClient = new QueryClient()
 
@@ -39,6 +40,9 @@ function App() {
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
+            {/* Marketing - public home */}
+            <Route path="/" element={<MarketingPage />} />
+
             {/* Auth routes - public */}
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
@@ -54,7 +58,7 @@ function App() {
 
             {/* Protected routes with AppLayout */}
             <Route
-              path="/"
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <AppLayout>

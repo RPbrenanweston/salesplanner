@@ -16,9 +16,12 @@ export const ROUTES = {
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
 
-  // Main Navigation
+  // Marketing
+  MARKETING: '/',
+
+  // Main Navigation (app home)
   DASHBOARD: '/dashboard',
-  HOME: '/',
+  HOME: '/dashboard',
 
   // Core Features
   SALESBLOCKS: '/salesblocks',
@@ -113,6 +116,7 @@ export function getSalesBlocksRoute(preselectedListId?: string): {
  */
 export function isProtectedRoute(path: string): boolean {
   const publicRoutes = [
+    ROUTES.MARKETING,
     ROUTES.SIGNIN,
     ROUTES.SIGNUP,
     ROUTES.FORGOT_PASSWORD,

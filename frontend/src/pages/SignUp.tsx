@@ -17,6 +17,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { ROUTES } from '../lib/routes'
 
 export default function SignUp() {
   const navigate = useNavigate()
@@ -158,7 +159,7 @@ export default function SignUp() {
         }
 
         // Navigate to home after successful signup
-        navigate('/')
+        navigate(ROUTES.HOME)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign up')

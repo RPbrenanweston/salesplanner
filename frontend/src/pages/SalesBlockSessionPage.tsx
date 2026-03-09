@@ -17,6 +17,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { ROUTES } from '../lib/routes';
 import { useAuth } from '../hooks/useAuth';
 import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home, Calendar } from 'lucide-react';
 import LogActivityModal from '../components/LogActivityModal';
@@ -365,7 +366,7 @@ export default function SalesBlockSessionPage() {
 
   const handleBackToHome = async () => {
     await handleSaveNotes();
-    navigate('/');
+    navigate(ROUTES.HOME);
   };
 
   if (loading) {

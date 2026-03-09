@@ -17,6 +17,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { ROUTES } from '../lib/routes'
 
 export default function SignIn() {
   const navigate = useNavigate()
@@ -38,7 +39,7 @@ export default function SignIn() {
 
       if (signInError) throw signInError
       if (data.user) {
-        navigate('/')
+        navigate(ROUTES.HOME)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in')
