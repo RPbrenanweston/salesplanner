@@ -12,7 +12,7 @@
  * @hazard Shared templates are visible to all org users — no RLS verification in crumb; if RLS misconfigured, templates leak across orgs
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES email_templates; frontend/src/components/TemplateModal.tsx→LAUNCHES for create/edit; frontend/src/App.tsx→ROUTES to /email-templates
  * @trail email-templates#1 | EmailTemplates mounts → load templates → render cards with stats → user edits → TemplateModal saves → reload → user deletes → confirm → remove
- * @prompt Add error toast on delete failure. Verify RLS on email_templates scopes to org_id. Add template preview before use. Add search/filter for large template libraries.
+ * @prompt Add error toast on delete failure. Verify RLS on email_templates scopes to org_id. Add template preview before use. Add search/filter for large template libraries. VV design applied: void-950 page bg, glass-card template cards, indigo-electric Create CTA, vv-section-title "Outreach", font-display headings, font-mono stats, white/10 borders, indigo-electric/15 shared badge, red-alert delete hover, VV spinner, VV delete modal.
  */
 import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2, Share2, Lock } from 'lucide-react'
@@ -99,38 +99,48 @@ export default function EmailTemplates() {
     return `${rate.toFixed(1)}%`
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading Templates...</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Email Templates</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Create and manage reusable email templates with variable placeholders
-          </p>
+          <p className="vv-section-title mb-1">Outreach</p>
+          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">Email Templates</h1>
         </div>
         <button
           onClick={() => {
             setEditingTemplate(null)
             setModalOpen(true)
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
         >
           <Plus className="w-4 h-4" />
           Create Template
         </button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading templates...</div>
-      ) : templates.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">No email templates yet.</p>
+      {/* Templates List */}
+      {templates.length === 0 ? (
+        <div className="glass-card text-center py-16">
+          <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">No email templates yet</p>
+          <p className="text-sm text-gray-400 dark:text-white/40 mb-4">Build templates to speed up your outreach</p>
           <button
             onClick={() => {
               setEditingTemplate(null)
               setModalOpen(true)
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
           >
             Create Your First Template
           </button>
@@ -140,28 +150,30 @@ export default function EmailTemplates() {
           {templates.map((template) => (
             <div
               key={template.id}
-              className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 hover:shadow-md transition-shadow"
+              className="glass-card p-4 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-display font-semibold text-gray-900 dark:text-white">
                       {template.name}
                     </h3>
                     {template.is_shared ? (
-                      <span title="Shared with team">
-                        <Share2 className="w-4 h-4 text-blue-500" />
+                      <span className="flex items-center gap-1 text-xs text-indigo-electric bg-indigo-electric/15 px-2 py-1 rounded">
+                        <Share2 className="w-3 h-3" />
+                        Shared
                       </span>
                     ) : (
-                      <span title="Private">
-                        <Lock className="w-4 h-4 text-gray-400" />
+                      <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-white/40 bg-gray-100 dark:bg-white/10 px-2 py-1 rounded">
+                        <Lock className="w-3 h-3" />
+                        Private
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <p className="text-sm text-gray-600 dark:text-white/50 mb-2">
                     Subject: {template.subject}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-white/40 line-clamp-2">
                     {truncate(template.body, 120)}
                   </p>
                 </div>
@@ -173,14 +185,14 @@ export default function EmailTemplates() {
                           setEditingTemplate(template)
                           setModalOpen(true)
                         }}
-                        className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                        className="p-2 text-gray-400 dark:text-white/30 hover:text-indigo-electric dark:hover:text-indigo-electric hover:bg-indigo-electric/10 rounded transition-colors duration-150 ease-snappy"
                         title="Edit"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(template.id)}
-                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                        className="p-2 text-gray-400 dark:text-white/30 hover:text-red-alert dark:hover:text-red-alert hover:bg-red-alert/10 rounded transition-colors duration-150 ease-snappy"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -190,15 +202,15 @@ export default function EmailTemplates() {
                 </div>
               </div>
 
-              <div className="flex gap-6 text-sm text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3">
+              <div className="flex gap-6 text-xs text-gray-400 dark:text-white/30 font-mono border-t border-gray-200 dark:border-white/10 pt-3">
                 <div>
-                  <span className="font-medium">Times Used:</span> {template.times_used}
+                  <span className="font-semibold">Used:</span> {template.times_used}
                 </div>
                 <div>
-                  <span className="font-medium">Reply Rate:</span> {calculateReplyRate(template)}
+                  <span className="font-semibold">Reply Rate:</span> {calculateReplyRate(template)}
                 </div>
                 <div>
-                  <span className="font-medium">Replies:</span> {template.reply_count}
+                  <span className="font-semibold">Replies:</span> {template.reply_count}
                 </div>
               </div>
             </div>
@@ -218,24 +230,24 @@ export default function EmailTemplates() {
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="glass-card p-6 max-w-md w-full mx-4">
+            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-3">
               Delete Template
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-sm text-gray-500 dark:text-white/50 mb-6">
               Are you sure you want to delete this email template? This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/10 rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                className="px-4 py-2 bg-red-alert hover:bg-red-alert/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
               >
                 Delete
               </button>
