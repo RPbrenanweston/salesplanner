@@ -131,12 +131,58 @@ export default function SalesBlockSessionPage() {
 
         if (lcError) throw lcError;
 
-        const contactIds = listContactsData.map((lc) => lc.contact_id);
+        let contactIds = listContactsData.map((lc) => lc.contact_id);
 
         if (contactIds.length === 0) {
-          setContacts([]);
-          setLoading(false);
-          return;
+          // Fallback: re-resolve contacts via list filter_criteria.
+          // list_contacts may be empty if contacts were added after the list was saved,
+          // or if the list_contacts insert failed silently at creation time.
+          const { data: listData } = await supabase
+            .from('lists')
+            .select('filter_criteria, org_id')
+            .eq('id', sbData.list_id)
+            .single();
+
+          const filters = listData?.filter_criteria?.filters;
+          if (filters && filters.length > 0) {
+            let contactQuery = supabase
+              .from('contacts')
+              .select('id')
+              .eq('org_id', listData.org_id);
+
+            for (const filter of filters) {
+              if (!filter.value) continue;
+              if (filter.field === 'custom_field' && filter.customFieldKey) {
+                const jsonbPath = `custom_fields->${filter.customFieldKey}`;
+                if (filter.operator === 'equals') contactQuery = contactQuery.eq(jsonbPath, filter.value);
+                else if (filter.operator === 'contains') contactQuery = contactQuery.ilike(jsonbPath, `%${filter.value}%`);
+              } else {
+                if (filter.operator === 'equals') contactQuery = contactQuery.eq(filter.field, filter.value);
+                else if (filter.operator === 'contains') contactQuery = contactQuery.ilike(filter.field, `%${filter.value}%`);
+                else if (filter.operator === 'starts_with') contactQuery = contactQuery.ilike(filter.field, `${filter.value}%`);
+                else if (filter.operator === 'greater_than' && filter.field === 'created_at') contactQuery = contactQuery.gt(filter.field, filter.value);
+                else if (filter.operator === 'less_than' && filter.field === 'created_at') contactQuery = contactQuery.lt(filter.field, filter.value);
+              }
+            }
+
+            const { data: resolvedContacts } = await contactQuery;
+            if (resolvedContacts && resolvedContacts.length > 0) {
+              // Re-populate list_contacts so future sessions load instantly
+              const junctionRecords = resolvedContacts.map((c, index) => ({
+                list_id: sbData.list_id,
+                contact_id: c.id,
+                position: index,
+              }));
+              await supabase.from('list_contacts').insert(junctionRecords);
+              contactIds = resolvedContacts.map((c) => c.id);
+            }
+          }
+
+          if (contactIds.length === 0) {
+            setContacts([]);
+            setLoading(false);
+            return;
+          }
         }
 
         // Fetch contact details
