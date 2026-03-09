@@ -291,17 +291,29 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
         }
       }
 
-      // Bulk insert all tracked contacts into list_contacts if a list is selected
+      // Batch insert all tracked contacts into list_contacts if a list is selected (chunk into batches of 500)
       if (selectedListId && contactsToAddToList.length > 0) {
-        const listContactsToInsert = contactsToAddToList.map((contactId) => ({
-          list_id: selectedListId,
-          contact_id: contactId,
-          position: 0,
-        }));
+        const BATCH_SIZE = 500;
+        let listAssignmentErrors = 0;
 
-        const { error: bulkListError } = await supabase.from('list_contacts').insert(listContactsToInsert);
-        if (bulkListError) {
-          console.error('Bulk list assignment error:', bulkListError);
+        for (let i = 0; i < contactsToAddToList.length; i += BATCH_SIZE) {
+          const batch = contactsToAddToList.slice(i, i + BATCH_SIZE);
+          const listContactsToInsert = batch.map((contactId) => ({
+            list_id: selectedListId,
+            contact_id: contactId,
+            position: 0,
+          }));
+
+          const { error: batchError } = await supabase.from('list_contacts').insert(listContactsToInsert);
+          if (batchError) {
+            console.error(`Batch ${i / BATCH_SIZE + 1} list assignment error:`, batchError);
+            listAssignmentErrors += batch.length;
+          }
+        }
+
+        // Update errors if any batch failed
+        if (listAssignmentErrors > 0) {
+          setImportProgress({ imported, skipped, errors: errors + listAssignmentErrors });
         }
       }
 
