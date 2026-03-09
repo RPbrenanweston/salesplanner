@@ -12,7 +12,7 @@
  * @hazard checkout is triggered with role identifier only — if the Stripe price ID mapping in the edge function diverges from the frontend role names, wrong plans will be charged
  * @shared-edges supabase/functions/create-checkout-session/index.ts→INVOKED; frontend/src/lib/supabase.ts→CALLS functions.invoke; frontend/src/App.tsx→ROUTES to /pricing
  * @trail pricing#1 | PricingPage mounts → user selects billing period → user clicks plan CTA → getSession → invoke create-checkout-session → redirect to Stripe → Stripe → return to app
- * @prompt Pull pricing from a Supabase table or remote config to avoid price drift. Add loading state on CTA during checkout invocation. Add error toast instead of alert. Verify role→Stripe price ID mapping is tested in CI.
+ * @prompt VV tokens applied — void-950 gradient background, white text headers, white/60 subtitles, void-900/40 toggle container with white/10 border, indigo-electric active toggle state, white/5 hover on inactive, glass-card tier cards with white/10 border, per-tier explicit VV header/CTA classes (SDR: indigo-electric; AE: cyan-neon/void-950; Manager: purple-neon/void-950), emerald-signal check icons, white/70 feature text, indigo-electric/10 trial block. Dynamic bg-${tier.color}-600 anti-pattern fixed with headerClass/ctaClass fields on PricingTier interface. Remaining: Pull pricing from Supabase table to avoid price drift. Add error toast instead of alert. Add loading spinner on CTA during checkout.
  */
 import { useState } from 'react';
 import { Check } from 'lucide-react';
@@ -27,7 +27,8 @@ interface PricingTier {
   monthlyPrice: number;
   annualPrice: number;
   features: string[];
-  color: string;
+  headerClass: string;
+  ctaClass: string;
 }
 
 const pricingTiers: PricingTier[] = [
@@ -45,7 +46,8 @@ const pricingTiers: PricingTier[] = [
       'Basic Analytics',
       'Call Script Library',
     ],
-    color: 'blue',
+    headerClass: 'bg-indigo-electric text-white',
+    ctaClass: 'bg-indigo-electric hover:bg-indigo-electric/80 text-white',
   },
   {
     name: 'AE Plan',
@@ -61,7 +63,8 @@ const pricingTiers: PricingTier[] = [
       'Salesforce Integration',
       'Advanced Analytics',
     ],
-    color: 'indigo',
+    headerClass: 'bg-cyan-neon text-void-950',
+    ctaClass: 'bg-cyan-neon hover:bg-cyan-neon/80 text-void-950',
   },
   {
     name: 'Manager Plan',
@@ -77,7 +80,8 @@ const pricingTiers: PricingTier[] = [
       'Custom KPI Builder',
       'Revenue Forecasting',
     ],
-    color: 'violet',
+    headerClass: 'bg-purple-neon text-void-950',
+    ctaClass: 'bg-purple-neon hover:bg-purple-neon/80 text-void-950',
   },
 ];
 
@@ -144,52 +148,52 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-16 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-void-950 via-void-900 to-void-950 py-16 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-4xl font-bold font-display text-white mb-4">
             Choose Your Plan
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400">
+          <p className="text-xl text-white/60">
             Start your 14-day free trial. No credit card required.
           </p>
         </div>
 
         {/* Billing Period Toggle */}
         <div className="flex justify-center mb-12">
-          <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-700 p-1 bg-white dark:bg-gray-800">
+          <div className="inline-flex rounded-lg border border-white/10 p-1 bg-void-900/40">
             <button
               onClick={() => setBillingPeriod('weekly')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ease-snappy ${
                 billingPeriod === 'weekly'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-indigo-electric text-white'
+                  : 'text-white/60 hover:bg-white/5'
               }`}
             >
               Weekly
             </button>
             <button
               onClick={() => setBillingPeriod('monthly')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ease-snappy ${
                 billingPeriod === 'monthly'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-indigo-electric text-white'
+                  : 'text-white/60 hover:bg-white/5'
               }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setBillingPeriod('annual')}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors relative ${
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ease-snappy relative ${
                 billingPeriod === 'annual'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-indigo-electric text-white'
+                  : 'text-white/60 hover:bg-white/5'
               }`}
             >
               Annual
               {getSavingsBadge() && (
-                <span className="absolute -top-3 -right-3 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
+                <span className="absolute -top-3 -right-3 bg-emerald-signal text-void-950 text-xs px-2 py-0.5 rounded-full font-semibold">
                   {getSavingsBadge()}
                 </span>
               )}
@@ -202,23 +206,23 @@ export default function PricingPage() {
           {pricingTiers.map((tier) => (
             <div
               key={tier.role}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border-2 border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-shadow"
+              className="glass-card border-2 border-white/10 overflow-hidden hover:border-white/20 transition-all ease-snappy"
             >
-              <div className={`bg-${tier.color}-600 text-white px-6 py-4`}>
-                <h3 className="text-2xl font-bold">{tier.name}</h3>
+              <div className={`${tier.headerClass} px-6 py-4`}>
+                <h3 className="text-2xl font-bold font-display">{tier.name}</h3>
               </div>
 
               <div className="p-6">
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-5xl font-bold text-gray-900 dark:text-white">
+                    <span className="text-5xl font-bold text-white">
                       {getPrice(tier)}
                     </span>
-                    <span className="text-gray-600 dark:text-gray-400 ml-2">
+                    <span className="text-white/60 ml-2">
                       {getPeriodLabel()}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  <p className="text-sm text-white/40 mt-2">
                     14-day free trial
                   </p>
                 </div>
@@ -226,8 +230,8 @@ export default function PricingPage() {
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feature, index) => (
                     <li key={index} className="flex items-start">
-                      <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700 dark:text-gray-300">{feature}</span>
+                      <Check className="w-5 h-5 text-emerald-signal mr-3 flex-shrink-0 mt-0.5" />
+                      <span className="text-white/70">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -235,7 +239,7 @@ export default function PricingPage() {
                 <button
                   onClick={() => handleCheckout(tier)}
                   disabled={loading !== null}
-                  className={`w-full bg-${tier.color}-600 hover:bg-${tier.color}-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`w-full ${tier.ctaClass} font-semibold py-3 rounded-lg transition-colors ease-snappy disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loading === tier.role ? 'Processing...' : 'Start Free Trial'}
                 </button>
@@ -246,25 +250,25 @@ export default function PricingPage() {
 
         {/* Trial Info */}
         <div className="mt-16 text-center">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-8 border border-blue-200 dark:border-blue-800">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          <div className="bg-indigo-electric/10 rounded-lg p-8 border border-indigo-electric/20">
+            <h3 className="text-2xl font-bold font-display text-white mb-4">
               14-Day Free Trial Includes Full Access
             </h3>
-            <ul className="text-left max-w-2xl mx-auto space-y-2 text-gray-700 dark:text-gray-300">
+            <ul className="text-left max-w-2xl mx-auto space-y-2 text-white/70">
               <li className="flex items-center">
-                <Check className="w-5 h-5 text-green-500 mr-3" />
+                <Check className="w-5 h-5 text-emerald-signal mr-3" />
                 No credit card required to start
               </li>
               <li className="flex items-center">
-                <Check className="w-5 h-5 text-green-500 mr-3" />
+                <Check className="w-5 h-5 text-emerald-signal mr-3" />
                 Full access to all features in your plan
               </li>
               <li className="flex items-center">
-                <Check className="w-5 h-5 text-green-500 mr-3" />
+                <Check className="w-5 h-5 text-emerald-signal mr-3" />
                 Cancel anytime during trial with no charge
               </li>
               <li className="flex items-center">
-                <Check className="w-5 h-5 text-green-500 mr-3" />
+                <Check className="w-5 h-5 text-emerald-signal mr-3" />
                 Automatically converts to paid plan after trial
               </li>
             </ul>
