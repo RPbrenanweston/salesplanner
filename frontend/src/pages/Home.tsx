@@ -32,56 +32,19 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useDashboardData } from '../hooks/useDashboardData'
+import { useGoalProgress } from '../hooks/useGoalProgress'
 import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal'
-
-interface SalesBlock {
-  id: string
-  title: string
-  scheduled_start: string
-  scheduled_end: string
-  duration_minutes: number
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
-  list_id: string
-  list?: { name: string }
-  contact_count?: number
-}
-
-interface Activity {
-  id: string
-  type: 'call' | 'email' | 'social' | 'meeting' | 'note'
-  outcome: string
-  notes: string | null
-  created_at: string
-  contact?: {
-    first_name: string
-    last_name: string
-  }
-}
-
-interface Goal {
-  id: string
-  metric: string
-  target_value: number
-  period: 'daily' | 'weekly' | 'monthly'
-  custom_metric_name: string | null
-}
-
-interface GoalProgress {
-  metric: string
-  label: string
-  current: number
-  target: number
-}
+import { DashboardGreeting } from '../components/dashboard-greeting'
+import { TodaysSalesBlocksSection } from '../components/todays-salesblocks-section'
+import { ActivityFeedSection } from '../components/activity-feed-section'
+import { GoalProgressSection } from '../components/goal-progress-section'
+import { UpcomingSalesBlocksSection } from '../components/upcoming-salesblocks-section'
 
 export default function Home() {
-  const [userDisplayName, setUserDisplayName] = useState<string>('')
-  const [todaysSalesblocks, setTodaysSalesblocks] = useState<SalesBlock[]>([])
-  const [upcomingSalesblocks, setUpcomingSalesblocks] = useState<SalesBlock[]>([])
-  const [recentActivities, setRecentActivities] = useState<Activity[]>([])
-  const [goalProgress, setGoalProgress] = useState<GoalProgress[]>([])
-  const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const { user } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -385,6 +348,8 @@ export default function Home() {
     if (sb.status !== 'scheduled') return false
     return new Date(sb.scheduled_start) <= new Date()
   }
+  const { userDisplayName, todaysSalesblocks, upcomingSalesblocks, recentActivities, loading, refreshData } = useDashboardData()
+  const { goalProgress } = useGoalProgress()
 
   const handleStartBlock = (salesblockId: string) => {
     navigate(`/salesblocks/${salesblockId}/session`)
@@ -425,6 +390,9 @@ export default function Home() {
         </div>
         <p className="font-mono text-xs text-gray-300 dark:text-white/30 tracking-wide">{formatDate()}</p>
       </div>
+    <div className="p-8">
+      {/* Greeting Section */}
+      <DashboardGreeting userDisplayName={userDisplayName} />
 
       {/* ── Mission Timer Strip ── */}
       <div className="glass-card p-5 flex items-center justify-between neon-glow-indigo">
@@ -658,6 +626,12 @@ export default function Home() {
               </div>
             )}
           </div>
+          <TodaysSalesBlocksSection
+            salesblocks={todaysSalesblocks}
+            onStartBlock={handleStartBlock}
+            onScheduleBlock={handleScheduleBlock}
+          />
+          <ActivityFeedSection activities={recentActivities} />
         </div>
 
         {/* Right: Goal Progress + Upcoming */}
@@ -728,6 +702,8 @@ export default function Home() {
               </div>
             )}
           </div>
+          <GoalProgressSection goals={goalProgress} />
+          <UpcomingSalesBlocksSection salesblocks={upcomingSalesblocks} />
         </div>
       </div>
 
@@ -737,7 +713,7 @@ export default function Home() {
         onClose={() => setShowCreateModal(false)}
         onSuccess={() => {
           setShowCreateModal(false)
-          loadDashboardData()
+          refreshData()
         }}
       />
     </div>

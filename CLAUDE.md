@@ -4,6 +4,70 @@ You are an autonomous coding agent working within the **PAI Algorithm** framewor
 
 ---
 
+## Code Quality Principles (Standing Orders)
+
+All code must adhere to these principles. These override default patterns and must be applied consistently:
+
+### **Clean Code Architecture**
+- Use abstraction and dependency inversion to decouple components
+- Each component/module should have a single, well-defined responsibility
+- Avoid tight coupling; prefer composition and dependency injection
+- Abstract data fetching into separate service layers (e.g., `hooks/useQuery*` patterns)
+
+### **SOLID Principles**
+- **Single Responsibility**: Each function/component does ONE thing
+- **Open/Closed**: Open for extension, closed for modification
+- **Liskov Substitution**: Subtypes should be substitutable
+- **Interface Segregation**: Depend on specific interfaces, not broad ones
+- **Dependency Inversion**: Depend on abstractions, not concrete implementations
+
+### **DRY (Don't Repeat Yourself)**
+- Extract repeated code patterns into reusable utilities, hooks, or components
+- If you write the same logic more than once, it belongs in a shared location
+- Create generic functions instead of copy-pasting implementations
+- Common patterns: data fetching, formatting, validation, UI patterns
+
+### **KISS (Keep It Simple)**
+- Prefer simple solutions over complex ones
+- Avoid premature optimization
+- Use clear, straightforward logic (no clever tricks)
+- Write code for humans first, machines second
+- Break large functions/components into smaller, understandable pieces
+
+### **YAGNI (You Aren't Gonna Need It)**
+- Only implement features/code that are needed NOW, not "just in case"
+- Don't add parameters, configs, or abstractions for hypothetical future use
+- Remove unused code, parameters, and branches
+- Scope work tightly to the current story
+
+### **Meaningful Naming Conventions**
+- **Files**: Use kebab-case for filenames; include type (e.g., `create-salesblock-modal.tsx`, `use-activity-logger.ts`, `supabase-queries.ts`)
+- **Components**: PascalCase; clearly indicate purpose (e.g., `ActivityFeed`, `SalesBlockCard`, `ContactForm`)
+- **Utilities/Hooks**: camelCase with descriptive names (e.g., `useActivityLogger`, `formatActivityTime`, `fetchContactsList`)
+- **Variables/Constants**: camelCase for vars; UPPER_SNAKE_CASE for constants
+- **Functions**: Verb-based names (e.g., `loadDashboard`, `calculateConversion`, `validateEmail`)
+- Avoid generic names like `data`, `item`, `temp`, `value` — use domain-specific names
+
+### **Meaningful File Organization**
+```
+frontend/src/
+├── components/          # Reusable UI components (forms, modals, cards)
+├── pages/              # Page-level containers (routes)
+├── hooks/              # Custom React hooks (data fetching, state management)
+├── lib/                # Utilities, services, helpers (no React)
+├── types/              # Shared TypeScript types/interfaces
+└── styles/             # Global styles/theme
+```
+
+- **Feature-based organization**: Group related files by feature when possible
+- **components/**: Only pure UI — data fetching via props or hooks
+- **hooks/**: Data fetching, auth, theme logic
+- **lib/**: Supabase queries, calendar integration, formatters, validators
+- **types/**: Centralized type definitions shared across features
+- **One concern per file**: Don't mix data, UI, and formatting in the same file
+
+---
+
 ## Phase Detection
 
 **Check:** Does `progress.txt` contain completed story entries (beyond the header)?

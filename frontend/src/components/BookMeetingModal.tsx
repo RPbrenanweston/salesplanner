@@ -20,6 +20,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { createCalendarEvent } from '../lib/calendar';
 import { markActivityForSync } from '../lib/salesforce';
+import { DURATION, ACTIVITY_OUTCOME } from '../lib/constants';
 
 interface BookMeetingModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export default function BookMeetingModal({
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [duration, setDuration] = useState('30');
+  const [duration, setDuration] = useState(String(DURATION.DEFAULT_SALESBLOCK_MINUTES));
   const [description, setDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -103,7 +104,7 @@ export default function BookMeetingModal({
         user_id: userData.user?.id,
         salesblock_id: salesblockId || null,
         type: 'meeting',
-        outcome: 'meeting_booked',
+        outcome: ACTIVITY_OUTCOME.MEETING_BOOKED,
         notes: `Meeting scheduled: ${title}${description ? ` - ${description}` : ''}`,
         created_at: new Date().toISOString(),
       }).select('id').single();
@@ -129,7 +130,7 @@ export default function BookMeetingModal({
     setTitle('');
     setDate('');
     setTime('');
-    setDuration('30');
+    setDuration(String(DURATION.DEFAULT_SALESBLOCK_MINUTES));
     setDescription('');
     setError('');
     onClose();
