@@ -12,7 +12,7 @@
  * @hazard Sort state is client-side only — if contact list is paginated in future, sort breaks silently (sorts only the loaded page, not full list)
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES lists+list_contacts+contacts; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/pages/ContactDetailPage.tsx→NAVIGATES to; frontend/src/App.tsx→ROUTES to /lists/:id
  * @trail list-detail#1 | ListDetailPage mounts with listId → load list + contacts → render table → user searches → filter client-side → user removes contact → immediate delete → user emails → ComposeEmailModal
- * @prompt Add confirmation on contact remove. Add 404 state when list not found. Move sort to server-side when list grows. Add bulk select for mass actions.
+ * @prompt Add confirmation on contact remove. Add 404 state when list not found. Move sort to server-side when list grows. Add bulk select for mass actions. VV design applied: void-950 page bg, VV spinner loading state, vv-section-title "Lists" label + font-display h1, indigo-electric Start SalesBlock CTA + links, glass-card table container, white/5 thead bg + vv-section-title th cells, white/10 table dividers + dark hover rows, font-display contact name, font-mono last activity dates, emerald-signal meeting icon, purple-neon social icon, red-alert remove icon, ease-snappy transitions.
  */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -280,19 +280,22 @@ export default function ListDetailPage() {
 
   if (!listDetail) {
     return (
-      <div className="p-8">
-        <p className="text-gray-500 dark:text-gray-400">Loading list...</p>
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
+          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+          <span className="font-mono text-sm tracking-widest uppercase">Loading List...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
+    <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
       {/* Header */}
       <div className="mb-6">
         <button
           onClick={() => navigate(ROUTES.LISTS)}
-          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
+          className="flex items-center gap-2 text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white mb-4 transition-colors duration-150"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Lists
@@ -300,25 +303,26 @@ export default function ListDetailPage() {
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <p className="vv-section-title mb-1">Lists</p>
+            <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-2">
               {listDetail.name}
             </h1>
             {listDetail.description && (
-              <p className="text-gray-600 dark:text-gray-400">{listDetail.description}</p>
+              <p className="text-gray-600 dark:text-white/50">{listDetail.description}</p>
             )}
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
             >
               <Pencil className="w-4 h-4" />
               Edit List
             </button>
             <button
               onClick={handleStartSalesBlock}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg transition-all duration-200 ease-snappy"
             >
               <Play className="w-4 h-4" />
               Start SalesBlock
@@ -336,79 +340,79 @@ export default function ListDetailPage() {
             placeholder="Search contacts by name, email, or company..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-electric focus:outline-none bg-white dark:bg-white/5 text-gray-900 dark:text-white transition-colors duration-150"
           />
         </div>
       </div>
 
       {/* Contacts Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      <div className="glass-card">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+            <thead className="bg-gray-50 dark:bg-white/5">
               <tr>
                 <th
                   onClick={() => handleSort('name')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
                 >
                   Name <SortIcon field="name" />
                 </th>
                 <th
                   onClick={() => handleSort('company')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
                 >
                   Company <SortIcon field="company" />
                 </th>
                 <th
                   onClick={() => handleSort('title')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
                 >
                   Title <SortIcon field="title" />
                 </th>
                 <th
                   onClick={() => handleSort('email')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
                 >
                   Email <SortIcon field="email" />
                 </th>
                 <th
                   onClick={() => handleSort('phone')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
                 >
                   Phone <SortIcon field="phone" />
                 </th>
                 <th
                   onClick={() => handleSort('last_activity_date')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
                 >
                   Last Activity <SortIcon field="last_activity_date" />
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right vv-section-title">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-200 dark:divide-white/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-white/40">
                     Loading contacts...
                   </td>
                 </tr>
               ) : filteredContacts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
-                    <p className="text-gray-500 dark:text-gray-400 mb-2">
+                    <p className="text-gray-500 dark:text-white/40 mb-2">
                       {searchQuery ? 'No contacts match your search' : 'No contacts in this list'}
                     </p>
-                    <p className="text-sm text-gray-400 dark:text-gray-500">
+                    <p className="text-sm text-gray-400 dark:text-white/30">
                       {searchQuery ? 'Try a different search term' : 'Add contacts from the Lists page'}
                     </p>
                   </td>
                 </tr>
               ) : (
                 filteredContacts.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150">
                     <td className="px-6 py-4">
                       <button
                         onClick={() =>
@@ -416,25 +420,25 @@ export default function ListDetailPage() {
                             state: { returnPath: `/lists/${listId}` },
                           })
                         }
-                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline text-left"
+                        className="font-display text-sm font-medium text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150 text-left"
                       >
                         {contact.first_name} {contact.last_name}
                       </button>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="text-sm text-gray-600 dark:text-white/50">
                         {contact.company || '—'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="text-sm text-gray-600 dark:text-white/50">
                         {contact.title || '—'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <a
                         href={`mailto:${contact.email}`}
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                       >
                         {contact.email}
                       </a>
@@ -443,16 +447,16 @@ export default function ListDetailPage() {
                       {contact.phone ? (
                         <a
                           href={`tel:${contact.phone}`}
-                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                          className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                         >
                           {contact.phone}
                         </a>
                       ) : (
-                        <span className="text-sm text-gray-400">—</span>
+                        <span className="text-sm text-gray-400 dark:text-white/30">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="text-sm text-gray-600 dark:text-white/40 font-mono">
                         {formatDate(contact.last_activity_date ?? null)}
                       </div>
                     </td>
@@ -460,28 +464,28 @@ export default function ListDetailPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleEmailClick(contact)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                          className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
                           title="Send email"
                         >
                           <Mail className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleMeetingClick(contact)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+                          className="text-emerald-signal hover:text-emerald-signal/70 transition-colors duration-150"
                           title="Book meeting"
                         >
                           <Calendar className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleSocialClick(contact)}
-                          className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300"
+                          className="text-purple-neon hover:text-purple-neon/70 transition-colors duration-150"
                           title="Log social activity"
                         >
                           <Share2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleRemoveContact(contact.id)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                          className="text-red-alert hover:text-red-alert/70 transition-colors duration-150"
                           title="Remove from list"
                         >
                           <UserMinus className="w-4 h-4" />
