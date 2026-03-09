@@ -12,7 +12,7 @@
  * @hazard Redirect on success goes unconditionally to / — if the user arrived from a protected deep link (e.g. /lists/123), that destination is lost; no returnTo param handling
  * @shared-edges frontend/src/lib/supabase.ts→CALLS auth.signInWithPassword; frontend/src/App.tsx→ROUTES to /sign-in; frontend/src/pages/SignUp.tsx→LINKED; frontend/src/pages/ForgotPassword.tsx→LINKED
  * @trail sign-in#1 | SignIn renders → user enters credentials → handleSignIn → signInWithPassword → success: navigate('/') | failure: setError
- * @prompt Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback if Supabase returns rate limit error.
+ * @prompt VV tokens applied — void-950 background, glass-card form, indigo-electric CTA, indigo-electric focus rings, red-alert error banner. Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback if Supabase returns rate limit error.
  */
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
@@ -49,34 +49,34 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-void-950 via-void-900 to-void-950 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         <div>
           {/* Logo/Branding */}
           <div className="flex justify-center mb-6">
-            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-3xl font-black font-display text-indigo-electric">
               SalesBlock.io
             </div>
           </div>
-          <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-center text-2xl font-bold font-display text-white">
             Sign in to your account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-center text-sm text-white/60">
             Or{' '}
-            <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link to="/signup" className="font-medium text-indigo-electric hover:text-indigo-electric/80 transition-colors ease-snappy">
               create a new account
             </Link>
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSignIn}>
           {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4">
+              <p className="text-sm text-red-alert">{error}</p>
             </div>
           )}
-          <div className="rounded-md shadow-sm space-y-4">
+          <div className="glass-card p-6 space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-1">
                 Email address
               </label>
               <input
@@ -87,12 +87,12 @@ export default function SignIn() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 sm:text-sm"
-                placeholder="Email address"
+                className="appearance-none block w-full px-3 py-2 bg-white/5 border border-white/10 placeholder-white/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-electric focus:border-indigo-electric text-sm transition-colors ease-snappy"
+                placeholder="you@company.com"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-white/80 mb-1">
                 Password
               </label>
               <input
@@ -103,15 +103,15 @@ export default function SignIn() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 sm:text-sm"
-                placeholder="Password"
+                className="appearance-none block w-full px-3 py-2 bg-white/5 border border-white/10 placeholder-white/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-electric focus:border-indigo-electric text-sm transition-colors ease-snappy"
+                placeholder="••••••••"
               />
             </div>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="text-sm">
-              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link to="/forgot-password" className="font-medium text-white/60 hover:text-indigo-electric transition-colors ease-snappy">
                 Forgot your password?
               </Link>
             </div>
@@ -121,8 +121,9 @@ export default function SignIn() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-electric text-white font-semibold rounded-lg hover:bg-indigo-electric/80 focus:outline-none focus:ring-2 focus:ring-indigo-electric/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all ease-snappy"
             >
+              {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>

@@ -12,7 +12,7 @@
  * @hazard Invitation data is fetched by invitation_id from URL with no CSRF token or expiry check on the frontend — the backend must enforce expiry; if it doesn't, old invitation links remain valid indefinitely
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES team_invitations+orgs+users; frontend/src/App.tsx→ROUTES to /sign-up; frontend/src/pages/SignIn.tsx→LINKED; supabase/functions/send-team-invitation/index.ts→GENERATES invitation links
  * @trail sign-up#1 | SignUp mounts → parse URL params → load invitation (if present) → user fills form → handleSignUp → auth.signUp → insert org + user → navigate('/')
- * @prompt Add post-signup org/user insert error handling with retry or rollback. Validate invitation_id expiry on the frontend before rendering form. Add email verification step for non-invitation signups.
+ * @prompt VV tokens applied — void-950 background, glass-card form, indigo-electric CTA, white/5 inputs with indigo-electric focus rings, red-alert error banner. Add post-signup org/user insert error handling with retry or rollback. Validate invitation_id expiry on the frontend before rendering form. Add email verification step for non-invitation signups.
  */
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
@@ -169,19 +169,24 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-void-950 via-void-900 to-void-950 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-white">
+          <div className="flex justify-center mb-6">
+            <div className="text-3xl font-black font-display text-indigo-electric">
+              SalesBlock.io
+            </div>
+          </div>
+          <h2 className="text-center text-3xl font-bold font-display text-white">
             {isInvitation ? `Join ${invitationData?.org_name || 'the team'}` : 'Create your SalesBlock account'}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-center text-sm text-white/60">
             {isInvitation ? (
               `You've been invited to join as ${invitationData?.role?.toUpperCase()}`
             ) : (
               <>
                 Already have an account?{' '}
-                <Link to="/signin" className="font-medium text-blue-600 hover:text-blue-500">
+                <Link to="/signin" className="font-medium text-indigo-electric hover:text-indigo-electric/80 transition-colors ease-snappy">
                   Sign in
                 </Link>
               </>
@@ -190,13 +195,13 @@ export default function SignUp() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSignUp}>
           {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4">
+              <p className="text-sm text-red-alert">{error}</p>
             </div>
           )}
-          <div className="rounded-md shadow-sm space-y-4">
+          <div className="glass-card p-6 space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-1">
                 Email address
               </label>
               <input
@@ -208,12 +213,12 @@ export default function SignUp() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isInvitation}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed sm:text-sm"
-                placeholder="Email address"
+                className="appearance-none block w-full px-3 py-2 bg-white/5 border border-white/10 placeholder-white/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-electric focus:border-indigo-electric disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors ease-snappy"
+                placeholder="you@company.com"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-white/80 mb-1">
                 Password
               </label>
               <input
@@ -224,12 +229,12 @@ export default function SignUp() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 sm:text-sm"
-                placeholder="Password (min. 6 characters)"
+                className="appearance-none block w-full px-3 py-2 bg-white/5 border border-white/10 placeholder-white/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-electric focus:border-indigo-electric text-sm transition-colors ease-snappy"
+                placeholder="Min. 6 characters"
               />
             </div>
             <div>
-              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="displayName" className="block text-sm font-medium text-white/80 mb-1">
                 Display name
               </label>
               <input
@@ -239,13 +244,13 @@ export default function SignUp() {
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 sm:text-sm"
+                className="appearance-none block w-full px-3 py-2 bg-white/5 border border-white/10 placeholder-white/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-electric focus:border-indigo-electric text-sm transition-colors ease-snappy"
                 placeholder="Your name"
               />
             </div>
             {!isInvitation && (
               <div>
-                <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label htmlFor="organizationName" className="block text-sm font-medium text-white/80 mb-1">
                   Organization name
                 </label>
                 <input
@@ -255,7 +260,7 @@ export default function SignUp() {
                   required
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 bg-white/5 border border-white/10 placeholder-white/30 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-electric focus:border-indigo-electric text-sm transition-colors ease-snappy"
                   placeholder="Your company name"
                 />
               </div>
@@ -266,8 +271,9 @@ export default function SignUp() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-electric text-white font-semibold rounded-lg hover:bg-indigo-electric/80 focus:outline-none focus:ring-2 focus:ring-indigo-electric/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all ease-snappy"
             >
+              {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {loading ? (isInvitation ? 'Joining team...' : 'Creating account...') : (isInvitation ? 'Accept invitation' : 'Create account')}
             </button>
           </div>
