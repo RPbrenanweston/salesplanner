@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id edge-create-checkout-session
+ * @area Billing/Stripe
+ * @intent Stripe checkout session creation — receive plan selection from frontend, create a Stripe Checkout Session for the org, return checkout URL for redirect
+ * @responsibilities Validate JWT + extract org_id, look up org in Supabase, create Stripe Checkout Session with correct price_id and org metadata, return session URL
+ * @contracts POST → { url: string } | { error: string }; reads STRIPE_SECRET_KEY + SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from env; writes no data to Supabase
+ * @in JWT (Authorization header), plan tier from request body, STRIPE_SECRET_KEY env var, SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env vars
+ * @out JSON { url: string } (Stripe Checkout redirect URL) or JSON { error: string }; HTTP 200 or 4xx/5xx
+ * @err Missing env vars (Stripe client init fails — function crashes on startup); JWT validation failure (401); Stripe API error (503 or error JSON returned to caller)
+ * @hazard STRIPE_SECRET_KEY is a live key in Deno env — if edge function logs are not restricted, secret may appear in Supabase log streams visible to non-admin team members
+ * @hazard No idempotency key on Stripe Checkout Session creation — rapid double-submits from UI may create duplicate sessions billed to the same org
+ * @shared-edges frontend/src/pages/Billing.tsx→CALLS this function on plan selection; Stripe webhook→RECEIVES checkout.session.completed after payment; supabase orgs table→READS org data for session metadata
+ * @trail checkout#1 | User selects plan → frontend POST to this function → JWT validated → Stripe Checkout Session created → URL returned → frontend redirects user → Stripe webhook fires on completion
+ * @prompt Add idempotency key (org_id + plan + timestamp) to Stripe session creation. Verify org exists before calling Stripe to avoid orphaned sessions. Log session_id for audit trail.
+ */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.11.0?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';

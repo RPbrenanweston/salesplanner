@@ -1,0 +1,11 @@
+/**
+ * @crumb.index supabase/functions/
+ * // SERVERLESS-WORKERS | Edge function layer for async tasks and webhooks
+ * // why: Execute long-running background operations (Salesforce sync, email polling, webhook verification) without blocking API requests
+ * // in:Webhook signatures (Stripe), Supabase auth context, external API credentials (Salesforce, Gmail, Outlook) out:Async job results, mutation logs, error alerts err:WebhookSignatureError, ExternalAPIError, AuthenticationExpired
+ * // hazard: Webhook signature validation missing or bypass — Stripe/email events could be forged; Functions have no timeout handling for external API hangs (Gmail polling, Salesforce batch sync)
+ * // hazard: Secrets leak in logs — SALESFORCE_CLIENT_SECRET, GMAIL_REFRESH_TOKEN printed on error; no exponential backoff on external API failures leading to rate limit locks
+ * // shared-edge: handle-stripe-webhook/index.ts -> WRITES (orders, invoices); sync-activities-to-salesforce/index.ts -> CALLS (Salesforce REST API); track-email-replies/index.ts -> CALLS (Gmail/Outlook APIs)
+ * // pipeline: payment-webhook (1-signature verify, 2-order create/update, 3-activity log) | salesforce-sync (1-opportunity fetch, 2-activity transform, 3-batch upsert) | email-tracking (1-inbox poll, 2-reply parse, 3-activity link)
+ * // area: JOB
+ */

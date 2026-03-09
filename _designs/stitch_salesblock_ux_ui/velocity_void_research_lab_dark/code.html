@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Research Lab</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0db9f2",
+                        "primary-glow": "#8b5cf6", // Violet accent
+                        "background-dark": "#0a1014", // Deep obsidian
+                        "background-card": "#131f24", // Slightly lighter obsidian
+                        "border-color": "#223f49",
+                        "text-main": "#e2e8f0",
+                        "text-muted": "#94a3b8",
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk", "sans-serif"],
+                    },
+                    backgroundImage: {
+                        'velocity-gradient': 'linear-gradient(135deg, rgba(13, 185, 242, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%)',
+                        'velocity-line': 'linear-gradient(90deg, transparent 0%, rgba(13, 185, 242, 0.5) 50%, transparent 100%)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #0a1014;
+            color: #e2e8f0;
+        }
+        .glass-panel {
+            background: rgba(19, 31, 36, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(34, 63, 73, 0.5);
+        }
+        .glow-text {
+            text-shadow: 0 0 20px rgba(13, 185, 242, 0.5);
+        }
+        .velocity-border {
+            position: relative;
+        }
+        .velocity-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #0db9f2, transparent);
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col overflow-x-hidden bg-background-dark text-slate-100">
+<!-- Top Navbar -->
+<div class="w-full border-b border-[#223f49] bg-[#0a1014]/90 backdrop-blur-md sticky top-0 z-50">
+<div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+<!-- Logo Section -->
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<div class="text-primary">
+<span class="material-symbols-outlined text-3xl">token</span>
+</div>
+<h2 class="text-white text-xl font-bold tracking-tight">Salesblock</h2>
+</div>
+<!-- Search -->
+<div class="hidden md:flex items-center bg-[#131f24] rounded-lg border border-[#223f49] focus-within:border-primary transition-colors w-64 h-10">
+<div class="px-3 text-[#90bccb]">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="bg-transparent border-none text-sm text-white placeholder-[#5a7a8a] focus:ring-0 w-full h-full pb-1" placeholder="Search..." type="text"/>
+</div>
+</div>
+<!-- Right Actions -->
+<div class="flex items-center gap-6">
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-[#90bccb] hover:text-primary text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-primary text-sm font-medium relative after:absolute after:bottom-[-22px] after:left-0 after:w-full after:h-0.5 after:bg-primary after:shadow-[0_0_10px_#0db9f2]" href="#">Research Lab</a>
+<a class="text-[#90bccb] hover:text-primary text-sm font-medium transition-colors" href="#">Campaigns</a>
+<a class="text-[#90bccb] hover:text-primary text-sm font-medium transition-colors" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-3 border-l border-[#223f49] pl-6">
+<button class="text-[#90bccb] hover:text-white transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_#0db9f2]"></span>
+</button>
+<button class="text-[#90bccb] hover:text-white transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary-glow p-[1px]">
+<div class="h-full w-full rounded-full bg-[#131f24] flex items-center justify-center overflow-hidden">
+<img alt="User Avatar" class="h-full w-full object-cover" data-alt="User profile picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYuHCeZH7YrDAmLASnHpyYRyAbvGPL7-I7loEutkuj60-UXGv86on2JflUb-lv_oYRlRaC9hKbiyLol6Hh5TQvr5BHelyVUrcONhHUrkSijJSUM5SPHuJqNU5OcEy6BmZ4sOpMySXT2bUbTCXpfXQYalr9ZzpoKm3Gw1r8a9kCmZNPu3oFvkkMrK0oZ97fNYKFSwxecmHV-kvD-AbpuL_N9wX7c0bKmNdIMLUhjFRVyT1H1JAlA-mWXIG7WeolB32jRJbz42BFhNM"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Content -->
+<div class="flex-1 w-full max-w-[1440px] mx-auto p-6 md:p-8">
+<!-- Breadcrumb -->
+<div class="flex items-center gap-2 mb-6 text-sm">
+<a class="text-[#5a7a8a] hover:text-primary transition-colors" href="#">Home</a>
+<span class="text-[#223f49] material-symbols-outlined text-[16px]">chevron_right</span>
+<a class="text-[#5a7a8a] hover:text-primary transition-colors" href="#">Intelligence</a>
+<span class="text-[#223f49] material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-primary font-medium">Research Lab</span>
+</div>
+<!-- Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 velocity-border pb-6">
+<div>
+<h1 class="text-4xl font-bold text-white mb-2 glow-text tracking-tight">Velocity Void Research Lab</h1>
+<p class="text-[#90bccb] text-lg max-w-2xl">Deep-dive intelligence for high-velocity sales cycles. Analyze sector signals and map persona blueprints.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-[#131f24] border border-[#223f49] hover:border-primary text-white rounded-lg flex items-center gap-2 transition-all">
+<span class="material-symbols-outlined text-[20px]">upload</span>
+                    Import Data
+                </button>
+<button class="px-4 py-2 bg-primary/10 border border-primary/50 text-primary hover:bg-primary/20 hover:shadow-[0_0_15px_rgba(13,185,242,0.3)] rounded-lg flex items-center gap-2 transition-all font-medium">
+<span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+                    Generate Insights
+                </button>
+</div>
+</div>
+<!-- Split View Content -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+<!-- Left Column: Target Sector Intelligence -->
+<div class="flex flex-col gap-6">
+<div class="flex items-center gap-3 mb-2">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">radar</span>
+</div>
+<h2 class="text-xl font-bold text-white">Target Sector Intelligence</h2>
+</div>
+<!-- Card 1: Market Signals -->
+<div class="glass-panel rounded-xl p-6 relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-transparent"></div>
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-lg font-semibold text-white">FinTech Market Signals</h3>
+<span class="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded border border-green-500/20">High Momentum</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-start gap-3 p-3 rounded bg-[#0a1014]/50 border border-[#223f49]">
+<span class="material-symbols-outlined text-primary mt-0.5">trending_up</span>
+<div>
+<p class="text-sm text-slate-200 font-medium">Regulatory Shift in Q3</p>
+<p class="text-xs text-slate-400 mt-1">New compliance standards for digital assets create urgency for security infrastructure.</p>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 rounded bg-[#0a1014]/50 border border-[#223f49]">
+<span class="material-symbols-outlined text-primary-glow mt-0.5">hub</span>
+<div>
+<p class="text-sm text-slate-200 font-medium">Consolidation Wave</p>
+<p class="text-xs text-slate-400 mt-1">Mid-market players are merging, increasing demand for unified legacy system integration.</p>
+</div>
+</div>
+</div>
+<!-- Decorative Chart Area -->
+<div class="mt-6 h-32 w-full rounded bg-[#0a1014] relative overflow-hidden border border-[#223f49]">
+<div class="absolute inset-0 flex items-end justify-between px-4 pb-2 pt-8 gap-2">
+<div class="w-1/6 bg-primary/20 hover:bg-primary/40 h-[40%] rounded-t transition-all"></div>
+<div class="w-1/6 bg-primary/20 hover:bg-primary/40 h-[60%] rounded-t transition-all"></div>
+<div class="w-1/6 bg-primary/20 hover:bg-primary/40 h-[45%] rounded-t transition-all"></div>
+<div class="w-1/6 bg-primary/20 hover:bg-primary/40 h-[80%] rounded-t transition-all relative group-hover:shadow-[0_0_15px_#0db9f2]"></div>
+<div class="w-1/6 bg-primary/20 hover:bg-primary/40 h-[65%] rounded-t transition-all"></div>
+<div class="w-1/6 bg-primary/20 hover:bg-primary/40 h-[90%] rounded-t transition-all"></div>
+</div>
+<div class="absolute top-2 left-3 text-[10px] text-slate-500 uppercase tracking-wider">Sector Growth Velocity</div>
+</div>
+</div>
+<!-- Card 2: Competitor Void Analysis -->
+<div class="glass-panel rounded-xl p-6 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary-glow/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+<div class="flex justify-between items-start mb-4 relative z-10">
+<h3 class="text-lg font-semibold text-white">Competitor Void Analysis</h3>
+<button class="text-primary hover:text-white transition-colors">
+<span class="material-symbols-outlined">open_in_new</span>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-4 relative z-10">
+<div class="p-4 rounded bg-[#0a1014]/80 border border-primary/20">
+<div class="text-xs text-slate-400 mb-1">Competitor A</div>
+<div class="text-red-400 text-sm font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">close</span>
+                                Slow Deployment
+                            </div>
+<div class="w-full bg-[#223f49] h-1.5 rounded-full mt-2">
+<div class="bg-red-500/50 h-1.5 rounded-full" style="width: 70%"></div>
+</div>
+</div>
+<div class="p-4 rounded bg-[#0a1014]/80 border border-primary/20">
+<div class="text-xs text-slate-400 mb-1">Competitor B</div>
+<div class="text-red-400 text-sm font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">close</span>
+                                Poor UX
+                            </div>
+<div class="w-full bg-[#223f49] h-1.5 rounded-full mt-2">
+<div class="bg-red-500/50 h-1.5 rounded-full" style="width: 45%"></div>
+</div>
+</div>
+</div>
+<div class="mt-4 p-3 bg-primary/5 border border-primary/20 rounded text-sm text-slate-300">
+<span class="text-primary font-bold">Opportunity:</span> Position Salesblock as the "Rapid Deployment" alternative. 82% of sector leads cite implementation time as top friction point.
+                    </div>
+</div>
+</div>
+<!-- Right Column: ICP Persona Blueprint -->
+<div class="flex flex-col gap-6">
+<div class="flex items-center gap-3 mb-2">
+<div class="p-2 bg-primary-glow/10 rounded-lg text-primary-glow">
+<span class="material-symbols-outlined">fingerprint</span>
+</div>
+<h2 class="text-xl font-bold text-white">ICP Persona Blueprint</h2>
+</div>
+<!-- Persona Selector Tabs -->
+<div class="flex gap-2 p-1 bg-[#131f24] rounded-lg border border-[#223f49] w-fit">
+<button class="px-4 py-1.5 rounded bg-primary text-[#0a1014] text-sm font-bold shadow-[0_0_10px_rgba(13,185,242,0.4)]">CTO</button>
+<button class="px-4 py-1.5 rounded hover:bg-[#223f49] text-slate-400 hover:text-white text-sm font-medium transition-all">VP Sales</button>
+<button class="px-4 py-1.5 rounded hover:bg-[#223f49] text-slate-400 hover:text-white text-sm font-medium transition-all">RevOps Lead</button>
+</div>
+<!-- Main Persona Card -->
+<div class="glass-panel rounded-xl p-1 relative overflow-hidden flex-1 flex flex-col">
+<!-- Gradient Border Effect -->
+<div class="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary-glow/20 pointer-events-none"></div>
+<div class="bg-[#0a1014]/90 rounded-lg p-6 h-full relative z-10 flex flex-col gap-6">
+<!-- Header -->
+<div class="flex items-start gap-4">
+<div class="w-16 h-16 rounded-full bg-[#131f24] border border-[#223f49] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-3xl text-slate-500">person</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-white">Chief Technology Officer</h3>
+<div class="flex flex-wrap gap-2 mt-2">
+<span class="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-xs text-slate-300">Technical</span>
+<span class="px-2 py-0.5 rounded-full border border-slate-700 bg-slate-800 text-xs text-slate-300">Decision Maker</span>
+<span class="px-2 py-0.5 rounded-full border border-red-900/30 bg-red-900/10 text-xs text-red-400">Risk Averse</span>
+</div>
+</div>
+</div>
+<!-- Core Drivers -->
+<div class="space-y-4 flex-1">
+<div>
+<h4 class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3">Primary Pain Points</h4>
+<ul class="space-y-2">
+<li class="flex items-center gap-3 text-sm text-slate-300">
+<span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_#0db9f2]"></span>
+                                        Security compliance overhead for new tools.
+                                    </li>
+<li class="flex items-center gap-3 text-sm text-slate-300">
+<span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_#0db9f2]"></span>
+                                        API integration complexity with legacy ERPs.
+                                    </li>
+<li class="flex items-center gap-3 text-sm text-slate-300">
+<span class="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_5px_#0db9f2]"></span>
+                                        Data silo fragmentation across sales stack.
+                                    </li>
+</ul>
+</div>
+<div>
+<h4 class="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3 mt-4">Trigger Events</h4>
+<div class="grid grid-cols-2 gap-3">
+<div class="p-3 bg-[#131f24] border border-[#223f49] rounded hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="text-primary group-hover:text-white transition-colors mb-1">
+<span class="material-symbols-outlined text-[20px]">cloud_sync</span>
+</div>
+<span class="text-xs text-slate-400">Cloud Migration</span>
+</div>
+<div class="p-3 bg-[#131f24] border border-[#223f49] rounded hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="text-primary group-hover:text-white transition-colors mb-1">
+<span class="material-symbols-outlined text-[20px]">security</span>
+</div>
+<span class="text-xs text-slate-400">Security Audit</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Actionable Insight Footer -->
+<div class="mt-auto pt-6 border-t border-[#223f49]">
+<h4 class="text-xs uppercase tracking-wider text-primary-glow font-bold mb-2">Recommended Pitch Angle</h4>
+<p class="text-sm text-slate-300 leading-relaxed italic">
+                                "Focus on <span class="text-white font-medium">SOC2 Type II readiness</span> and our <span class="text-white font-medium">native GraphQL API</span>. Demonstrate how Salesblock reduces their technical debt rather than adding to it."
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Stats Bar (Velocity Metrics) -->
+<div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="glass-panel p-4 rounded-lg border-l-4 border-l-primary flex items-center justify-between">
+<div>
+<div class="text-slate-400 text-xs uppercase tracking-wider">Market Penetration</div>
+<div class="text-2xl font-bold text-white mt-1">12.4%</div>
+</div>
+<div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">pie_chart</span>
+</div>
+</div>
+<div class="glass-panel p-4 rounded-lg border-l-4 border-l-primary-glow flex items-center justify-between">
+<div>
+<div class="text-slate-400 text-xs uppercase tracking-wider">Persona Alignment</div>
+<div class="text-2xl font-bold text-white mt-1">94/100</div>
+</div>
+<div class="h-10 w-10 rounded-full bg-primary-glow/10 flex items-center justify-center text-primary-glow">
+<span class="material-symbols-outlined">fact_check</span>
+</div>
+</div>
+<div class="glass-panel p-4 rounded-lg border-l-4 border-l-cyan-400 flex items-center justify-between">
+<div>
+<div class="text-slate-400 text-xs uppercase tracking-wider">Deal Velocity Impact</div>
+<div class="text-2xl font-bold text-white mt-1">+22%</div>
+</div>
+<div class="h-10 w-10 rounded-full bg-cyan-400/10 flex items-center justify-center text-cyan-400">
+<span class="material-symbols-outlined">speed</span>
+</div>
+</div>
+<div class="glass-panel p-4 rounded-lg border-l-4 border-l-violet-500 flex items-center justify-between">
+<div>
+<div class="text-slate-400 text-xs uppercase tracking-wider">Active Experiments</div>
+<div class="text-2xl font-bold text-white mt-1">8</div>
+</div>
+<div class="h-10 w-10 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-500">
+<span class="material-symbols-outlined">science</span>
+</div>
+</div>
+</div>
+</div>
+</body></html>

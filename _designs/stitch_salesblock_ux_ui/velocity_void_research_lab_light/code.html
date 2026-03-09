@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Research Lab</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0dccf2",
+                        "primary-dark": "#0ab8da",
+                        secondary: "#8b5cf6", 
+                        "background-light": "#ffffff",
+                        "background-subtle": "#f8fafc",
+                        "text-main": "#0f172a",
+                        "text-muted": "#64748b",
+                        "border-color": "#e2e8f0",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    backgroundImage: {
+                        'velocity-gradient': 'linear-gradient(135deg, #0dccf2 0%, #8b5cf6 100%)',
+                        'subtle-gradient': 'linear-gradient(to bottom right, #f8fafc, #f1f5f9)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for clean look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-background-light font-display text-text-main overflow-x-hidden antialiased">
+<div class="relative flex h-screen w-full flex-col bg-background-light overflow-hidden">
+<!-- Top Nav -->
+<header class="flex-none flex items-center justify-between whitespace-nowrap border-b border-border-color bg-white/80 backdrop-blur-md px-8 py-4 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-text-main group cursor-pointer">
+<div class="size-8 rounded-lg bg-velocity-gradient flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</div>
+<h2 class="text-xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">Salesblock</h2>
+</div>
+<!-- Search Bar -->
+<label class="hidden md:flex flex-col min-w-[280px]">
+<div class="flex w-full items-center rounded-lg bg-slate-100/50 border border-slate-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200 h-10 px-3">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">search</span>
+<input class="w-full bg-transparent border-none text-sm text-text-main placeholder:text-slate-400 focus:ring-0 ml-2" placeholder="Search prospects, companies..."/>
+</div>
+</label>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-sm font-bold text-transparent bg-clip-text bg-velocity-gradient relative after:content-[''] after:absolute after:-bottom-5 after:left-0 after:w-full after:h-[2px] after:bg-primary" href="#">Research Lab</a>
+<a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">Campaigns</a>
+<a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-3 border-l border-slate-200 pl-6">
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-slate-50 text-slate-600 transition-colors relative">
+<span class="material-symbols-outlined text-[22px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<button class="bg-gradient-to-r from-primary to-secondary p-[2px] rounded-full">
+<div class="bg-white rounded-full p-0.5">
+<div class="size-8 rounded-full bg-slate-200 bg-cover bg-center" data-alt="User profile picture" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBVOm2cb26efSI2UugauXcUw-l5_KW8SiwNV_RaL8p_H1niuXW-lBjl2BSzPNCcJKLoGqWdPhlu497MWPnZl-T9s0x3a7-tQ8BjJg5qILRJ3mIHFe0V2oHY1Ef56MzHdS3eCriweW7JA7XXhKZ3Ei-UKiAr-BM61N_Wuk1N6L4XKV1ICdBO2ht9Je4Qj0n2AlwxcUDxYfp-e5CW3SlyDZ1V5AjbPXCIf4GQOtwDbh0lMLxCwsB_Xoav2v-vwNNEYfNnATdhcqp4wpU');"></div>
+</div>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Layout -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Sidebar Navigation (Optional/Collapsed view often seen in modern apps, using icons) -->
+<aside class="w-16 hidden xl:flex flex-col items-center py-6 border-r border-slate-100 bg-white gap-6">
+<button class="p-2 rounded-lg text-primary bg-primary/10"><span class="material-symbols-outlined">science</span></button>
+<button class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"><span class="material-symbols-outlined">group</span></button>
+<button class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"><span class="material-symbols-outlined">domain</span></button>
+<button class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"><span class="material-symbols-outlined">trending_up</span></button>
+</aside>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto bg-background-subtle p-6 lg:p-10">
+<div class="max-w-[1400px] mx-auto flex flex-col gap-8">
+<!-- Header Section -->
+<div class="flex flex-wrap justify-between items-end gap-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-slate-50 rounded-lg border border-slate-100">
+<span class="material-symbols-outlined text-primary text-[28px]">rocket_launch</span>
+</div>
+<div>
+<h1 class="text-3xl font-black tracking-tight text-slate-900">TechNova Industries</h1>
+<div class="flex items-center gap-2 text-sm font-medium text-slate-500">
+<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider">High Intent</span>
+<span>•</span>
+<span>San Francisco, CA</span>
+<span>•</span>
+<a class="text-primary hover:underline" href="#">technova.io</a>
+</div>
+</div>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors">
+<span class="material-symbols-outlined text-[18px]">share</span>
+                            Share Report
+                        </button>
+<button class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-velocity-gradient text-white text-sm font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+                            Export Brief
+                        </button>
+</div>
+</div>
+<!-- Two Column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left Column: Target Sector Intelligence -->
+<div class="lg:col-span-7 flex flex-col gap-6">
+<!-- Section Header -->
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">radar</span>
+                                Target Sector Intelligence
+                            </h2>
+<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Last updated 2h ago</span>
+</div>
+<!-- Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Firmographics Card -->
+<div class="p-5 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col gap-4 relative overflow-hidden group hover:border-primary/30 transition-colors">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div class="flex items-center gap-3 z-10">
+<div class="p-2 rounded-lg bg-blue-50 text-blue-600">
+<span class="material-symbols-outlined">apartment</span>
+</div>
+<h3 class="font-bold text-slate-700">Firmographics</h3>
+</div>
+<div class="space-y-3 z-10">
+<div class="flex justify-between items-center border-b border-slate-50 pb-2">
+<span class="text-sm text-slate-500">Industry</span>
+<span class="text-sm font-semibold text-slate-900">SaaS / Enterprise AI</span>
+</div>
+<div class="flex justify-between items-center border-b border-slate-50 pb-2">
+<span class="text-sm text-slate-500">Employees</span>
+<span class="text-sm font-semibold text-slate-900">500 - 1,000</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-sm text-slate-500">Tech Stack</span>
+<div class="flex -space-x-2">
+<div class="size-6 rounded-full bg-slate-200 border border-white" title="Salesforce"></div>
+<div class="size-6 rounded-full bg-slate-300 border border-white" title="Hubspot"></div>
+<div class="size-6 rounded-full bg-slate-400 border border-white" title="AWS"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Financial Health Card -->
+<div class="p-5 rounded-xl bg-white border border-slate-100 shadow-sm flex flex-col gap-4 relative overflow-hidden group hover:border-secondary/30 transition-colors">
+<div class="absolute top-0 right-0 w-24 h-24 bg-secondary/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div class="flex items-center gap-3 z-10">
+<div class="p-2 rounded-lg bg-purple-50 text-purple-600">
+<span class="material-symbols-outlined">monitoring</span>
+</div>
+<h3 class="font-bold text-slate-700">Financial Health</h3>
+</div>
+<div class="space-y-3 z-10">
+<div class="flex justify-between items-center border-b border-slate-50 pb-2">
+<span class="text-sm text-slate-500">Funding Stage</span>
+<span class="text-sm font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">Series C</span>
+</div>
+<div class="flex justify-between items-center border-b border-slate-50 pb-2">
+<span class="text-sm text-slate-500">Total Raised</span>
+<span class="text-sm font-semibold text-slate-900">$120M</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-sm text-slate-500">Est. Revenue</span>
+<span class="text-sm font-semibold text-slate-900">$50M ARR</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Timeline / News Feed -->
+<div class="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+<h3 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg">feed</span>
+                                Recent Signals
+                            </h3>
+<div class="relative pl-2">
+<!-- Vertical Line -->
+<div class="absolute top-2 left-[19px] h-[calc(100%-20px)] w-[2px] bg-slate-100"></div>
+<!-- Item 1 -->
+<div class="relative flex gap-4 mb-8 group">
+<div class="relative z-10 flex-none size-10 rounded-full bg-green-50 border-2 border-white shadow-sm flex items-center justify-center text-green-600">
+<span class="material-symbols-outlined text-[20px]">handshake</span>
+</div>
+<div class="flex-1 bg-slate-50 rounded-lg p-3 group-hover:bg-white group-hover:shadow-md group-hover:border-slate-100 border border-transparent transition-all">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-bold text-slate-900 text-sm">Acquired DataFlow Inc.</h4>
+<span class="text-xs text-slate-400 font-medium">2 days ago</span>
+</div>
+<p class="text-sm text-slate-600 leading-relaxed">Strategic acquisition to bolster their data processing capabilities. Indicates budget for integration tools.</p>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="relative flex gap-4 mb-8 group">
+<div class="relative z-10 flex-none size-10 rounded-full bg-blue-50 border-2 border-white shadow-sm flex items-center justify-center text-blue-600">
+<span class="material-symbols-outlined text-[20px]">campaign</span>
+</div>
+<div class="flex-1 bg-slate-50 rounded-lg p-3 group-hover:bg-white group-hover:shadow-md group-hover:border-slate-100 border border-transparent transition-all">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-bold text-slate-900 text-sm">New Product Line Launch</h4>
+<span class="text-xs text-slate-400 font-medium">2 weeks ago</span>
+</div>
+<p class="text-sm text-slate-600 leading-relaxed">Released "Nova AI", a new predictive analytics suite. Likely hiring for sales roles.</p>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="relative flex gap-4 group">
+<div class="relative z-10 flex-none size-10 rounded-full bg-purple-50 border-2 border-white shadow-sm flex items-center justify-center text-purple-600">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+</div>
+<div class="flex-1 bg-slate-50 rounded-lg p-3 group-hover:bg-white group-hover:shadow-md group-hover:border-slate-100 border border-transparent transition-all">
+<div class="flex justify-between items-start mb-1">
+<h4 class="font-bold text-slate-900 text-sm">VP of Engineering Hired</h4>
+<span class="text-xs text-slate-400 font-medium">1 month ago</span>
+</div>
+<p class="text-sm text-slate-600 leading-relaxed">Sarah Jenkins joined from Oracle. Known for implementing agile transformations.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: ICP Persona Blueprint -->
+<div class="lg:col-span-5 flex flex-col gap-6">
+<!-- Header -->
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">psychology</span>
+                                ICP Persona Blueprint
+                            </h2>
+<div class="flex bg-slate-100 rounded-lg p-1">
+<button class="px-2 py-0.5 rounded-md bg-white shadow-sm text-xs font-bold text-slate-800">Engineering</button>
+<button class="px-2 py-0.5 rounded-md text-xs font-medium text-slate-500 hover:text-slate-700">Product</button>
+<button class="px-2 py-0.5 rounded-md text-xs font-medium text-slate-500 hover:text-slate-700">Sales</button>
+</div>
+</div>
+<!-- Persona Card -->
+<div class="bg-gradient-to-br from-white to-slate-50 rounded-2xl border border-slate-200 shadow-lg relative overflow-hidden flex flex-col h-full">
+<!-- Decorative Gradient Top -->
+<div class="absolute top-0 left-0 w-full h-1.5 bg-velocity-gradient"></div>
+<div class="p-6 pb-4 border-b border-slate-100">
+<div class="flex items-start gap-4">
+<div class="size-16 rounded-xl overflow-hidden bg-slate-200 flex-none shadow-inner">
+<img alt="Persona Headshot" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAz1pfopOA8Yk1wKigkV1iJEw2HUJWvZOgfP4XiFUibPJqGB3aL3NDTqwfIjD4-l_MxJ3sjk69H1yVTE9w-j_wp7IYD0suWSjyxe_ibJI5whQ3KFXdK6EKaUKNTbWMsSTn5JvqbiRfntgzvrkA3f0ar_C-RyZJ0EyDkzU4frJv47Zr2NNmhJlTLIyRHt_7XnsUZtWLByO7NjWNjFLcbGtR63kDz4kV6Dw16--lVdimwHqJI4SGejtu37kyPoxJ6g1Cv98H7pamrJUc"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h3 class="text-lg font-black text-slate-900">VP of Engineering</h3>
+<span class="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded">Decision Maker</span>
+</div>
+<p class="text-sm text-slate-500 mt-1">Focus: Scale, Stability, Velocity</p>
+<div class="flex gap-2 mt-3">
+<span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">Technical</span>
+<span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200">Budget Holder</span>
+</div>
+</div>
+</div>
+</div>
+<div class="p-6 flex-1 flex flex-col gap-6">
+<!-- Pain Points -->
+<div>
+<h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">error</span>
+                                        Pain Points
+                                    </h4>
+<ul class="space-y-2">
+<li class="flex items-start gap-2 text-sm text-slate-700 bg-red-50/50 p-2 rounded-lg border border-red-50">
+<span class="material-symbols-outlined text-red-500 text-[18px] flex-none mt-0.5">remove_circle_outline</span>
+<span>Spending too much time on infrastructure maintenance instead of product features.</span>
+</li>
+<li class="flex items-start gap-2 text-sm text-slate-700 bg-red-50/50 p-2 rounded-lg border border-red-50">
+<span class="material-symbols-outlined text-red-500 text-[18px] flex-none mt-0.5">remove_circle_outline</span>
+<span>Difficulty hiring senior DevOps talent in current market.</span>
+</li>
+</ul>
+</div>
+<!-- Messaging Triggers -->
+<div>
+<h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">bolt</span>
+                                        Messaging Triggers
+                                    </h4>
+<div class="space-y-3">
+<div class="bg-white border border-primary/20 shadow-sm rounded-lg p-3 relative overflow-hidden">
+<div class="absolute left-0 top-0 h-full w-1 bg-primary"></div>
+<p class="text-xs font-bold text-primary mb-1">Trigger: Recent Funding</p>
+<p class="text-sm text-slate-600 italic">"With your recent Series C, scaling engineering velocity without accruing tech debt is likely top of mind..."</p>
+</div>
+<div class="bg-white border border-secondary/20 shadow-sm rounded-lg p-3 relative overflow-hidden">
+<div class="absolute left-0 top-0 h-full w-1 bg-secondary"></div>
+<p class="text-xs font-bold text-secondary mb-1">Trigger: New Product Launch</p>
+<p class="text-sm text-slate-600 italic">"Following the Nova AI launch, ensuring 99.99% uptime during high-traffic spikes is critical..."</p>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="mt-auto pt-4">
+<button class="w-full py-3 rounded-lg bg-slate-900 text-white font-bold text-sm shadow-lg hover:bg-slate-800 hover:shadow-xl transition-all flex items-center justify-center gap-2 group">
+                                        Generate Outreach Sequence
+                                        <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

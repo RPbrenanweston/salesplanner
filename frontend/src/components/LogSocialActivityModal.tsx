@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-log-social-activity-modal
+ * @area UI/Activities/Social
+ * @intent Log social activity modal — record a social interaction (LinkedIn message, Twitter DM, connection request) against a contact, with optional Salesforce sync
+ * @responsibilities Render social activity type selector and notes fields, insert social activity into Supabase activities table with type='social', optionally call markActivityForSync for Salesforce users, call onSuccess callback
+ * @contracts LogSocialActivityModal({ contactId, salesblockId, userId, orgId, isOpen, onClose, onSuccess }) → JSX; calls supabase.from('activities').insert with type='social'; calls markActivityForSync from lib/salesforce if Salesforce connected
+ * @in contactId (string), salesblockId (string), userId (string), orgId (string), isOpen (boolean), onClose callback, onSuccess callback
+ * @out New activity row in activities table with type='social' linked to contactId; markActivityForSync called if Salesforce connected; onSuccess called; modal closed
+ * @err Supabase insert failure (caught, error shown); markActivityForSync failure (caught separately — Supabase insert may still succeed)
+ * @hazard markActivityForSync is called after insert without pre-checking whether the user has Salesforce connected — if unchecked, will attempt sync with no credentials, silently failing or generating backend errors
+ * @hazard Social activities are stored with type='social' in the same activities table as calls/emails/notes — if analytics queries don't filter by subtype (LinkedIn vs Twitter vs connection request), social channel breakdown reporting will be inaccurate
+ * @shared-edges supabase activities table→INSERTS to; lib/salesforce.ts→CALLS markActivityForSync; frontend/src/components/ContactActivityTimeline.tsx→READS activities logged here; parent page→RENDERS modal
+ * @trail log-social#1 | User clicks "Log Social" → LogSocialActivityModal renders → user selects platform + fills notes → handleSave → supabase insert → markActivityForSync (if connected) → onSuccess() → modal closes → timeline updates
+ * @prompt Pre-check Salesforce connection before calling markActivityForSync. Add platform-specific subtype field (linkedin_message, twitter_dm, connection_request) to distinguish social channel in activity data.
+ */
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';

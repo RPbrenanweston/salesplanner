@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Content Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0606f9",
+                        "background-light": "#f5f5f8",
+                        "background-dark": "#0f0f23",
+                        "surface": "#ffffff",
+                        "surface-secondary": "#eef0f7",
+                    },
+                    fontFamily: {
+                        "sans": ["Space Grotesk", "sans-serif"],
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light font-display antialiased text-slate-900 min-h-screen flex flex-col overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 bg-surface/80 px-8 py-4 backdrop-blur-md">
+<div class="flex items-center gap-4 text-slate-900">
+<div class="size-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_6_543)">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M7.24189 26.4066C7.31369 26.4411 7.64204 26.5637 8.52504 26.3738C9.59462 26.1438 11.0343 25.5311 12.7183 24.4963C14.7583 23.2426 17.0256 21.4503 19.238 19.238C21.4503 17.0256 23.2426 14.7583 24.4963 12.7183C25.5311 11.0343 26.1438 9.59463 26.3738 8.52504C26.5637 7.64204 26.4411 7.31369 26.4066 7.24189C26.345 7.21246 26.143 7.14535 25.6664 7.1918C24.9745 7.25925 23.9954 7.5498 22.7699 8.14278C20.3369 9.32007 17.3369 11.4915 14.4142 14.4142C11.4915 17.3369 9.32007 20.3369 8.14278 22.7699C7.5498 23.9954 7.25925 24.9745 7.1918 25.6664C7.14534 26.143 7.21246 26.345 7.24189 26.4066ZM29.9001 10.7285C29.4519 12.0322 28.7617 13.4172 27.9042 14.8126C26.465 17.1544 24.4686 19.6641 22.0664 22.0664C19.6641 24.4686 17.1544 26.465 14.8126 27.9042C13.4172 28.7617 12.0322 29.4519 10.7285 29.9001L21.5754 40.747C21.6001 40.7606 21.8995 40.931 22.8729 40.7217C23.9424 40.4916 25.3821 39.879 27.0661 38.8441C29.1062 37.5904 31.3734 35.7982 33.5858 33.5858C35.7982 31.3734 37.5904 29.1062 38.8441 27.0661C39.879 25.3821 40.4916 23.9425 40.7216 22.8729C40.931 21.8995 40.7606 21.6001 40.747 21.5754L29.9001 10.7285ZM29.2403 4.41187L43.5881 18.7597C44.9757 20.1473 44.9743 22.1235 44.6322 23.7139C44.2714 25.3919 43.4158 27.2666 42.252 29.1604C40.8128 31.5022 38.8165 34.012 36.4142 36.4142C34.012 38.8165 31.5022 40.8128 29.1604 42.252C27.2666 43.4158 25.3919 44.2714 23.7139 44.6322C22.1235 44.9743 20.1473 44.9757 18.7597 43.5881L4.41187 29.2403C3.29027 28.1187 3.08209 26.5973 3.21067 25.2783C3.34099 23.9415 3.8369 22.4852 4.54214 21.0277C5.96129 18.0948 8.43335 14.7382 11.5858 11.5858C14.7382 8.43335 18.0948 5.9613 21.0277 4.54214C22.4852 3.8369 23.9415 3.34099 25.2783 3.21067C26.5973 3.08209 28.1187 3.29028 29.2403 4.41187Z" fill="currentColor" fill-rule="evenodd"></path>
+</g>
+<defs>
+<clippath id="clip0_6_543"><rect fill="white" height="48" width="48"></rect></clippath>
+</defs>
+</svg>
+</div>
+<h2 class="text-xl font-bold tracking-tight">Salesblock</h2>
+</div>
+<div class="hidden md:flex flex-1 justify-end gap-8">
+<nav class="flex items-center gap-6">
+<a class="text-slate-500 hover:text-primary font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-0.5" href="#">Content Library</a>
+<a class="text-slate-500 hover:text-primary font-medium transition-colors" href="#">Campaigns</a>
+<a class="text-slate-500 hover:text-primary font-medium transition-colors" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-md shadow-primary/20 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    New Asset
+                </button>
+<div class="bg-surface-secondary border border-slate-200 aspect-square rounded-full h-10 w-10 overflow-hidden cursor-pointer" data-alt="User profile avatar placeholder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDXRoRUWP8AVQ1jF81I5eo3GR-YqODtL9JfzSrwvmNCSPr_SrtGD26X6wE8uHRw7IZ4hVjAQg4z0s_e79UwoXj7Hs35m1b4LKlh6WenXHit7PNSYXcs2qB7hcBQVZl0ldJBnwg2El71vTnotOEFIO93piiZ_G0XsfkMkQFstaRYd9DCEmWD-8UuSX1yQ3FKh0SyjJ8mJdWaM_NycccNMKbpWwn6pzRntmS3K9y5s6BcADlJoVAC_lxsI8g30Cingsou7q_ewAfEN20"); background-size: cover;'></div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-8 py-8">
+<!-- Header Section -->
+<div class="mb-10">
+<h1 class="text-4xl md:text-5xl font-black tracking-tight text-slate-900 mb-3">Content Library</h1>
+<p class="text-slate-500 text-lg max-w-2xl">Access high-performance sales assets to accelerate your deals. Filter by industry, persona, or deal stage.</p>
+</div>
+<!-- Search & Filter Bar -->
+<div class="bg-surface rounded-xl p-4 shadow-sm border border-slate-200 mb-8 sticky top-24 z-30">
+<div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+<!-- Search -->
+<div class="relative w-full md:w-1/3">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full bg-surface-secondary border-none rounded-lg py-3 pl-10 pr-4 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-primary focus:bg-white transition-all" placeholder="Search battlecards, scripts..." type="text"/>
+</div>
+<!-- Category Tabs -->
+<div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-hide">
+<button class="px-4 py-2 bg-primary text-white rounded-lg font-medium text-sm whitespace-nowrap shadow-sm shadow-primary/20">All Assets</button>
+<button class="px-4 py-2 bg-surface-secondary text-slate-600 hover:bg-slate-200 rounded-lg font-medium text-sm whitespace-nowrap transition-colors">Battlecards</button>
+<button class="px-4 py-2 bg-surface-secondary text-slate-600 hover:bg-slate-200 rounded-lg font-medium text-sm whitespace-nowrap transition-colors">Email Snippets</button>
+<button class="px-4 py-2 bg-surface-secondary text-slate-600 hover:bg-slate-200 rounded-lg font-medium text-sm whitespace-nowrap transition-colors">Objections</button>
+</div>
+<!-- Dropdown Filters -->
+<div class="flex items-center gap-3 w-full md:w-auto">
+<button class="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-slate-600 hover:border-primary hover:text-primary transition-colors bg-white text-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">domain</span>
+                        Industry
+                        <span class="material-symbols-outlined text-[18px] ml-1">expand_more</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-slate-600 hover:border-primary hover:text-primary transition-colors bg-white text-sm font-medium">
+<span class="material-symbols-outlined text-[18px]">group</span>
+                        Persona
+                        <span class="material-symbols-outlined text-[18px] ml-1">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Featured / Recent Assets Grid -->
+<h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">bolt</span>
+            High Velocity Assets
+        </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-10">
+<!-- Card 1: Battlecard -->
+<div class="group relative bg-surface hover:bg-white rounded-2xl p-5 border border-slate-200 hover:border-primary/50 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2.5 bg-blue-50 text-primary rounded-lg">
+<span class="material-symbols-outlined">swords</span>
+</div>
+<span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wide rounded">Battlecard</span>
+</div>
+<h4 class="text-lg font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors">Competitor X Kill Sheet</h4>
+<p class="text-slate-500 text-sm mb-4 line-clamp-2">Key differentiators and objection handling for deals involving Competitor X.</p>
+<div class="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+<div class="flex items-center gap-2 text-xs text-slate-400 font-medium">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                        2.4k
+                    </div>
+<div class="flex items-center gap-1.5">
+<div class="h-6 w-6 rounded-full bg-slate-200 border-2 border-white"></div>
+<div class="h-6 w-6 rounded-full bg-slate-300 border-2 border-white -ml-3"></div>
+<span class="text-xs text-slate-400 ml-1">+12</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Email Snippet -->
+<div class="group relative bg-surface hover:bg-white rounded-2xl p-5 border border-slate-200 hover:border-primary/50 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2.5 bg-purple-50 text-purple-600 rounded-lg">
+<span class="material-symbols-outlined">mail</span>
+</div>
+<span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wide rounded">Snippet</span>
+</div>
+<h4 class="text-lg font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors">C-Suite Value Prop Intro</h4>
+<p class="text-slate-500 text-sm mb-4 line-clamp-2">High-level introduction focusing on ROI and time-to-value for executive stakeholders.</p>
+<div class="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+<div class="flex items-center gap-2 text-xs text-slate-400 font-medium">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+                        850
+                    </div>
+<span class="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded">SaaS</span>
+</div>
+</div>
+<!-- Card 3: Objection Handler -->
+<div class="group relative bg-surface hover:bg-white rounded-2xl p-5 border border-slate-200 hover:border-primary/50 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2.5 bg-amber-50 text-amber-600 rounded-lg">
+<span class="material-symbols-outlined">gavel</span>
+</div>
+<span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wide rounded">Objection</span>
+</div>
+<h4 class="text-lg font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors">"Budget Frozen" Rebuttal</h4>
+<p class="text-slate-500 text-sm mb-4 line-clamp-2">Tactics to navigate Q4 budget freezes by emphasizing cost of inaction.</p>
+<div class="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+<div class="flex items-center gap-2 text-xs text-slate-400 font-medium">
+<span class="material-symbols-outlined text-[16px]">thumb_up</span>
+                        98%
+                    </div>
+<span class="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded">Finance</span>
+</div>
+</div>
+<!-- Card 4: Case Study -->
+<div class="group relative bg-surface hover:bg-white rounded-2xl p-5 border border-slate-200 hover:border-primary/50 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg">
+<span class="material-symbols-outlined">auto_graph</span>
+</div>
+<span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wide rounded">Case Study</span>
+</div>
+<h4 class="text-lg font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors">FinTech Unicorn Growth</h4>
+<p class="text-slate-500 text-sm mb-4 line-clamp-2">How we helped a major fintech scale their sales team from 10 to 100 reps.</p>
+<div class="mt-auto flex items-center justify-between pt-4 border-t border-slate-100">
+<div class="flex items-center gap-2 text-xs text-slate-400 font-medium">
+<span class="material-symbols-outlined text-[16px]">download</span>
+                        1.2k
+                    </div>
+<div class="h-6 w-12 bg-slate-100 rounded bg-cover bg-center" data-alt="Client company logo placeholder" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB8SoYe10hhueKzagk9Wsk5f5Vni3GKdqayFyMufXOC9JpFa7r6oda_kle2r_p2KT70j58f1tKQYGszrpiJM8oydHhAEI6L_PvwJMUSMNR6vWzf2vDq6XqUVSvkFPwFVJ2XpPm-BS1O3kpiQfODbR6oFPRCC8CEmRDYy8spPYb-m08yvUy2zMlGlOz8j-4Xe3XgC0vl3OcuxXshZxgKfHnGjGX2vJnDekAdRqltbhYX0e6MSOqFyui2CtzeQqhszvJna4Fr-_mO_ec');"></div>
+</div>
+</div>
+</div>
+<!-- All Assets Grid Section -->
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-xl font-bold text-slate-900">Recent Uploads</h3>
+<button class="text-primary text-sm font-bold hover:underline flex items-center gap-1">
+                View All <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 5 -->
+<div class="group flex gap-4 bg-surface p-4 rounded-xl border border-slate-200 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+<div class="shrink-0 w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[32px]">description</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-900 group-hover:text-primary transition-colors">Q3 Product Roadmap Deck</h4>
+<span class="material-symbols-outlined text-slate-300 hover:text-primary cursor-pointer">more_vert</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Updated 2 hours ago by Sarah J.</p>
+<div class="flex gap-2 mt-3">
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Deck</span>
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Internal</span>
+</div>
+</div>
+</div>
+<!-- Card 6 -->
+<div class="group flex gap-4 bg-surface p-4 rounded-xl border border-slate-200 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+<div class="shrink-0 w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[32px]">movie</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-900 group-hover:text-primary transition-colors">Demo Recording: Enterprise</h4>
+<span class="material-symbols-outlined text-slate-300 hover:text-primary cursor-pointer">more_vert</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Updated yesterday by Mike T.</p>
+<div class="flex gap-2 mt-3">
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Video</span>
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Training</span>
+</div>
+</div>
+</div>
+<!-- Card 7 -->
+<div class="group flex gap-4 bg-surface p-4 rounded-xl border border-slate-200 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+<div class="shrink-0 w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[32px]">calculate</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-900 group-hover:text-primary transition-colors">ROI Calculator Spreadsheet</h4>
+<span class="material-symbols-outlined text-slate-300 hover:text-primary cursor-pointer">more_vert</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Updated 3 days ago by Alex R.</p>
+<div class="flex gap-2 mt-3">
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Tool</span>
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Sales</span>
+</div>
+</div>
+</div>
+<!-- Card 8 -->
+<div class="group flex gap-4 bg-surface p-4 rounded-xl border border-slate-200 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+<div class="shrink-0 w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[32px]">text_snippet</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-900 group-hover:text-primary transition-colors">Cold Call Script: VP Eng</h4>
+<span class="material-symbols-outlined text-slate-300 hover:text-primary cursor-pointer">more_vert</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Updated 5 days ago by Sales Ops</p>
+<div class="flex gap-2 mt-3">
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Script</span>
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Outbound</span>
+</div>
+</div>
+</div>
+<!-- Card 9 -->
+<div class="group flex gap-4 bg-surface p-4 rounded-xl border border-slate-200 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+<div class="shrink-0 w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[32px]">folder_zip</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-900 group-hover:text-primary transition-colors">Enterprise Onboarding Kit</h4>
+<span class="material-symbols-outlined text-slate-300 hover:text-primary cursor-pointer">more_vert</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Updated 1 week ago by CS Team</p>
+<div class="flex gap-2 mt-3">
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Bundle</span>
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Customer Success</span>
+</div>
+</div>
+</div>
+<!-- Card 10 -->
+<div class="group flex gap-4 bg-surface p-4 rounded-xl border border-slate-200 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer">
+<div class="shrink-0 w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[32px]">verified_user</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-slate-900 group-hover:text-primary transition-colors">Security Compliance FAQ</h4>
+<span class="material-symbols-outlined text-slate-300 hover:text-primary cursor-pointer">more_vert</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">Updated 2 weeks ago by Legal</p>
+<div class="flex gap-2 mt-3">
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">FAQ</span>
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Security</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Simple Footer -->
+<footer class="mt-auto border-t border-slate-200 py-6 text-center text-slate-400 text-sm">
+<p>© 2023 Salesblock Inc. All rights reserved.</p>
+</footer>
+</body></html>

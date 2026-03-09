@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Mission Planner</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#3b82f6", // Electric Blue
+                        secondary: "#8b5cf6", // Neon Purple
+                        accent: "#06b6d4", // Cyan
+                        "background-light": "#f8fafc",
+                        "background-dark": "#020617", // Very dark navy/black
+                        "surface-dark": "#0f172a", // Slightly lighter dark for cards
+                        "surface-highlight": "#1e293b",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    boxShadow: {
+                        'neon': '0 0 10px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3)',
+                        'neon-purple': '0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(139, 92, 246, 0.3)',
+                        'glow': '0 0 15px rgba(6, 182, 212, 0.4)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020617; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b82f6; 
+        }
+        
+        /* Glowing line effect */
+        .energy-path {
+            background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%);
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col antialiased selection:bg-primary selection:text-white">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 border-b border-white/10 glass-panel">
+<div class="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+<div class="flex items-center gap-8">
+<!-- Logo Area -->
+<div class="flex items-center gap-3 group cursor-pointer">
+<div class="relative size-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary shadow-neon">
+<span class="material-symbols-outlined text-white text-[20px]">bolt</span>
+</div>
+<span class="text-xl font-bold tracking-tight text-white group-hover:text-primary transition-colors">Salesblock</span>
+</div>
+<!-- Search -->
+<div class="hidden md:flex items-center bg-surface-highlight/50 border border-white/5 rounded-full px-4 py-1.5 w-64 focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all">
+<span class="material-symbols-outlined text-slate-400 text-[20px]">search</span>
+<input class="bg-transparent border-none text-sm text-white placeholder-slate-400 focus:ring-0 w-full ml-2 h-full py-1" placeholder="Search mission..." type="text"/>
+</div>
+</div>
+<!-- Right Actions -->
+<div class="flex items-center gap-6">
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-sm font-medium text-slate-300 hover:text-white transition-colors relative after:content-[''] after:absolute after:-bottom-5 after:left-0 after:w-full after:h-0.5 after:bg-primary after:scale-x-0 hover:after:scale-x-100 after:transition-transform" href="#">Missions</a>
+<a class="text-sm font-medium text-slate-400 hover:text-white transition-colors" href="#">Prospects</a>
+<a class="text-sm font-medium text-slate-400 hover:text-white transition-colors" href="#">Analytics</a>
+</nav>
+<div class="h-6 w-px bg-white/10"></div>
+<div class="flex items-center gap-3">
+<button class="relative p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-background-dark"></span>
+</button>
+<button class="bg-primary hover:bg-primary/90 text-white text-sm font-semibold py-2 px-4 rounded-full shadow-neon transition-all hover:scale-105 active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">rocket_launch</span>
+                        Launch
+                    </button>
+<div class="size-9 rounded-full bg-surface-highlight border border-white/10 overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition-all" data-alt="User profile avatar showing a person's face" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDXAVyjP4cuvTWB0qpWWbWjoHPatHJVrjyEmFKVQhGTUohu7_nDEu-8h2Uc1rcGty3bDG8M4fl-VS8C6dEzSRrOUdGW1GVIrp0eTYb7345RDejFHi_ZQ719KIWm30RotBRYnvZjX9e_rYaG7nGnu-zmtQYycFZZfN6NHlLgiMRPqKYT6v9CmeEmmZYuOtzs19nmL8CrXjlc0y24Q5RfO-wYlwsqkcX1XlOffKC63HJZGoFUa5soKPm7hLUHrBL-XzPOZ5zDcXN1csA'); background-size: cover; background-position: center;">
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-[1200px] mx-auto px-6 py-8">
+<!-- Breadcrumb & Actions -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+<div>
+<div class="flex items-center gap-2 text-sm text-slate-500 mb-2">
+<a class="hover:text-primary transition-colors" href="#">Campaigns</a>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">Outbound</a>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span class="text-slate-300">Edit Mission</span>
+</div>
+<h1 class="text-4xl font-black text-white tracking-tight leading-tight mb-1">
+                    Enterprise Outreach <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Alpha</span>
+</h1>
+<p class="text-slate-400 font-medium">Manual Cadence Builder • Last edited 2 mins ago</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-surface-dark border border-white/10 text-slate-300 rounded-lg hover:bg-surface-highlight hover:text-white hover:border-white/20 transition-all font-medium text-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                    Save Draft
+                </button>
+<button class="px-4 py-2 bg-surface-dark border border-white/10 text-slate-300 rounded-lg hover:bg-surface-highlight hover:text-white hover:border-white/20 transition-all font-medium text-sm">
+<span class="material-symbols-outlined text-[18px]">settings</span>
+</button>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+<!-- Stat Card 1 -->
+<div class="glass-panel p-5 rounded-xl group hover:border-primary/50 transition-all cursor-default relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex items-start justify-between mb-2 relative z-10">
+<p class="text-slate-400 text-sm font-medium">Total Prospects</p>
+<span class="material-symbols-outlined text-primary/70">groups</span>
+</div>
+<div class="flex items-baseline gap-2 relative z-10">
+<h3 class="text-2xl font-bold text-white">1,240</h3>
+<span class="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded flex items-center">
+<span class="material-symbols-outlined text-[12px] mr-0.5">trending_up</span> 5%
+                    </span>
+</div>
+</div>
+<!-- Stat Card 2 -->
+<div class="glass-panel p-5 rounded-xl group hover:border-secondary/50 transition-all cursor-default relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex items-start justify-between mb-2 relative z-10">
+<p class="text-slate-400 text-sm font-medium">Est. Duration</p>
+<span class="material-symbols-outlined text-secondary/70">timer</span>
+</div>
+<div class="relative z-10">
+<h3 class="text-2xl font-bold text-white">14 Days</h3>
+</div>
+</div>
+<!-- Stat Card 3 -->
+<div class="glass-panel p-5 rounded-xl group hover:border-accent/50 transition-all cursor-default relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex items-start justify-between mb-2 relative z-10">
+<p class="text-slate-400 text-sm font-medium">Touchpoints</p>
+<span class="material-symbols-outlined text-accent/70">route</span>
+</div>
+<div class="relative z-10">
+<h3 class="text-2xl font-bold text-white">8 Steps</h3>
+</div>
+</div>
+<!-- Stat Card 4 -->
+<div class="glass-panel p-5 rounded-xl group hover:border-primary/50 transition-all cursor-default relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex items-start justify-between mb-2 relative z-10">
+<p class="text-slate-400 text-sm font-medium">Exp. Reply Rate</p>
+<span class="material-symbols-outlined text-primary/70">mail</span>
+</div>
+<div class="flex items-baseline gap-2 relative z-10">
+<h3 class="text-2xl font-bold text-white">12%</h3>
+<span class="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded flex items-center">
+<span class="material-symbols-outlined text-[12px] mr-0.5">trending_up</span> 2%
+                    </span>
+</div>
+</div>
+</div>
+<!-- Timeline Section -->
+<div class="relative">
+<!-- Timeline Track Background -->
+<div class="absolute left-[38px] top-4 bottom-10 w-[2px] bg-slate-800 rounded-full"></div>
+<!-- Timeline Energy Path (Dynamic) -->
+<div class="absolute left-[38px] top-4 h-[85%] w-[2px] energy-path rounded-full shadow-neon"></div>
+<div class="space-y-6">
+<!-- Step 1: LinkedIn -->
+<div class="relative grid grid-cols-[76px_1fr] group">
+<div class="flex flex-col items-center">
+<div class="size-20 flex items-center justify-center relative z-10">
+<div class="absolute inset-0 bg-background-dark rounded-full m-2"></div> <!-- Mask -->
+<div class="relative size-12 rounded-full bg-surface-dark border-2 border-primary text-white flex items-center justify-center shadow-neon z-20 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-[24px]">share</span>
+</div>
+</div>
+</div>
+<div class="glass-panel p-6 rounded-xl hover:bg-surface-highlight/30 transition-all border-l-4 border-l-primary group-hover:border-l-primary shadow-lg hover:shadow-neon/20">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-3">
+<span class="bg-primary/20 text-primary text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Day 1</span>
+<h3 class="text-lg font-bold text-white">LinkedIn Connection Request</h3>
+</div>
+<div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 hover:text-white text-slate-400 transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-1 hover:text-red-400 text-slate-400 transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<p class="text-slate-400 text-sm mb-4">Manual Task • Connect with personalized note referencing recent company news.</p>
+<div class="flex items-center gap-2">
+<span class="text-xs text-slate-500 font-mono bg-background-dark px-2 py-1 rounded border border-white/5">Wait: 0 days</span>
+<span class="text-xs text-slate-500 font-mono bg-background-dark px-2 py-1 rounded border border-white/5">Priority: High</span>
+</div>
+</div>
+</div>
+<!-- Step 2: Email -->
+<div class="relative grid grid-cols-[76px_1fr] group">
+<div class="flex flex-col items-center">
+<div class="size-20 flex items-center justify-center relative z-10">
+<div class="absolute inset-0 bg-background-dark rounded-full m-2"></div>
+<div class="relative size-12 rounded-full bg-surface-dark border-2 border-secondary text-white flex items-center justify-center shadow-neon-purple z-20 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-[24px]">mail</span>
+</div>
+</div>
+</div>
+<div class="glass-panel p-6 rounded-xl hover:bg-surface-highlight/30 transition-all border-l-4 border-l-secondary group-hover:border-l-secondary shadow-lg hover:shadow-neon-purple/20">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-3">
+<span class="bg-secondary/20 text-secondary text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Day 3</span>
+<h3 class="text-lg font-bold text-white">Personalized Email</h3>
+</div>
+<div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 hover:text-white text-slate-400 transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-1 hover:text-red-400 text-slate-400 transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<div class="bg-background-dark/50 rounded p-3 mb-3 border border-dashed border-white/10">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[14px] text-slate-400">description</span>
+<span class="text-xs text-slate-300 font-medium">Template: Intro_V2</span>
+</div>
+<p class="text-xs text-slate-500 italic truncate">"Hi {{firstName}}, I noticed that {{companyName}} recently..."</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs text-slate-500 font-mono bg-background-dark px-2 py-1 rounded border border-white/5">Wait: 2 days</span>
+</div>
+</div>
+</div>
+<!-- Step 3: Call -->
+<div class="relative grid grid-cols-[76px_1fr] group">
+<div class="flex flex-col items-center">
+<div class="size-20 flex items-center justify-center relative z-10">
+<div class="absolute inset-0 bg-background-dark rounded-full m-2"></div>
+<div class="relative size-12 rounded-full bg-surface-dark border-2 border-accent text-white flex items-center justify-center shadow-glow z-20 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-[24px]">call</span>
+</div>
+</div>
+</div>
+<div class="glass-panel p-6 rounded-xl hover:bg-surface-highlight/30 transition-all border-l-4 border-l-accent group-hover:border-l-accent shadow-lg hover:shadow-glow/20">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-3">
+<span class="bg-accent/20 text-accent text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Day 6</span>
+<h3 class="text-lg font-bold text-white">Discovery Call</h3>
+</div>
+<div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 hover:text-white text-slate-400 transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-1 hover:text-red-400 text-slate-400 transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<p class="text-slate-400 text-sm mb-4">Manual Task • Attempt to reach decision maker. Leave voicemail if no answer.</p>
+<div class="flex items-center gap-2">
+<span class="text-xs text-slate-500 font-mono bg-background-dark px-2 py-1 rounded border border-white/5">Script: Cold_Call_A</span>
+<span class="text-xs text-slate-500 font-mono bg-background-dark px-2 py-1 rounded border border-white/5">Wait: 3 days</span>
+</div>
+</div>
+</div>
+<!-- Step 4: Follow up -->
+<div class="relative grid grid-cols-[76px_1fr] group">
+<div class="flex flex-col items-center">
+<div class="size-20 flex items-center justify-center relative z-10">
+<div class="absolute inset-0 bg-background-dark rounded-full m-2"></div>
+<div class="relative size-12 rounded-full bg-surface-dark border-2 border-slate-600 text-slate-400 flex items-center justify-center z-20 group-hover:border-primary group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined text-[24px]">mark_email_read</span>
+</div>
+</div>
+</div>
+<div class="glass-panel p-6 rounded-xl hover:bg-surface-highlight/30 transition-all border-l-4 border-l-slate-600 group-hover:border-l-primary shadow-lg">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-3">
+<span class="bg-slate-700/50 text-slate-300 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Day 8</span>
+<h3 class="text-lg font-bold text-slate-300 group-hover:text-white transition-colors">Follow-up Email</h3>
+</div>
+<div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 hover:text-white text-slate-400 transition-colors"><span class="material-symbols-outlined text-[20px]">edit</span></button>
+<button class="p-1 hover:text-red-400 text-slate-400 transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<p class="text-slate-500 text-sm mb-4">Template: Value_Prop • Highlight case study ROI.</p>
+<div class="flex items-center gap-2">
+<span class="text-xs text-slate-500 font-mono bg-background-dark px-2 py-1 rounded border border-white/5">Wait: 2 days</span>
+</div>
+</div>
+</div>
+<!-- Step 5: Breakup -->
+<div class="relative grid grid-cols-[76px_1fr] group">
+<div class="flex flex-col items-center">
+<div class="size-20 flex items-center justify-center relative z-10">
+<div class="absolute inset-0 bg-background-dark rounded-full m-2"></div>
+<div class="relative size-12 rounded-full bg-surface-dark border-2 border-slate-700 text-slate-500 flex items-center justify-center z-20 group-hover:border-red-500 group-hover:text-white transition-colors duration-300">
+<span class="material-symbols-outlined text-[24px]">do_not_disturb_on</span>
+</div>
+</div>
+</div>
+<div class="glass-panel p-6 rounded-xl hover:bg-surface-highlight/30 transition-all border-l-4 border-l-slate-700 group-hover:border-l-red-500 shadow-lg">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-3">
+<span class="bg-slate-800 text-slate-400 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Day 10</span>
+<h3 class="text-lg font-bold text-slate-400 group-hover:text-white transition-colors">Breakup Email</h3>
+</div>
+</div>
+<p class="text-slate-500 text-sm">Template: Closing_Loop • Final attempt before recycling prospect.</p>
+</div>
+</div>
+<!-- Add Step Button -->
+<div class="relative grid grid-cols-[76px_1fr] pt-4">
+<div class="flex flex-col items-center">
+<div class="size-10 rounded-full border border-dashed border-slate-600 bg-surface-dark/50 flex items-center justify-center hover:border-primary hover:text-primary hover:bg-primary/10 cursor-pointer transition-all z-10">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</div>
+</div>
+<div class="flex items-center">
+<button class="text-sm font-semibold text-slate-500 hover:text-primary transition-colors flex items-center gap-2">
+                            Add Touchpoint
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

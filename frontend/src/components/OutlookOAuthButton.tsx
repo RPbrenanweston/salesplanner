@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-outlook-oauth-button
+ * @area UI/Integrations/OAuth
+ * @intent Outlook Mail OAuth button — initiate Microsoft Mail OAuth flow by redirecting to Microsoft authorization endpoint with Mail.Send + Mail.ReadBasic scopes
+ * @responsibilities Check Outlook Mail connection status from Supabase oauth_connections, render Connect/Disconnect button, construct Microsoft OAuth URL with state param, open popup OAuth window, poll for popup close to refresh connection status
+ * @contracts OutlookOAuthButton() → JSX; reads oauth_connections for provider='outlook'; constructs Microsoft OAuth URL; opens popup; on disconnect: deletes from oauth_connections
+ * @in useAuth (user_id), supabase oauth_connections table, VITE_OUTLOOK_CLIENT_ID + VITE_OUTLOOK_REDIRECT_URI env vars
+ * @out Redirect to Microsoft OAuth in popup; or Disconnect: supabase oauth_connections delete; connection status display updated
+ * @err Missing env vars (OAuth URL malformed); popup blocked (OAuth silently fails); disconnect failure (caught, error shown)
+ * @hazard OutlookOAuthButton and OutlookCalendarOAuthButton share nearly identical structure — any fix to error handling or token storage in one must be manually mirrored to the other; there is no shared base component
+ * @hazard Microsoft Mail OAuth scopes differ from Calendar scopes but both use the same client_id — if the wrong scope set is used (Mail vs Calendar), the OAuth flow completes but the integration will fail at send/read time with a 403 Forbidden error
+ * @shared-edges frontend/src/hooks/useAuth.ts→READS user_id; supabase oauth_connections table→READS/DELETES; frontend/src/pages/OutlookOAuthCallback.tsx→RECEIVES OAuth redirect; frontend/src/pages/SettingsPage.tsx→RENDERS button
+ * @trail outlook-mail-connect#1 | User clicks "Connect Outlook" → OutlookOAuthButton constructs OAuth URL → popup opens → Microsoft login → OutlookOAuthCallback → tokens stored → popup closes → connection reloads
+ * @prompt Consolidate OutlookOAuthButton and OutlookCalendarOAuthButton into a single MicrosoftOAuthButton component parameterized by integration type (mail | calendar). Add CSRF nonce to state param.
+ */
 import { useState, useEffect } from 'react'
 import { Mail, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'

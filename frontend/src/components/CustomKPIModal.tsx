@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-custom-kpi-modal
+ * @area UI/Analytics/Manager
+ * @intent Custom KPI modal — create or edit a custom KPI definition for Manager-role dashboards, including metric type, target value, and display preferences
+ * @responsibilities Render KPI builder form (name, metric type, target, period, display color), upsert into kpis table via Supabase, call onSaved callback
+ * @contracts CustomKPIModal({ kpi?, onClose, onSaved }) → JSX; calls supabase.from('kpis').upsert; uses useAuth for org_id; kpi prop optional (edit vs create mode)
+ * @in kpi (optional existing KPI for edit), useAuth (org_id), supabase kpis table, onClose callback, onSaved callback
+ * @out New or updated KPI row in kpis table; onSaved called with kpi record; modal closed
+ * @err Supabase upsert failure (caught, error shown); missing org_id from useAuth (upsert may fail DB constraint)
+ * @hazard KPI targets are stored as a single numeric value without unit — a KPI for "Revenue" and a KPI for "Call Count" both store a bare number; display context and unit must be inferred from the metric type, which is fragile if new metric types are added
+ * @hazard Manager-only KPIs have no RBAC enforcement in this component — any authenticated user who can open this modal (if rendered by a non-Manager role) can create or modify KPIs; role check must exist at the page level
+ * @shared-edges frontend/src/hooks/useAuth.ts→READS org_id + role; supabase kpis table→UPSERTS to; frontend/src/pages/Dashboard or Analytics→RENDERS modal; manager dashboard→READS kpis
+ * @trail custom-kpi#1 | Manager clicks "Add KPI" → CustomKPIModal renders → user defines KPI metric + target → handleSave → supabase upsert → onSaved(kpi) → modal closes → dashboard re-renders with new KPI
+ * @prompt Add unit field to KPI schema. Enforce Manager role check before rendering this modal. Support formula-based KPIs (e.g. conversion rate = deals_won / calls).
+ */
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';

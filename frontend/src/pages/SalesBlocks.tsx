@@ -1,6 +1,22 @@
+/**
+ * @crumb
+ * @id frontend-page-salesblocks
+ * @area UI/Pages
+ * @intent SalesBlock management index — create, list, and launch timed outreach sessions targeting contact lists
+ * @responsibilities Display all org SalesBlocks with status/list/schedule info, open CreateSalesBlockModal, navigate to session on Play, show status badges (scheduled/in_progress/completed/cancelled)
+ * @contracts SalesBlocks() → JSX; reads salesblocks+lists from Supabase; uses useNavigate for session entry; launches CreateSalesBlockModal
+ * @in supabase (salesblocks joined to lists), useAuth (user/org_id), useNavigate, CreateSalesBlockModal
+ * @out Grid of SalesBlock cards with play/edit/delete actions and status indicators
+ * @err Supabase query failure (empty grid, no error state); delete without confirmation (currently no confirmation modal before delete)
+ * @hazard Delete fires immediately on click with no confirmation dialog — accidental clicks destroy sessions with logged activities
+ * @hazard salesblocks query may not be scoped to org_id — verify RLS policy or explicit org_id filter to prevent cross-org data leak
+ * @shared-edges frontend/src/components/CreateSalesBlockModal.tsx→LAUNCHES; frontend/src/pages/SalesBlockSessionPage.tsx→NAVIGATES to /salesblocks/:id/session; frontend/src/lib/supabase.ts→QUERIES; frontend/src/App.tsx→ROUTES to /salesblocks
+ * @trail salesblocks#1 | SalesBlocks mounts → load all org salesblocks with list names → render grid → Play navigates to session → CreateSalesBlockModal creates new block → grid refreshes
+ * @prompt Add delete confirmation dialog. Audit salesblocks Supabase query for org_id scoping. Add empty state UI when no SalesBlocks exist. Consider status filter tabs (scheduled / completed).
+ */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Play, Edit, X, Users, User } from 'lucide-react'
+import { Plus, Play, Edit, X, Users, User, Linkedin, Mail, Phone, CheckCircle, Grid, Zap } from 'lucide-react'
 import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -8,6 +24,7 @@ import { deleteCalendarEvent } from '../lib/calendar'
 
 type TabType = 'upcoming' | 'in_progress' | 'completed' | 'all'
 type ViewType = 'my' | 'team'
+type DisplayMode = 'list' | 'campaign'
 
 interface SalesBlock {
   id: string
@@ -30,12 +47,131 @@ interface SalesBlock {
   contacts_worked?: number
 }
 
+// Campaign View Component — Shows multi-step touchpoint sequences
+const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
+  const touchpointSequence = [
+    { step: 1, label: 'LinkedIn', icon: Linkedin, color: 'text-blue-500' },
+    { step: 2, label: 'Email', icon: Mail, color: 'text-cyan-500' },
+    { step: 3, label: 'Call', icon: Phone, color: 'text-emerald-500' },
+    { step: 4, label: 'Follow-up', icon: CheckCircle, color: 'text-purple-500' },
+  ]
+
+  const getActivityCount = (sb: SalesBlock, activityType: string): number => {
+    if (activityType === 'email') return sb.emails_sent || 0
+    if (activityType === 'call') return sb.calls_made || 0
+    if (activityType === 'social') return sb.social_touches || 0
+    if (activityType === 'meeting') return sb.meetings_booked || 0
+    return 0
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {salesblocks.map((sb) => (
+        <div
+          key={sb.id}
+          className="backdrop-blur-md bg-gradient-to-br from-void-900/50 to-void-950/80 border border-white/10 rounded-xl p-6 hover:border-white/20 transition-all group"
+        >
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1">{sb.title}</h3>
+                <p className="text-sm text-gray-400">{sb.list?.name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    sb.status === 'completed'
+                      ? 'bg-emerald-signal/20 text-emerald-signal'
+                      : sb.status === 'in_progress'
+                      ? 'bg-cyan-neon/20 text-cyan-neon'
+                      : 'bg-indigo-electric/20 text-indigo-electric'
+                  }`}
+                >
+                  {sb.status === 'completed' ? 'Completed' : sb.status === 'in_progress' ? 'Active' : 'Upcoming'}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              {sb.duration_minutes} min session {sb.contact_count ? `• ${sb.contact_count} prospects` : ''}
+            </p>
+          </div>
+
+          {/* Multi-step Sequence */}
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Outreach Flow</p>
+            <div className="space-y-3">
+              {touchpointSequence.map((tp, idx) => {
+                const Icon = tp.icon
+                const count = getActivityCount(
+                  sb,
+                  tp.label === 'Email'
+                    ? 'email'
+                    : tp.label === 'Call'
+                    ? 'call'
+                    : tp.label === 'LinkedIn'
+                    ? 'social'
+                    : 'meeting'
+                )
+                return (
+                  <div key={tp.step} className="flex items-center gap-3">
+                    {/* Step circle */}
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 border border-white/20 flex-shrink-0">
+                      <Icon className={`w-4 h-4 ${tp.color}`} />
+                    </div>
+                    {/* Label and count */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-white">{tp.label}</span>
+                        {count > 0 && (
+                          <span className="text-xs font-bold text-cyan-neon bg-cyan-neon/10 px-2 py-1 rounded">
+                            {count} {tp.label === 'Follow-up' ? 'sent' : 'completed'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {/* Arrow */}
+                    {idx < touchpointSequence.length - 1 && (
+                      <div className="text-white/30">→</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Summary */}
+          {sb.contacts_worked !== undefined && (
+            <div className="mt-6 pt-6 border-t border-white/10">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Prospects Worked</p>
+                  <p className="text-lg font-bold text-white">
+                    {sb.contacts_worked} <span className="text-xs text-gray-500">/ {sb.contact_count}</span>
+                  </p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Total Actions</p>
+                  <p className="text-lg font-bold text-cyan-neon">
+                    {(sb.calls_made || 0) + (sb.emails_sent || 0) + (sb.social_touches || 0) + (sb.meetings_booked || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function SalesBlocks() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [salesblocks, setSalesblocks] = useState<SalesBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('upcoming')
   const [viewType, setViewType] = useState<ViewType>('my')
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('list')
   const [isManager, setIsManager] = useState(false)
   const [teamId, setTeamId] = useState<string | null>(null)
   const { user } = useAuth()
@@ -265,6 +401,33 @@ export default function SalesBlocks() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setDisplayMode('list')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                displayMode === 'list'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              title="List View"
+            >
+              <Grid className="w-4 h-4" />
+              List
+            </button>
+            <button
+              onClick={() => setDisplayMode('campaign')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
+                displayMode === 'campaign'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              title="Campaign View"
+            >
+              <Zap className="w-4 h-4" />
+              Campaign
+            </button>
+          </div>
+
           {isManager && (
             <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
               <button
@@ -332,6 +495,8 @@ export default function SalesBlocks() {
             Create your first SalesBlock
           </button>
         </div>
+      ) : displayMode === 'campaign' ? (
+        <CampaignViewGrid salesblocks={salesblocks} />
       ) : (
         <div className="grid gap-4">
           {salesblocks.map((sb) => (

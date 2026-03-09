@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-pricing
+ * @area UI/Pages
+ * @intent Pricing and billing — display role-based plan tiers with billing period toggle, trigger Stripe checkout for selected plan
+ * @responsibilities Render 3 pricing tiers (SDR/AE/Manager), toggle billing period (weekly/monthly/annual), call Stripe checkout edge function via Supabase, handle checkout redirect
+ * @contracts PricingPage() → JSX; calls Supabase edge function create-checkout-session via supabase.functions.invoke; reads current session for user identity
+ * @in supabase (functions.invoke for create-checkout-session, auth.getSession), pricing tier constants (hardcoded)
+ * @out Pricing grid with period toggle, plan feature lists, CTA button per tier; redirects to Stripe checkout on click
+ * @err Edge function invocation failure (caught, alert shown); session fetch failure (silent — checkout may fail with no user context); Stripe redirect failure (silent — user stays on page with no feedback)
+ * @hazard Pricing tier prices are hardcoded in a local constant array — any pricing change requires a code deploy; there is no CMS or remote config source; price drift between frontend display and Stripe product catalogue is possible
+ * @hazard checkout is triggered with role identifier only — if the Stripe price ID mapping in the edge function diverges from the frontend role names, wrong plans will be charged
+ * @shared-edges supabase/functions/create-checkout-session/index.ts→INVOKED; frontend/src/lib/supabase.ts→CALLS functions.invoke; frontend/src/App.tsx→ROUTES to /pricing
+ * @trail pricing#1 | PricingPage mounts → user selects billing period → user clicks plan CTA → getSession → invoke create-checkout-session → redirect to Stripe → Stripe → return to app
+ * @prompt Pull pricing from a Supabase table or remote config to avoid price drift. Add loading state on CTA during checkout invocation. Add error toast instead of alert. Verify role→Stripe price ID mapping is tested in CI.
+ */
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';

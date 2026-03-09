@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-settings
+ * @area UI/Pages
+ * @intent Multi-tab settings hub — manage profile, organisation, team, integrations, pipeline stages, and billing for the current user and org
+ * @responsibilities Load org data + pipeline stages + billing info, render 6-tab UI, handle logo upload, save org settings, toggle Salesforce auto-push, manage pipeline stages CRUD, render all 5 OAuth integration buttons
+ * @contracts SettingsPage() → JSX; reads/writes orgs + pipeline_stages + users tables + Supabase Storage; uses useAuth for current user
+ * @in supabase (orgs + pipeline_stages + users + storage), useAuth, GmailOAuthButton + OutlookOAuthButton + GoogleCalendarOAuthButton + OutlookCalendarOAuthButton + SalesforceOAuthButton
+ * @out 6-tab settings UI with profile edit, org management, team roster, OAuth integration buttons, pipeline stage editor, billing display
+ * @err Logo upload failure (uploadError state shown); org save failure (silent console.error); pipeline stage save failure (silent); Supabase Storage URL construction may fail silently on non-standard bucket config
+ * @hazard All 5 OAuth integrations render inside a single tab — if any OAuth button throws on mount it will crash the entire integrations tab and potentially the full SettingsPage via unhandled render error
+ * @hazard Logo upload uses Supabase Storage with a hardcoded bucket name — if the bucket name or path conventions change, uploads silently store to wrong location and the logo_url in orgs will be stale/broken
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES orgs+pipeline_stages+users; frontend/src/hooks/useAuth.ts→READS current user; frontend/src/components/GmailOAuthButton.tsx→RENDERS; frontend/src/components/OutlookOAuthButton.tsx→RENDERS; frontend/src/components/GoogleCalendarOAuthButton.tsx→RENDERS; frontend/src/components/OutlookCalendarOAuthButton.tsx→RENDERS; frontend/src/components/SalesforceOAuthButton.tsx→RENDERS; frontend/src/App.tsx→ROUTES to /settings
+ * @trail settings#1 | SettingsPage mounts → load org + pipeline stages → render tabs → user edits profile or org → save → user connects integration → OAuth button redirects → callback page returns → user edits pipeline → save
+ * @prompt Wrap each OAuth button in its own ErrorBoundary to isolate render crashes. Add success/error toasts for all save actions. Validate org logo URL before displaying. Extract each tab into a sub-component for maintainability.
+ */
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'

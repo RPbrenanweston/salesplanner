@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-google-calendar-oauth-callback
+ * @area UI/Auth/OAuth
+ * @intent Google Calendar OAuth callback — receive authorization code from Google, exchange for tokens, store calendar integration, redirect to settings
+ * @responsibilities Parse code/state/error from URL params on mount, exchange code for tokens via backend, persist calendar connection, navigate to /settings
+ * @contracts GoogleCalendarOAuthCallback() → JSX; reads window.location.search for OAuth params; calls token exchange; uses useNavigate
+ * @in window.location.search (code, state, error params), backend token exchange, useNavigate
+ * @out Google Calendar access/refresh tokens stored; redirect to /settings on success; error state displayed on failure
+ * @err OAuth error param from Google (error displayed); missing code (error state set); token exchange failure (error displayed)
+ * @hazard state param CSRF validation depends entirely on the token exchange backend — same CSRF risk as GmailOAuthCallback; shared implementation pattern means shared vulnerability surface
+ * @hazard Calendar and Gmail OAuth flows use nearly identical callback pages — if one is updated (e.g. error handling improved), the other may diverge silently; no shared base implementation
+ * @shared-edges frontend/src/components/GoogleCalendarOAuthButton.tsx→INITIATES OAuth flow; frontend/src/pages/SettingsPage.tsx→RETURNS to after success; frontend/src/App.tsx→ROUTES to /oauth/google-calendar/callback
+ * @trail google-calendar-oauth#1 | GoogleCalendarOAuthButton redirects to Google → Google redirects to callback → parse params → exchange code → store tokens → navigate('/settings')
+ * @prompt Consolidate all Google OAuth callbacks into a shared hook with provider param to eliminate duplication. Add CSRF state validation.
+ */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 

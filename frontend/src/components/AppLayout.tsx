@@ -12,7 +12,7 @@ import {
   Users,
   Settings,
   FileText,
-  FileText as MailTemplate,
+  Trophy,
   ChevronLeft,
   ChevronRight,
   LogOut,

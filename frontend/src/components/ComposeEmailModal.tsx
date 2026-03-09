@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-compose-email-modal
+ * @area UI/Email
+ * @intent Compose email modal — draft and send emails to contacts via connected Gmail/Outlook integration, with optional availability insertion from calendar
+ * @responsibilities Render email composition form (to, subject, body), optionally insert free/busy availability slots from calendar, send email via connected mail provider, log activity to Supabase
+ * @contracts ComposeEmailModal({ contactId, contactEmail, onClose, onSent }) → JSX; calls getFreeBusySlots + formatAvailabilityText from lib/calendar; calls Supabase email send function; uses useAuth
+ * @in contactId (string), contactEmail (string), useAuth (userId + email provider), lib/calendar.getFreeBusySlots, Supabase email send edge function, onClose callback, onSent callback
+ * @out Email sent via connected provider; activity log entry in Supabase activities table; onSent called; modal closed
+ * @err No connected mail provider (error state displayed — send blocked); send failure from email API (error shown); free/busy fetch failure (calendar availability section empty, silent)
+ * @hazard Email body is rendered as plain text or basic HTML — if the user pastes formatted content, the formatting may be stripped or rendered as raw HTML tags in the recipient's mail client
+ * @hazard getFreeBusySlots fetches the user's calendar availability — if the connected calendar has no events, the availability block will suggest the user is fully free, which may not reflect actual availability if calendar is not up to date
+ * @shared-edges frontend/src/lib/calendar.ts→CALLS getFreeBusySlots; frontend/src/hooks/useAuth.ts→READS email provider; supabase email edge function→SENDS email; supabase activities table→INSERTS activity log
+ * @trail compose-email#1 | User clicks "Compose" → ComposeEmailModal renders → optionally fetches availability → user drafts email → handleSend → send via provider → supabase activity log → onSent() → modal closes
+ * @prompt Validate connected email provider before rendering compose form. Clarify HTML vs plain text rendering. Add template insertion from EmailTemplates.
+ */
 import { useState, useEffect } from 'react';
 import { X, Mail, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';

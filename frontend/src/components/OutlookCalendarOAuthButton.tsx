@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-outlook-calendar-oauth-button
+ * @area UI/Integrations/OAuth
+ * @intent Outlook Calendar OAuth button — initiate Microsoft Calendar OAuth flow by redirecting to Microsoft authorization endpoint with Calendar.ReadWrite scopes
+ * @responsibilities Check Outlook Calendar connection status from Supabase oauth_connections, render Connect/Disconnect button, construct Microsoft OAuth URL with state param, open popup OAuth window, poll for popup close to refresh status
+ * @contracts OutlookCalendarOAuthButton() → JSX; reads oauth_connections for provider='outlook_calendar'; constructs Microsoft OAuth URL; opens popup; on disconnect: deletes from oauth_connections
+ * @in useAuth (user_id), supabase oauth_connections table, VITE_OUTLOOK_CLIENT_ID + VITE_OUTLOOK_REDIRECT_URI env vars, VITE_OUTLOOK_CALENDAR_REDIRECT_URI if separate
+ * @out Redirect to Microsoft OAuth in popup; or Disconnect: supabase oauth_connections delete; connection status display updated
+ * @err Missing env vars (OAuth URL malformed); popup blocked by browser (OAuth silently fails — no error shown); disconnect failure (caught, error shown)
+ * @hazard Microsoft Calendar OAuth uses the same client_id as Outlook Mail but different scopes — if the redirect URI is shared between calendar and mail OAuth flows, the callback may confuse which integration to store tokens for
+ * @hazard Popup polling uses setInterval to detect popup closure — if the user closes the popup before completing auth, the interval fires and triggers a connection reload that returns no data, leaving the UI in a "not connected" state with no user-visible explanation
+ * @shared-edges frontend/src/hooks/useAuth.ts→READS user_id; supabase oauth_connections table→READS/DELETES; frontend/src/pages/OutlookCalendarOAuthCallback.tsx→RECEIVES OAuth redirect; frontend/src/pages/SettingsPage.tsx→RENDERS button
+ * @trail outlook-cal-connect#1 | User clicks "Connect Outlook Calendar" → OutlookCalendarOAuthButton constructs OAuth URL → popup opens → Microsoft login → OutlookCalendarOAuthCallback → tokens stored → popup closes → connection reloads
+ * @prompt Add CSRF nonce to state param. Differentiate Outlook Calendar and Mail OAuth redirect URIs explicitly. Show explanation message if popup is blocked.
+ */
 import { useState, useEffect } from 'react'
 import { Calendar, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'

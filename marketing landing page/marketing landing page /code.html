@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Salesblock.io | System of Action</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6366f1",
+                        "accent-cyan": "#0db9f2",
+                        "accent-indigo": "#6366f1",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "slate-custom": {
+                            50: "#f8fafc",
+                            100: "#f1f5f9",
+                            200: "#e2e8f0",
+                            800: "#1e293b",
+                            900: "#0f172a"
+                        }
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.02);
+        }
+        .velocity-gradient {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #0db9f2 100%);
+        }
+        .text-glow {
+            text-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+        }
+
+        /* ── Scroll Frame Section ── */
+        #scroll-frame-sticky {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+        #scroll-frame-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+        #scroll-frame-track {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            width: 0%;
+            z-index: 10;
+        }
+        #scroll-frame-cards {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .scroll-frame-card {
+            position: absolute;
+            width: 280px;
+            max-width: 38vw;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .scroll-frame-card.left  { left: 4%; transform: translateX(-50px); }
+        .scroll-frame-card.right { right: 4%; transform: translateX(50px); }
+        .scroll-frame-card.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+        }
+        .scroll-frame-card.active.left,
+        .scroll-frame-card.active.right {
+            border-color: rgba(99, 102, 241, 0.45) !important;
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.12);
+        }
+        #scroll-frame-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            z-index: 20;
+            transition: opacity 0.5s ease;
+        }
+        #scroll-frame-loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .scroll-frame-loading-bar-bg {
+            width: 200px;
+            height: 3px;
+            background: rgba(99, 102, 241, 0.15);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        #scroll-frame-loading-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            width: 0%;
+            transition: width 0.2s ease;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-body text-slate-custom-800 antialiased">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-custom-200 bg-white/80 backdrop-blur-md">
+<div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+<span class="material-symbols-outlined text-xl">rocket_launch</span>
+</div>
+<h2 class="font-display text-xl font-bold tracking-tight text-slate-900">Salesblock<span class="text-primary">.io</span></h2>
+</div>
+<nav class="hidden md:flex items-center gap-10">
+<a class="text-sm font-medium text-slate-600 hover:text-primary transition-colors" href="#">Product</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary transition-colors" href="#">Solutions</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary transition-colors" href="#">Philosophy</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary transition-colors" href="#">Pricing</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="text-sm font-semibold text-slate-900 px-4 py-2 hover:text-primary transition-colors">Log In</button>
+<button class="rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all">
+                    Enter the Cockpit
+                </button>
+</div>
+</div>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="relative overflow-hidden px-6 pt-20 pb-16 lg:pt-32 lg:pb-32">
+<div class="mx-auto max-w-7xl">
+<div class="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:items-center">
+<div class="z-10 flex flex-col items-start space-y-8">
+<div class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+<span class="relative flex h-2 w-2">
+<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
+</span>
+                            v2.4 Live: High-Velocity Engine
+                        </div>
+<h1 class="font-display text-5xl font-black leading-[1.1] tracking-tight text-slate-900 md:text-6xl lg:text-7xl">
+                            The System of Action for <span class="text-primary">High-Velocity</span> Sales
+                        </h1>
+<p class="max-w-xl text-lg leading-relaxed text-slate-600">
+                            Stop recording data. Start driving revenue. The cockpit for elite sales teams to execute at light speed without the CRM friction.
+                        </p>
+<div class="flex flex-wrap gap-4">
+<button class="velocity-gradient flex items-center gap-2 rounded-xl px-8 py-4 text-lg font-bold text-white shadow-2xl shadow-primary/30 transition-transform hover:scale-105">
+<span class="material-symbols-outlined">bolt</span>
+                                Enter the Cockpit
+                            </button>
+<button class="flex items-center gap-2 rounded-xl border border-slate-custom-200 bg-white px-8 py-4 text-lg font-bold text-slate-900 transition-all hover:bg-slate-custom-50">
+                                View Demo
+                            </button>
+</div>
+</div>
+<div class="relative group">
+<div class="absolute -inset-1 rounded-2xl bg-gradient-to-r from-primary via-accent-indigo to-accent-cyan opacity-20 blur-2xl group-hover:opacity-30 transition-opacity"></div>
+<div class="relative aspect-video overflow-hidden rounded-2xl border border-white bg-slate-custom-200 shadow-2xl">
+<div class="absolute inset-0 flex items-center justify-center bg-slate-900/10">
+<span class="material-symbols-outlined text-6xl text-primary/50">play_circle</span>
+</div>
+<img alt="UI Dashboard Animation" class="h-full w-full object-cover" data-alt="High-fidelity UI showing dynamic sales metrics in motion" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkgMtc5uPjsQvKFpbpCnmFQT-9P53pvrsYrDtBIAK32kuOmuWoxAZFQwJqXVzUXjjxESfMZFHQ7yJNjWGh_UW1Z17rOzZWAaS4Jn7GIoxWXrh787q7CAx_bfLGkucHOgHtOeJ0d9JJ28aJxZldKQABpspwcEqz17vKlijkbSKTqGP6qlVut07OWKi8IJm3XLySarAThsaeDsGqi5pKsXtdOGIHk2kfVVb_jBcBxGQlXnikWlDE7sHmmS0TUMxJ-dv7Hkecf4l_Kw8"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Metrics Section -->
+<section class="border-y border-slate-custom-200 bg-white py-12">
+<div class="mx-auto max-w-7xl px-6">
+<div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+<div class="flex flex-col items-center text-center">
+<span class="font-mono text-4xl font-bold text-primary">+40%</span>
+<span class="text-sm font-medium uppercase tracking-widest text-slate-500">Pipeline Velocity</span>
+</div>
+<div class="flex flex-col items-center text-center">
+<span class="font-mono text-4xl font-bold text-accent-indigo">2x</span>
+<span class="text-sm font-medium uppercase tracking-widest text-slate-500">Rep Engagement</span>
+</div>
+<div class="flex flex-col items-center text-center">
+<span class="font-mono text-4xl font-bold text-slate-900">14ms</span>
+<span class="text-sm font-medium uppercase tracking-widest text-slate-500">Action Latency</span>
+</div>
+<div class="flex flex-col items-center text-center">
+<span class="font-mono text-4xl font-bold text-accent-cyan">99%</span>
+<span class="text-sm font-medium uppercase tracking-widest text-slate-500">Data Hygiene</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Scroll Frame Feature Section -->
+<div class="bg-slate-custom-50 text-center py-16 px-6">
+    <h2 class="font-display text-4xl font-bold text-slate-900 md:text-5xl">Engineered for Peak Performance</h2>
+    <p class="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">The first workspace that prioritizes flow-state for sales professionals.</p>
+</div>
+<section id="scroll-frame-section" style="height: 400vh; position: relative;">
+    <div id="scroll-frame-sticky">
+        <canvas id="scroll-frame-canvas"></canvas>
+        <div id="scroll-frame-track"></div>
+        <div id="scroll-frame-cards">
+            <!-- Card 1: The Power Block (left) -->
+            <div class="scroll-frame-card glass-card left rounded-2xl p-6" data-phase="0">
+                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined">timer</span>
+                </div>
+                <h3 class="font-display text-xl font-bold text-slate-900">The Power Block</h3>
+                <p class="mt-2 text-sm text-slate-600">Deep-work focus sessions designed to eliminate context switching. Execute prospect lists with 100% focused energy.</p>
+                <div class="mt-4 flex items-center gap-3">
+                    <span class="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">AUTOPILOT: ON</span>
+                    <span class="font-mono text-xs text-slate-400">LATENCY: 4ms</span>
+                </div>
+            </div>
+            <!-- Card 2: Research Lab (right) -->
+            <div class="scroll-frame-card glass-card right rounded-2xl p-6" data-phase="1">
+                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined">magnification_small</span>
+                </div>
+                <h3 class="font-display text-xl font-bold text-slate-900">Research Lab</h3>
+                <p class="mt-2 text-sm text-slate-600">Instant ICP intelligence. Find high-intent signals before your competition does.</p>
+                <div class="mt-4">
+                    <span class="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">SIGNALS: LIVE</span>
+                </div>
+            </div>
+            <!-- Card 3: Mission Planner (left) -->
+            <div class="scroll-frame-card glass-card left rounded-2xl p-6" data-phase="2">
+                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined">map</span>
+                </div>
+                <h3 class="font-display text-xl font-bold text-slate-900">Mission Planner</h3>
+                <p class="mt-2 text-sm text-slate-600">High-velocity manual cadences for surgical outreach. Precision over spray-and-pray.</p>
+                <div class="mt-4">
+                    <span class="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">CADENCE: ACTIVE</span>
+                </div>
+            </div>
+            <!-- Card 4: The Arena (right) -->
+            <div class="scroll-frame-card glass-card right rounded-2xl p-6" data-phase="3">
+                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <span class="material-symbols-outlined">leaderboard</span>
+                </div>
+                <h3 class="font-display text-xl font-bold text-slate-900">The Arena</h3>
+                <p class="mt-2 text-sm text-slate-600">Live gamification that turns daily prospecting into an elite competition. Real-time visibility that fuels momentum.</p>
+                <div class="mt-4">
+                    <span class="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">LIVE: 12 REPS</span>
+                </div>
+            </div>
+        </div>
+        <!-- Loading overlay -->
+        <div id="scroll-frame-loading">
+            <div class="text-center">
+                <p class="font-mono text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Loading Experience</p>
+                <div class="scroll-frame-loading-bar-bg">
+                    <div id="scroll-frame-loading-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Philosophy Section -->
+<section class="py-24 px-6">
+<div class="mx-auto max-w-7xl">
+<div class="rounded-3xl velocity-gradient p-1">
+<div class="rounded-[22px] bg-white p-8 md:p-16">
+<div class="grid grid-cols-1 gap-12 lg:grid-cols-2">
+<div>
+<h2 class="font-display text-4xl font-black text-slate-900">System of Action <br/><span class="text-primary">vs. System of Record</span></h2>
+<p class="mt-6 text-lg text-slate-600">
+                                    Traditional CRMs were built for managers to report on history. Salesblock was built for reps to create the future. 
+                                    <br/><br/>
+                                    One is a graveyard for data; the other is an engine for execution. It's time to stop reporting and start performing.
+                                </p>
+<button class="mt-8 flex items-center gap-2 font-display text-lg font-bold text-primary group">
+                                    Read the Philosophy Manifesto
+                                    <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="rounded-2xl border border-slate-200 p-6 shadow-sm">
+<h4 class="font-mono text-xs font-bold uppercase tracking-widest text-slate-400">Legacy CRM</h4>
+<ul class="mt-4 space-y-3">
+<li class="flex items-center gap-2 text-sm text-slate-500 line-through"><span class="material-symbols-outlined text-sm">close</span>Manual Entry</li>
+<li class="flex items-center gap-2 text-sm text-slate-500 line-through"><span class="material-symbols-outlined text-sm">close</span>Slow Interface</li>
+<li class="flex items-center gap-2 text-sm text-slate-500 line-through"><span class="material-symbols-outlined text-sm">close</span>Admin Focus</li>
+</ul>
+</div>
+<div class="rounded-2xl border border-primary/20 bg-primary/5 p-6 shadow-sm shadow-primary/10">
+<h4 class="font-mono text-xs font-bold uppercase tracking-widest text-primary">Salesblock</h4>
+<ul class="mt-4 space-y-3">
+<li class="flex items-center gap-2 text-sm font-bold text-slate-900"><span class="material-symbols-outlined text-sm text-primary">check_circle</span>Auto-Capture</li>
+<li class="flex items-center gap-2 text-sm font-bold text-slate-900"><span class="material-symbols-outlined text-sm text-primary">check_circle</span>Sub-ms Flow</li>
+<li class="flex items-center gap-2 text-sm font-bold text-slate-900"><span class="material-symbols-outlined text-sm text-primary">check_circle</span>Rep-Centric</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="relative py-24 px-6 overflow-hidden">
+<div class="absolute inset-0 bg-slate-900">
+<div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#6366f1 1px, transparent 1px); background-size: 20px 20px;"></div>
+</div>
+<div class="relative mx-auto max-w-4xl text-center">
+<h2 class="font-display text-4xl font-bold text-white md:text-5xl">Ready for Takeoff?</h2>
+<p class="mt-6 text-xl text-slate-400">Join 500+ elite sales organizations moving at the speed of light.</p>
+<div class="mt-10 flex flex-col items-center justify-center gap-6 sm:flex-row">
+<button class="velocity-gradient rounded-xl px-10 py-5 text-xl font-bold text-white shadow-2xl transition-transform hover:scale-105">
+                        Claim Your Cockpit
+                    </button>
+<span class="font-mono text-slate-500">Waitlist: <span class="text-accent-cyan">Active</span></span>
+</div>
+</div>
+</section>
+</main>
+<footer class="border-t border-slate-custom-200 bg-white py-12 px-6">
+<div class="mx-auto max-w-7xl">
+<div class="flex flex-col items-center justify-between gap-8 md:flex-row">
+<div class="flex items-center gap-2">
+<div class="flex h-6 w-6 items-center justify-center rounded bg-primary text-white">
+<span class="material-symbols-outlined text-sm">rocket_launch</span>
+</div>
+<span class="font-display text-lg font-bold">Salesblock.io</span>
+</div>
+<div class="flex gap-8 text-sm font-medium text-slate-500">
+<a class="hover:text-primary" href="#">Twitter</a>
+<a class="hover:text-primary" href="#">LinkedIn</a>
+<a class="hover:text-primary" href="#">Privacy</a>
+<a class="hover:text-primary" href="#">Terms</a>
+</div>
+<div class="text-sm text-slate-400 font-mono">
+                    © 2024 SB_ACTION_SYSTEM
+                </div>
+</div>
+</div>
+</footer>
+<script>
+(function () {
+    const TOTAL_FRAMES = 160;
+    const FRAME_PATH = (i) => `frames/frame-${String(i).padStart(4, '0')}.jpg`;
+    const BATCH_SIZE = 16;
+
+    const phases = [
+        { rangeStart: 0.05, rangeEnd: 0.28, phaseIndex: 0 },
+        { rangeStart: 0.25, rangeEnd: 0.52, phaseIndex: 1 },
+        { rangeStart: 0.49, rangeEnd: 0.73, phaseIndex: 2 },
+        { rangeStart: 0.70, rangeEnd: 0.96, phaseIndex: 3 },
+    ];
+
+    const section = document.getElementById('scroll-frame-section');
+    const canvas  = document.getElementById('scroll-frame-canvas');
+    const ctx     = canvas.getContext('2d');
+    const track   = document.getElementById('scroll-frame-track');
+    const loading = document.getElementById('scroll-frame-loading');
+    const loadBar = document.getElementById('scroll-frame-loading-bar');
+    const cards   = Array.from(document.querySelectorAll('.scroll-frame-card'));
+
+    const frames = new Array(TOTAL_FRAMES).fill(null);
+    let currentFrameIndex = 0;
+    let displayFrame = 0;
+    let firstFrameReady = false;
+    let loadedCount = 0;
+
+    function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width  = canvas.offsetWidth  * dpr;
+        canvas.height = canvas.offsetHeight * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    function getScrollProgress() {
+        const rect = section.getBoundingClientRect();
+        const scrollable = section.offsetHeight - window.innerHeight;
+        if (scrollable <= 0) return 0;
+        const scrolled = -rect.top;
+        return Math.max(0, Math.min(1, scrolled / scrollable));
+    }
+
+    function loadFrame(index) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                if (typeof createImageBitmap !== 'undefined') {
+                    createImageBitmap(img).then((bmp) => {
+                        frames[index] = bmp;
+                        resolve(bmp);
+                    }).catch(() => {
+                        frames[index] = img;
+                        resolve(img);
+                    });
+                } else {
+                    frames[index] = img;
+                    resolve(img);
+                }
+            };
+            img.onerror = () => resolve(null);
+            img.src = FRAME_PATH(index + 1);
+        });
+    }
+
+    async function preloadFramesBatched() {
+        // Load first frame immediately
+        await loadFrame(0);
+        loadedCount = 1;
+        firstFrameReady = true;
+        loading.classList.add('hidden');
+        loadBar.style.width = ((1 / TOTAL_FRAMES) * 100) + '%';
+
+        // Load rest in batches
+        let i = 1;
+        while (i < TOTAL_FRAMES) {
+            const batch = [];
+            for (let b = 0; b < BATCH_SIZE && i < TOTAL_FRAMES; b++, i++) {
+                batch.push(loadFrame(i));
+            }
+            await Promise.all(batch);
+            loadedCount += batch.length;
+            loadBar.style.width = ((loadedCount / TOTAL_FRAMES) * 100) + '%';
+        }
+    }
+
+    function drawCover(bitmap, progress) {
+        if (!bitmap) return;
+        const cw = canvas.offsetWidth;
+        const ch = canvas.offsetHeight;
+
+        const bw = bitmap.width  || bitmap.naturalWidth  || cw;
+        const bh = bitmap.height || bitmap.naturalHeight || ch;
+
+        const scale = Math.max(cw / bw, ch / bh);
+        const dw = bw * scale;
+        const dh = bh * scale;
+        const dx = (cw - dw) / 2;
+        const dy = (ch - dh) / 2;
+
+        // Rotation: -4deg at progress 0, +8deg at progress 1
+        const deg = -4 + progress * 12;
+        const rad = (deg * Math.PI) / 180;
+
+        ctx.save();
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.translate(cw / 2, ch / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(bitmap, dx - cw / 2, dy - ch / 2, dw, dh);
+        ctx.restore();
+    }
+
+    function updateCards(progress) {
+        phases.forEach(({ rangeStart, rangeEnd, phaseIndex }) => {
+            const card = cards[phaseIndex];
+            if (!card) return;
+            const active = progress >= rangeStart && progress <= rangeEnd;
+            card.classList.toggle('active', active);
+        });
+    }
+
+    function renderLoop() {
+        if (firstFrameReady) {
+            const progress = getScrollProgress();
+            const targetFrame = Math.min(TOTAL_FRAMES - 1, progress * TOTAL_FRAMES);
+            displayFrame += (targetFrame - displayFrame) * 0.15;
+            const frameIdx = Math.min(TOTAL_FRAMES - 1, Math.round(displayFrame));
+
+            // Find the closest loaded frame if the target isn't ready
+            let bitmap = frames[frameIdx];
+            if (!bitmap) {
+                for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
+                    if (frames[frameIdx - offset]) { bitmap = frames[frameIdx - offset]; break; }
+                    if (frames[frameIdx + offset]) { bitmap = frames[frameIdx + offset]; break; }
+                }
+            }
+
+            if (bitmap) drawCover(bitmap, progress);
+            updateCards(progress);
+            track.style.width = (progress * 100) + '%';
+        }
+        requestAnimationFrame(renderLoop);
+    }
+
+    preloadFramesBatched();
+    renderLoop();
+})();
+</script>
+</body></html>

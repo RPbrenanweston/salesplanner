@@ -1,6 +1,17 @@
 /**
- * Supabase persistence layer for validated engineer profiles.
- * Provides database storage with graceful degradation if Supabase unavailable.
+ * @crumb
+ * @id database-persistence
+ * @area DAT
+ * @intent Persist validated profiles to Supabase; provide graceful fallback when DB unavailable (local-only mode)
+ * @responsibilities Supabase initialization, upsert operations, batch queries, exclusion syncing, profile lookup
+ * @contracts initialize() → void; isAvailable() → bool; upsertEngineer(profile: ValidatedProfile) → Promise<DatabaseResult<void>>; upsertEngineers(profiles: ValidatedProfile[]) → Promise<DatabaseResult<void>>; recordSearchRun(config, counts) → Promise<DatabaseResult<void>>; queryEngineers(config, maxStaleDays) → Promise<DatabaseResult<ValidatedProfile[]>>; getDatabaseStats(maxStaleDays) → Promise<DatabaseResult<stats>>
+ * @in env vars: SUPABASE_URL, SUPABASE_ANON_KEY (optional fallback to local JSON)
+ * @out upserted records (snake_case), search run logs, exclusion list
+ * @err SupabaseError, missing env vars, partial batch failures (silent)
+ * @hazard Batch upsert() silently ignores partial failures — no rollback mechanism, silent data loss
+ * @hazard Upsert key hardcoded to primary_url — email conflicts possible on duplicate emails with different URLs
+ * @shared-edges hybrid-discovery.ts→CALLS queryEngineers(), validation.ts→CALLS upsertEngineers(), enforcement.ts→CALLS getDatabaseStats()
+ * @prompt When adding new query methods, wrap in transaction to prevent partial failures. Audit upsert key strategy for multi-tenant (email dedup needed?).
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-sign-in
+ * @area UI/Auth
+ * @intent Email + password sign-in — authenticate existing user and redirect to app root on success
+ * @responsibilities Render email/password form, call supabase.auth.signInWithPassword, navigate to / on success, display error on failure
+ * @contracts SignIn() → JSX; calls supabase.auth.signInWithPassword; uses useNavigate for redirect
+ * @in supabase.auth.signInWithPassword, useNavigate, user-entered email + password
+ * @out Authenticated session via Supabase; redirect to /; or inline error message on failure
+ * @err Invalid credentials (error displayed inline); network failure (error displayed inline)
+ * @hazard No rate limiting on the sign-in form — relies entirely on Supabase Auth rate limiting which is not verified in crumb; brute force possible if Supabase limits are misconfigured
+ * @hazard Redirect on success goes unconditionally to / — if the user arrived from a protected deep link (e.g. /lists/123), that destination is lost; no returnTo param handling
+ * @shared-edges frontend/src/lib/supabase.ts→CALLS auth.signInWithPassword; frontend/src/App.tsx→ROUTES to /sign-in; frontend/src/pages/SignUp.tsx→LINKED; frontend/src/pages/ForgotPassword.tsx→LINKED
+ * @trail sign-in#1 | SignIn renders → user enters credentials → handleSignIn → signInWithPassword → success: navigate('/') | failure: setError
+ * @prompt Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback if Supabase returns rate limit error.
+ */
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'

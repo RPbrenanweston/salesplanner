@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-outlook-oauth-callback
+ * @area UI/Auth/OAuth
+ * @intent Outlook OAuth callback — receive authorization code from Microsoft, exchange for tokens, store mail integration, redirect to settings
+ * @responsibilities Parse code/state/error/error_description from URL params on mount, exchange code for tokens via backend, persist connection, navigate to /settings
+ * @contracts OutlookOAuthCallback() → JSX; reads window.location.search for OAuth params; calls token exchange; uses useNavigate
+ * @in window.location.search (code, state, error, error_description params), backend token exchange, useNavigate
+ * @out Outlook access/refresh tokens stored; redirect to /settings on success; error state displayed on failure
+ * @err OAuth error param from Microsoft (error + error_description displayed); missing code (error state set); token exchange failure (error displayed)
+ * @hazard Microsoft OAuth uses error_description in addition to error — if error_description is logged or displayed verbatim, it may contain sensitive OAuth state details that should not be shown to end users
+ * @hazard Outlook and Gmail OAuth callbacks share nearly identical structure — any divergence in error handling or token exchange logic between the two will create inconsistent user experiences across integrations
+ * @shared-edges frontend/src/components/OutlookOAuthButton.tsx→INITIATES OAuth flow; frontend/src/pages/SettingsPage.tsx→RETURNS to after success; frontend/src/App.tsx→ROUTES to /oauth/outlook/callback
+ * @trail outlook-oauth#1 | OutlookOAuthButton redirects to Microsoft → Microsoft redirects to callback → parse params → exchange code → store tokens → navigate('/settings')
+ * @prompt Consolidate all OAuth callbacks into a shared hook with provider param. Sanitize error_description before display. Add CSRF state validation.
+ */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-forgot-password
+ * @area UI/Auth
+ * @intent Password reset initiation — send reset email via Supabase Auth with redirect to reset-password page
+ * @responsibilities Render email form, call supabase.auth.resetPasswordForEmail with redirectTo, show success or error message
+ * @contracts ForgotPassword() → JSX; calls supabase.auth.resetPasswordForEmail; redirectTo uses window.location.origin
+ * @in supabase.auth.resetPasswordForEmail, user-entered email, window.location.origin for redirect URL
+ * @out Reset email dispatched by Supabase; success message shown; user navigates to /reset-password via email link
+ * @err Supabase error on resetPasswordForEmail (error displayed inline); invalid email format (no client-side validation — Supabase handles)
+ * @hazard window.location.origin is used to construct the redirectTo URL — in development this points to localhost, meaning reset links sent from dev will expire if the user opens them in a different environment
+ * @hazard No feedback differentiation between "email not found" and "email sent" — Supabase intentionally shows the same message for both to prevent user enumeration, but this means broken accounts get no recovery guidance
+ * @shared-edges frontend/src/lib/supabase.ts→CALLS auth.resetPasswordForEmail; frontend/src/App.tsx→ROUTES to /forgot-password; frontend/src/pages/SignIn.tsx→LINKED
+ * @trail forgot-password#1 | ForgotPassword renders → user enters email → handleResetPassword → resetPasswordForEmail → setMessage (success) | setError (failure) → user checks email → clicks link → /reset-password
+ * @prompt Add client-side email format validation. Ensure SITE_URL is set correctly in Supabase Auth settings to avoid localhost redirect links in production emails.
+ */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'

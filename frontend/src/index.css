@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 /**
  * Global styles using Tailwind CSS
  *
@@ -115,3 +116,61 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --void-950: #020617;
+  --void-900: #0F172A;
+  --void-800: #131f24;
+  --indigo-electric: #6366F1;
+  --cyan-neon: #0db9f2;
+  --purple-neon: #8b5cf6;
+  --red-alert: #f43f5e;
+  --emerald-signal: #10b981;
+}
+
+@layer components {
+  /* Glassmorphism card — light: solid white card, dark: frosted glass */
+  .glass {
+    @apply backdrop-blur-md
+      bg-white/80 border border-gray-200
+      dark:bg-white/5 dark:border-white/10;
+  }
+
+  .glass-card {
+    @apply backdrop-blur-md rounded-xl
+      bg-white border border-gray-200 shadow-sm
+      dark:bg-white/5 dark:border-white/10 dark:shadow-none;
+  }
+
+  /* KPI stat card */
+  .stat-card {
+    @apply glass-card p-5 flex flex-col gap-2;
+  }
+
+  /* Neon glow variants — dark mode only */
+  .neon-glow-indigo {
+    @apply dark:shadow-[0_0_20px_rgba(99,102,241,0.4)];
+  }
+
+  .neon-glow-cyan {
+    @apply dark:shadow-[0_0_20px_rgba(13,185,242,0.4)];
+  }
+
+  .neon-glow-purple {
+    @apply dark:shadow-[0_0_20px_rgba(139,92,246,0.4)];
+  }
+
+  /* Velocity Void page wrapper */
+  .vv-page {
+    @apply min-h-screen font-sans
+      bg-gray-50 text-gray-900
+      dark:bg-void-950 dark:text-white;
+  }
+
+  /* Section header */
+  .vv-section-title {
+    @apply text-xs font-semibold uppercase tracking-widest
+      text-gray-500
+      dark:text-white/40;
+  }
+}

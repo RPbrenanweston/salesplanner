@@ -1,0 +1,11 @@
+/**
+ * @crumb.index src/
+ * // BACKEND-ENGINE | citation-first engineer discovery pipeline
+ * // why: Orchestrate candidate discovery, validation, enforcement, and quality pipeline via CLI
+ * // in:CLI args, config.json, source registry out:validated profiles, markdown report err:SourceError, ValidationError
+ * // hazard: Filesystem mutation (config.json, exclusions.json, output/*.md) with no atomic transactions
+ * // hazard: Env dependency on SUPABASE_URL + SUPABASE_ANON_KEY — graceful fallback to local JSON if missing
+ * // shared-edge: types.ts -> ALL files (shared types, signals, citations); index.ts -> config.ts -> gating.ts -> (discovery|validation|enforcement|quality|report)
+ * // edge:types.ts -> CALLS
+ * // edge:database.ts -> WRITES
+ */

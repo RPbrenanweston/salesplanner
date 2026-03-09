@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-book-meeting-modal
+ * @area UI/Meetings
+ * @intent Book meeting modal — schedule a meeting with a contact by selecting a time slot and creating a calendar event via the calendar integration
+ * @responsibilities Render date/time picker, contact selector, meeting title/notes fields; call createCalendarEvent from lib/calendar; log activity to Supabase; call onBooked callback
+ * @contracts BookMeetingModal({ contactId, onClose, onBooked }) → JSX; calls createCalendarEvent(event) from lib/calendar; calls supabase activities insert; uses useAuth for current user
+ * @in contactId (string), useAuth (userId), lib/calendar.createCalendarEvent, supabase activities table, onClose callback, onBooked callback
+ * @out Calendar event created via connected calendar (Google/Outlook); activity log entry created in Supabase; onBooked called; modal closed
+ * @err createCalendarEvent failure (no connected calendar, expired token, API error — error state displayed); Supabase activity insert failure (caught, may succeed silently)
+ * @hazard createCalendarEvent will silently fail if no calendar integration is connected for the user — the user may think a meeting was booked but no calendar event exists; no pre-check for calendar connection before form submission
+ * @hazard Meeting time is selected in user's local browser timezone with no explicit timezone conversion — if the contact or calendar account is in a different timezone, the booked slot may conflict with the user's intent
+ * @shared-edges frontend/src/lib/calendar.ts→CALLS createCalendarEvent; frontend/src/hooks/useAuth.ts→READS userId; supabase activities table→INSERTS activity; parent page→RENDERS modal
+ * @trail book-meeting#1 | User clicks "Book Meeting" → BookMeetingModal renders → user picks time + fills details → handleBook → createCalendarEvent → supabase insert → onBooked() → modal closes
+ * @prompt Pre-check for connected calendar before rendering form. Add explicit timezone display and conversion. Log activity even if calendar event fails to avoid silent loss.
+ */
 import { useState, useEffect } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';

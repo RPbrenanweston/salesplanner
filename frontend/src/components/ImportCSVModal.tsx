@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-component-import-csv-modal
+ * @area UI/Contacts/Import
+ * @intent CSV import modal — upload a CSV file of contacts, map columns to contact fields, validate rows, and bulk-insert into the contacts table
+ * @responsibilities Parse CSV with PapaParse, render column mapping UI, validate required columns, batch-insert mapped rows to Supabase contacts, show success/error summary
+ * @contracts ImportCSVModal({ onClose, onImported }) → JSX; uses Papa.parse for CSV parsing; calls supabase.from('contacts').insert (bulk); requires org_id from auth context
+ * @in CSV file (user upload), Papa.parse result, supabase contacts table, useAuth (org_id), onClose callback, onImported callback
+ * @out Bulk contact rows inserted into contacts table; onImported called with count; success/error summary displayed
+ * @err CSV parse error (PapaParse error displayed); missing required columns (validation error); Supabase bulk insert failure (per-row or batch error displayed)
+ * @hazard PapaParse runs synchronously on large CSVs in the browser main thread — a file with 10,000+ rows will block the UI during parsing, causing a visible freeze
+ * @hazard Bulk insert sends all parsed rows in a single Supabase insert call — Supabase has a default row limit per request; very large CSVs will silently fail or throw without the user knowing how many rows were rejected
+ * @shared-edges frontend/src/lib/supabase.ts→BULK INSERT contacts; parent page (Contacts or Lists)→RENDERS modal; onImported callback→REFRESHES contact list
+ * @trail csv-import#1 | User clicks "Import CSV" → ImportCSVModal renders → user selects file → PapaParse parses → column mapping UI → validate → supabase bulk insert → onImported(count) → modal closes
+ * @prompt Use PapaParse streaming or Web Workers for large files. Chunk bulk inserts into batches of 500. Show per-row error details in summary.
+ */
 import { useState } from 'react';
 import { X, Upload, AlertCircle, CheckCircle } from 'lucide-react';
 import Papa from 'papaparse';

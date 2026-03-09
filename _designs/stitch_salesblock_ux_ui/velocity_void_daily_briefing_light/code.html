@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Velocity Void Daily Briefing</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#0d59f2",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#101622",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1a2233",
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        "2xl": "1rem",
+                        full: "9999px",
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- Side Navigation -->
+<aside class="flex w-64 flex-col justify-between border-r border-slate-200 bg-surface-light px-4 py-6 dark:border-slate-800 dark:bg-surface-dark">
+<div class="flex flex-col gap-8">
+<!-- Branding -->
+<div class="flex items-center gap-3 px-2">
+<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/30">
+<span class="material-symbols-outlined text-2xl">bolt</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-lg font-bold leading-none tracking-tight text-slate-900 dark:text-white">Salesblock</h1>
+<p class="text-xs font-medium text-primary">Velocity Void</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2.5 text-primary transition-colors hover:bg-primary/20" href="#">
+<span class="material-symbols-outlined fill-1">rocket_launch</span>
+<span class="text-sm font-semibold">Launchpad</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" href="#">
+<span class="material-symbols-outlined">target</span>
+<span class="text-sm font-medium">Missions</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-sm font-medium">Contacts</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-sm font-medium">Calendar</span>
+</a>
+<a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" href="#">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="text-sm font-medium">Analytics</span>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-4">
+<a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/50">
+<div class="h-10 w-10 rounded-full bg-slate-200 bg-cover bg-center" data-alt="User profile picture placeholder" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDC2Wst8SwoFPCpsvddRr1moPa7JOM0cEjXxDrheHohD_8cdd64IzfAPw4hz7axI0P0Lho8BxUJ5NkurixIpvfLHQDxcyuz88UmtdV42a7UmVZK-cOuoujw_hYNmEbo9gCFdky6ekcVYTK2vDXargVX5cwXUXdVLxSDDTfHjj8wCF4YwW2jHmoroM3P-8P4RSPtB8bcobYkz1a27x81zLzK-CLdlokHE3blmkpYBiSFOEyV_RRQhkaLGUelUCyAj2lWoGb9q5NeO6k');"></div>
+<div class="flex flex-col overflow-hidden">
+<span class="truncate text-sm font-bold text-slate-900 dark:text-white">Alex Morgan</span>
+<span class="truncate text-xs text-slate-500 dark:text-slate-400">Elite Rep</span>
+</div>
+</div>
+<button class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-transform hover:scale-[1.02] active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>New Mission</span>
+</button>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto bg-background-light p-8 dark:bg-background-dark">
+<div class="mx-auto flex max-w-7xl flex-col gap-8">
+<!-- Header Section -->
+<div class="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined">wb_twilight</span>
+<span class="text-sm font-bold uppercase tracking-wider">Daily Briefing</span>
+</div>
+<h2 class="text-4xl font-black tracking-tight text-slate-900 dark:text-white">Morning Launchpad</h2>
+<p class="text-slate-500 dark:text-slate-400">Focus on your highest leverage activities for today, Alex.</p>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-sm font-medium text-slate-500 dark:text-slate-400">Today's Goal:</span>
+<div class="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm dark:bg-surface-dark">
+<div class="h-2 w-2 rounded-full bg-green-500"></div>
+<span class="font-bold text-slate-900 dark:text-white">$15,000 Pipeline</span>
+</div>
+</div>
+</div>
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+<div class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md dark:bg-surface-dark dark:ring-slate-700">
+<div class="absolute right-0 top-0 h-24 w-24 translate-x-8 translate-y--8 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/10"></div>
+<div class="relative flex flex-col gap-2">
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Daily Forecast</p>
+<div class="flex items-baseline gap-2">
+<p class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">$12,450</p>
+</div>
+<div class="flex items-center gap-1 text-green-600">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<p class="text-sm font-bold">+15% vs target</p>
+</div>
+</div>
+</div>
+<div class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md dark:bg-surface-dark dark:ring-slate-700">
+<div class="absolute right-0 top-0 h-24 w-24 translate-x-8 translate-y--8 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/10"></div>
+<div class="relative flex flex-col gap-2">
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Calls Scheduled</p>
+<div class="flex items-baseline gap-2">
+<p class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">18</p>
+</div>
+<div class="flex items-center gap-1 text-green-600">
+<span class="material-symbols-outlined text-sm">add</span>
+<p class="text-sm font-bold">2 new today</p>
+</div>
+</div>
+</div>
+<div class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md dark:bg-surface-dark dark:ring-slate-700">
+<div class="absolute right-0 top-0 h-24 w-24 translate-x-8 translate-y--8 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/10"></div>
+<div class="relative flex flex-col gap-2">
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Pipeline Velocity</p>
+<div class="flex items-baseline gap-2">
+<p class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">2.4x</p>
+</div>
+<div class="flex items-center gap-1 text-red-500">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+<p class="text-sm font-bold">-5% slowdown</p>
+</div>
+</div>
+</div>
+<div class="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-all hover:shadow-md dark:bg-surface-dark dark:ring-slate-700">
+<div class="absolute right-0 top-0 h-24 w-24 translate-x-8 translate-y--8 rounded-full bg-primary/5 blur-2xl transition-all group-hover:bg-primary/10"></div>
+<div class="relative flex flex-col gap-2">
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">Active Missions</p>
+<div class="flex items-baseline gap-2">
+<p class="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">12</p>
+</div>
+<div class="flex items-center gap-1 text-slate-400">
+<span class="material-symbols-outlined text-sm">remove</span>
+<p class="text-sm font-bold">Stable</p>
+</div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+<!-- Left Column: High Intent Leads -->
+<div class="flex flex-col gap-4 lg:col-span-2">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold text-slate-900 dark:text-white">Top 3 High-Intent Leads</h3>
+<button class="text-sm font-medium text-primary hover:underline">View all (12)</button>
+</div>
+<!-- Lead Card 1 (Primary) -->
+<div class="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 dark:bg-surface-dark dark:ring-slate-700 md:flex-row">
+<div class="h-48 w-full rounded-xl bg-cover bg-center md:h-auto md:w-48" data-alt="Portrait of Sarah Jenkins" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAr2BGCbYdvG_WB0k_tMUnY3JZ0VBkOtrgJkcIHdjGJb-6mbGtzu-Bz6q7It3274HuxDv_rB0celjf3tUg3ynhSS7H10X7AMBrE4sPkx9T0cSa5DDsn_h8CQ9xScRIrZXEQulC0daxRHgHO8ivK3KS_VRXyzVJqxqCTLvKqHFeXq3cBswqssxlAdpxnj-RumuO8yx9lWcxvDO6FlIaanLRhnDP957hW3Vcsx-wf1m4ZfUoE1WhelpEUH1aSXzK2oUYRaGKVPZr26xw');"></div>
+<div class="flex flex-1 flex-col justify-between gap-4">
+<div class="flex items-start justify-between">
+<div>
+<div class="mb-1 flex items-center gap-2">
+<h4 class="text-lg font-bold text-slate-900 dark:text-white">Sarah Jenkins</h4>
+<span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-600 dark:bg-red-900/20 dark:text-red-400">Hot Lead</span>
+</div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400">VP Sales @ Acme Corp</p>
+<div class="mt-3 flex gap-4">
+<div class="flex flex-col">
+<span class="text-xs text-slate-400">Intent Score</span>
+<span class="font-bold text-primary">98/100</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs text-slate-400">Last Active</span>
+<span class="font-medium text-slate-700 dark:text-slate-300">2 mins ago</span>
+</div>
+<div class="flex flex-col">
+<span class="text-xs text-slate-400">Signal</span>
+<span class="font-medium text-slate-700 dark:text-slate-300">Pricing Page View</span>
+</div>
+</div>
+</div>
+<button class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-blue-700">
+<span class="material-symbols-outlined text-lg">call</span>
+                                        Call Now
+                                    </button>
+<button class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-surface-dark dark:text-slate-300 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-lg">mail</span>
+                                        Email
+                                    </button>
+<button class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-surface-dark dark:text-slate-300 dark:hover:bg-slate-800">
+<span class="material-symbols-outlined text-lg">description</span>
+                                        Script
+                                    </button>
+</div>
+</div>
+</div>
+<!-- Lead Card 2 (Compact) -->
+<div class="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 dark:bg-surface-dark dark:ring-slate-700">
+<div class="flex items-center gap-4">
+<div class="h-12 w-12 rounded-full bg-slate-100 bg-cover bg-center" data-alt="Portrait of Michael Ross" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAhN7xLs8izzZn9cwL98e5hspYNZ_uZT2QNBcJXTerOn1fenaXg9dVb7WGkUH5dvMTsEhD5NP2wvNN3vtCJUiMlrozhT9I-GSWqzWpLRY2r7Jolh3fJxFG3r9jj1mt6SW4CgUn5TZz3DR8MCeVbGSAYvjIC-hRWvXDh-oC0wsQOjeqvD_sPy47Am1gq0GejUCi2--9-PvsyUQo0ziqIpXbF8rgXh4jlJ8n7NBijKwtVNtl60fHjVl3uq4xOt6dut0XD8gWpPaOUtjE');"></div>
+<div>
+<h4 class="font-bold text-slate-900 dark:text-white">Michael Ross</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400">CTO @ TechFlow • Intent Score: 92</p>
+</div>
+</div>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+<span class="material-symbols-outlined text-[14px]">visibility</span>
+                                    Demo Request
+                                </span>
+<button class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined text-lg">call</span>
+</button>
+</div>
+</div>
+<!-- Lead Card 3 (Compact) -->
+<div class="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-900/5 dark:bg-surface-dark dark:ring-slate-700">
+<div class="flex items-center gap-4">
+<div class="h-12 w-12 rounded-full bg-slate-100 bg-cover bg-center" data-alt="Portrait of Emily Chen" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCYCCjQ2GoFBY630bzF8gzUfYU7U4G4YcJCpxKlVLSJ7r3fekfjinRvqMrNcDEdMXQ-_RnoR3239IN8M0Rf3rmGGjU4sg5ScksmrDBUFsV3k5bBhu7DIIYMQqJljhcir6Jys-b7NjD03G2SirGK9XP5_5QJ8XVyriUK3XYW6Al6IhAf7Esubm0Y9pNNdWF2ldVz0157a2KK3Tr_g6wMhxD9J0sANspZAbaiRoIDsFqMtyvZ46ww_kf61ufyBiYCN3PE_1nun7DANWM');"></div>
+<div>
+<h4 class="font-bold text-slate-900 dark:text-white">Emily Chen</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400">Director of Ops @ GlobalLog • Intent Score: 88</p>
+</div>
+</div>
+<div class="flex gap-2">
+<span class="flex items-center gap-1 rounded bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+<span class="material-symbols-outlined text-[14px]">download</span>
+                                    Whitepaper
+                                </span>
+<button class="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+<span class="material-symbols-outlined text-lg">call</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Right Column: Calendar & Tasks -->
+<div class="flex flex-col gap-6 lg:col-span-1">
+<!-- Today's Schedule -->
+<div class="flex flex-col rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 dark:bg-surface-dark dark:ring-slate-700">
+<div class="mb-4 flex items-center justify-between">
+<h3 class="font-bold text-slate-900 dark:text-white">Schedule &amp; Tasks</h3>
+<span class="text-xs font-medium text-slate-500">Today</span>
+</div>
+<div class="relative flex flex-col gap-0 border-l border-slate-200 pl-6 dark:border-slate-700">
+<!-- Item 1: Meeting -->
+<div class="relative pb-6">
+<div class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-white bg-primary dark:border-surface-dark"></div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-primary">09:00 AM</span>
+<span class="material-symbols-outlined text-sm text-slate-400">videocam</span>
+</div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Discovery: Alpha Inc</p>
+<p class="text-xs text-slate-500">w/ John Doe</p>
+</div>
+</div>
+<!-- Item 2: Task -->
+<div class="relative pb-6">
+<div class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-white bg-amber-500 dark:border-surface-dark"></div>
+<div class="flex flex-col gap-1 rounded-lg bg-amber-50 p-2 dark:bg-amber-900/10">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-amber-600 dark:text-amber-400">10:30 AM • Task</span>
+<span class="material-symbols-outlined text-sm text-amber-600 dark:text-amber-400">work</span>
+</div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">LinkedIn Warm-up</p>
+<p class="text-xs text-slate-600 dark:text-slate-400">Comment on 5 target accounts</p>
+<button class="mt-2 w-full rounded bg-white py-1 text-xs font-bold text-amber-700 shadow-sm hover:bg-amber-50 dark:bg-surface-dark dark:text-amber-400 dark:hover:bg-slate-800">Start Task</button>
+</div>
+</div>
+<!-- Item 3: Meeting -->
+<div class="relative">
+<div class="absolute -left-[29px] top-1 h-3 w-3 rounded-full border-2 border-white bg-slate-300 dark:border-surface-dark dark:bg-slate-600"></div>
+<div class="flex flex-col gap-1 opacity-75">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-slate-500">01:00 PM</span>
+<span class="material-symbols-outlined text-sm text-slate-400">videocam</span>
+</div>
+<p class="text-sm font-bold text-slate-900 dark:text-white">Demo: Beta Corp</p>
+<p class="text-xs text-slate-500">w/ Jane Smith</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Overdue Missions -->
+<div class="flex flex-col gap-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 dark:bg-surface-dark dark:ring-slate-700">
+<div class="flex items-center justify-between">
+<h3 class="font-bold text-slate-900 dark:text-white">Overdue Missions</h3>
+<span class="flex h-5 w-5 items-center justify-center rounded bg-red-100 text-xs font-bold text-red-600 dark:bg-red-900/30 dark:text-red-400">2</span>
+</div>
+<div class="flex items-center justify-between rounded-lg border border-red-100 bg-red-50/50 p-3 dark:border-red-900/20 dark:bg-red-900/10">
+<div class="flex items-center gap-3">
+<div class="flex h-8 w-8 items-center justify-center rounded bg-white text-red-500 shadow-sm dark:bg-surface-dark">
+<span class="material-symbols-outlined text-lg">mail_lock</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-slate-900 dark:text-white">Follow-up: Q4 Proposal</span>
+<span class="text-xs text-red-500">Due Yesterday</span>
+</div>
+</div>
+<button class="rounded p-1 text-slate-400 hover:bg-white hover:text-primary dark:hover:bg-surface-dark">
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<div class="flex items-center justify-between rounded-lg border border-red-100 bg-red-50/50 p-3 dark:border-red-900/20 dark:bg-red-900/10">
+<div class="flex items-center gap-3">
+<div class="flex h-8 w-8 items-center justify-center rounded bg-white text-red-500 shadow-sm dark:bg-surface-dark">
+<span class="material-symbols-outlined text-lg">contract_edit</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-bold text-slate-900 dark:text-white">Sign Contract: Zeta</span>
+<span class="text-xs text-red-500">Due 2 Days Ago</span>
+</div>
+</div>
+<button class="rounded p-1 text-slate-400 hover:bg-white hover:text-primary dark:hover:bg-surface-dark">
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer / Motivation -->
+<div class="flex items-center justify-between rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-4 text-white shadow-lg">
+<div class="flex items-center gap-4">
+<div class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
+<span class="material-symbols-outlined text-yellow-400">emoji_events</span>
+</div>
+<div>
+<p class="font-bold">You're on a streak!</p>
+<p class="text-sm text-slate-300">5 days of hitting call targets. Keep the momentum going.</p>
+</div>
+</div>
+<button class="rounded-lg bg-white/10 px-4 py-2 text-sm font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/20">
+                        View Stats
+                    </button>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-sign-up
+ * @area UI/Auth
+ * @intent User registration — create new account or accept org invitation from email link; creates org on fresh signup
+ * @responsibilities Parse invitation_id + email from URL params, load invitation data from Supabase, render signup form (email/password/displayName/orgName), call supabase.auth.signUp, create org + user record on success
+ * @contracts SignUp() → JSX; reads team_invitations table; calls supabase.auth.signUp + inserts orgs + users; uses useSearchParams for invitation_id
+ * @in supabase (team_invitations + orgs + users tables, auth.signUp), useSearchParams (invitation_id + email), user-entered form fields
+ * @out New Supabase auth user + org record + users record; redirect to /; or inline error
+ * @err Invitation load failure (silent — form still renders without invitation context); signUp failure (error displayed); org/user insert failure (silent — user is authenticated but app record missing)
+ * @hazard If supabase.auth.signUp succeeds but the subsequent org or user insert fails, the user lands in an authenticated-but-broken state — no org_id, no users record, app will 404 or show empty state with no recovery path
+ * @hazard Invitation data is fetched by invitation_id from URL with no CSRF token or expiry check on the frontend — the backend must enforce expiry; if it doesn't, old invitation links remain valid indefinitely
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES team_invitations+orgs+users; frontend/src/App.tsx→ROUTES to /sign-up; frontend/src/pages/SignIn.tsx→LINKED; supabase/functions/send-team-invitation/index.ts→GENERATES invitation links
+ * @trail sign-up#1 | SignUp mounts → parse URL params → load invitation (if present) → user fills form → handleSignUp → auth.signUp → insert org + user → navigate('/')
+ * @prompt Add post-signup org/user insert error handling with retry or rollback. Validate invitation_id expiry on the frontend before rendering form. Add email verification step for non-invitation signups.
+ */
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'

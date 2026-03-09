@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id edge-send-team-invitation
+ * @area CRM/Teams
+ * @intent Team invitation email — receive invitation request from frontend, create pending invitation record in Supabase, send invitation email via Resend/SMTP
+ * @responsibilities Validate JWT + extract inviter org_id, create invitation row in team_invitations table, send email to invitee with magic link, return success/error
+ * @contracts POST { email, role } → { success: boolean } | { error: string }; reads RESEND_API_KEY + SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from env
+ * @in JWT (Authorization header), invitee email + role from request body, email service API key env var
+ * @out JSON { success: true } or JSON { error: string }; invitation row written to team_invitations table; email sent to invitee
+ * @err Invalid JWT (401); Supabase insert failure (duplicate invite — error returned); email service failure (invitation row created but email not sent — silent partial failure)
+ * @hazard Email service failure leaves invitation row in pending state with no email sent — invitee never receives link but row blocks re-invitation with same email
+ * @hazard Invitation link expiry is not enforced server-side at send time — if token TTL is not validated at acceptance, stale links remain valid indefinitely
+ * @shared-edges frontend/src/pages/Settings.tsx (or TeamManagement)→CALLS this function on invite submit; supabase team_invitations table→INSERTS invitation row; email service (Resend/SMTP)→SENDS invitation email
+ * @trail invite#1 | Admin submits invite form → frontend POST to this function → JWT validated → invitation row created → email sent → invitee clicks link → accepts via separate flow
+ * @prompt Add transactional rollback: if email send fails, delete the invitation row. Add resend endpoint. Enforce invitation expiry (e.g., 7 days) at acceptance time.
+ */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 

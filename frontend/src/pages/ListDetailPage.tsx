@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-list-detail
+ * @area UI/Pages
+ * @intent Contact list detail view — browse, search, sort, and act on contacts in a specific list; remove contacts; launch email/social/meeting actions; start SalesBlock session
+ * @responsibilities Load list metadata + contacts by listId param, render sortable contact table, search contacts, remove contacts from list, open action modals per contact, navigate to ContactDetailPage, start SalesBlock from list
+ * @contracts ListDetailPage() → JSX; receives listId via useParams; reads lists + list_contacts + contacts from Supabase; writes on contact remove; uses useAuth
+ * @in useParams (listId), useAuth (user), supabase (lists + list_contacts joined to contacts), ComposeEmailModal + LogSocialActivityModal + BookMeetingModal + ListBuilderModal components
+ * @out Searchable sortable contact table with action buttons per row, list header with metadata, Run SalesBlock CTA
+ * @err listId not found in Supabase (undefined state — page renders blank with no 404); contact remove failure (silent)
+ * @hazard Remove contact fires Supabase delete immediately without confirmation — user can accidentally remove contacts from list with no undo
+ * @hazard Sort state is client-side only — if contact list is paginated in future, sort breaks silently (sorts only the loaded page, not full list)
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES lists+list_contacts+contacts; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/pages/ContactDetailPage.tsx→NAVIGATES to; frontend/src/App.tsx→ROUTES to /lists/:id
+ * @trail list-detail#1 | ListDetailPage mounts with listId → load list + contacts → render table → user searches → filter client-side → user removes contact → immediate delete → user emails → ComposeEmailModal
+ * @prompt Add confirmation on contact remove. Add 404 state when list not found. Move sort to server-side when list grows. Add bulk select for mass actions.
+ */
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil } from 'lucide-react';

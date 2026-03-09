@@ -1,3 +1,19 @@
+/**
+ * @crumb
+ * @id frontend-page-outlook-calendar-oauth-callback
+ * @area UI/Auth/OAuth
+ * @intent Outlook Calendar OAuth callback — receive authorization code from Microsoft, exchange for tokens, store calendar integration, redirect to settings
+ * @responsibilities Parse code/state/error/error_description from URL params on mount, exchange code for tokens via backend, persist connection, navigate to /settings
+ * @contracts OutlookCalendarOAuthCallback() → JSX; reads window.location.search for OAuth params; calls token exchange; uses useNavigate
+ * @in window.location.search (code, state, error, error_description params), backend token exchange, useNavigate
+ * @out Outlook Calendar access/refresh tokens stored; redirect to /settings on success; error state displayed on failure
+ * @err OAuth error param from Microsoft (error + error_description displayed); missing code (error state set); token exchange failure (error displayed)
+ * @hazard Outlook Calendar and Outlook Mail OAuth callbacks are nearly identical — if the mail callback gets a fix or improvement (e.g. better error handling), the calendar callback may silently diverge; no shared base
+ * @hazard Microsoft Calendar OAuth scopes differ from Outlook Mail scopes — if the wrong scope set was requested in the OAuth button, the callback will succeed but calendar read/write operations will fail at runtime
+ * @shared-edges frontend/src/components/OutlookCalendarOAuthButton.tsx→INITIATES OAuth flow; frontend/src/pages/SettingsPage.tsx→RETURNS to after success; frontend/src/App.tsx→ROUTES to /oauth/outlook-calendar/callback
+ * @trail outlook-calendar-oauth#1 | OutlookCalendarOAuthButton redirects to Microsoft → Microsoft redirects to callback → parse params → exchange code → store tokens → navigate('/settings')
+ * @prompt Consolidate all OAuth callbacks into a shared hook with provider param. Verify scope set is correct for calendar read/write. Add CSRF state validation.
+ */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
