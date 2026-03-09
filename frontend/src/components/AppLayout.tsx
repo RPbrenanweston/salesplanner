@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -63,10 +63,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Fetch org logo using the new hook (handles caching)
   const { data: orgLogoUrl } = useOrganizationLogo(userProfile?.org_id)
 
-  // Set sidebar collapsed state from user preferences
-  if (userProfile?.preferences?.sidebarCollapsed !== collapsed) {
-    setCollapsed(userProfile?.preferences?.sidebarCollapsed ?? false)
-  }
+  // Sync sidebar collapsed state from user preferences (once profile loads)
+  useEffect(() => {
+    if (userProfile?.preferences?.sidebarCollapsed !== undefined) {
+      setCollapsed(userProfile.preferences.sidebarCollapsed)
+    }
+  }, [userProfile])
 
   const toggleSidebar = async () => {
     const newCollapsed = !collapsed
