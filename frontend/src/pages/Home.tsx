@@ -54,13 +54,6 @@ export default function Home() {
     ? Math.round(goalProgress.reduce((acc, g) => acc + (g.target > 0 ? (g.current / g.target) * 100 : 0), 0) / goalProgress.length)
     : 0
 
-  const getGreeting = (): string => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 17) return 'Good afternoon'
-    return 'Good evening'
-  }
-
   const formatDate = (): string => {
     return new Date().toLocaleDateString('en-US', {
       weekday: 'long',
@@ -91,16 +84,9 @@ export default function Home() {
 
       {/* ── Header ── */}
       <div className="flex items-end justify-between">
-        <div>
-          <p className="vv-section-title mb-1">Daily Briefing</p>
-          <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">
-            {getGreeting()}, {userDisplayName}
-          </h1>
-        </div>
+        <DashboardGreeting userDisplayName={userDisplayName} />
         <p className="font-mono text-xs text-gray-300 dark:text-white/30 tracking-wide">{formatDate()}</p>
       </div>
-
-      <DashboardGreeting userDisplayName={userDisplayName} />
 
       {/* ── Mission Timer Strip ── */}
       <div className="glass-card p-5 flex items-center justify-between neon-glow-indigo">
