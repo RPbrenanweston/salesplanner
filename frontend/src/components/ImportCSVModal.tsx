@@ -2,17 +2,17 @@
  * @crumb
  * @id frontend-component-import-csv-modal
  * @area UI/Contacts/Import
- * @intent CSV import modal — upload a CSV file of contacts, map columns to contact fields, validate rows, and bulk-insert into the contacts table
- * @responsibilities Parse CSV with PapaParse, render column mapping UI, validate required columns, batch-insert mapped rows to Supabase contacts, show success/error summary
- * @contracts ImportCSVModal({ onClose, onImported }) → JSX; uses Papa.parse for CSV parsing; calls supabase.from('contacts').insert (bulk); requires org_id from auth context
- * @in CSV file (user upload), Papa.parse result, supabase contacts table, useAuth (org_id), onClose callback, onImported callback
- * @out Bulk contact rows inserted into contacts table; onImported called with count; success/error summary displayed
- * @err CSV parse error (PapaParse error displayed); missing required columns (validation error); Supabase bulk insert failure (per-row or batch error displayed)
- * @hazard PapaParse runs synchronously on large CSVs in the browser main thread — a file with 10,000+ rows will block the UI during parsing, causing a visible freeze
- * @hazard Bulk insert sends all parsed rows in a single Supabase insert call — Supabase has a default row limit per request; very large CSVs will silently fail or throw without the user knowing how many rows were rejected
- * @shared-edges frontend/src/lib/supabase.ts→BULK INSERT contacts; parent page (Contacts or Lists)→RENDERS modal; onImported callback→REFRESHES contact list
- * @trail csv-import#1 | User clicks "Import CSV" → ImportCSVModal renders → user selects file → PapaParse parses → column mapping UI → validate → supabase bulk insert → onImported(count) → modal closes
- * @prompt Use PapaParse streaming or Web Workers for large files. Chunk bulk inserts into batches of 500. Show per-row error details in summary.
+ * @intent CSV import modal — upload a CSV file of contacts, map columns to contact fields, validate rows, bulk-insert into contacts table, and optionally assign to new or existing list
+ * @responsibilities Parse CSV via Web Worker, render column mapping UI, validate required columns, handle duplicate strategy (skip/update/create), batch-insert mapped rows to Supabase contacts, optionally create new list or assign to existing list via list_contacts junction table, show success/error summary
+ * @contracts ImportCSVModal({ isOpen, onClose, onImportComplete }) → JSX; uses Web Worker for CSV parsing; calls supabase.from('contacts').insert (per-row with duplicate check); calls supabase.from('lists').insert (on new list); calls supabase.from('list_contacts').insert (batch); requires org_id from auth context
+ * @in CSV file (user upload), Web Worker parse result, supabase contacts+lists+list_contacts tables, useAuth (user), onClose callback, onImportComplete callback
+ * @out Contact rows inserted/updated in contacts table; optional list created in lists table; contact-list associations in list_contacts; onImportComplete called on success; import summary (imported/skipped/errors) displayed
+ * @err CSV parse error (Web Worker error displayed); missing required email column (row skipped with error count); Supabase insert/update failure (per-row error counted); list creation failure (import aborted with error); list assignment batch failure (error count incremented)
+ * @hazard Per-row duplicate check issues individual SELECT+INSERT/UPDATE queries — N queries for N rows; large imports (5000+) will be slow
+ * @hazard list_contacts batch insert does not use ON CONFLICT — if contacts already exist in the target list, duplicate junction rows may be created
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES contacts+lists+list_contacts; parent page (Contacts or Lists)→RENDERS modal; onImportComplete callback→REFRESHES contact list; frontend/src/workers/parse-csv.worker.ts→PARSES CSV file
+ * @trail csv-import#1 | User clicks "Import CSV" → ImportCSVModal renders → user selects file → Web Worker parses → column mapping UI → preview with list mode selection (none/existing/new) → import: create list if needed → per-row insert/update → batch list assignment → complete summary
+ * @prompt Add batch insert for contacts (chunk 500). Add ON CONFLICT to list_contacts insert to prevent duplicate junction rows. Consider streaming progress updates during import.
  */
 import { useState, useEffect, useRef } from 'react';
 import { X, Upload, AlertCircle, CheckCircle } from 'lucide-react';
@@ -61,7 +61,9 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
   const [duplicateStrategy, setDuplicateStrategy] = useState<'skip' | 'update' | 'create'>('skip');
+  const [listMode, setListMode] = useState<'none' | 'existing' | 'new'>('none');
   const [selectedListId, setSelectedListId] = useState<string>('');
+  const [newListName, setNewListName] = useState<string>('');
   const [lists, setLists] = useState<any[]>([]);
   const [importProgress, setImportProgress] = useState({ imported: 0, skipped: 0, errors: 0 });
   const [error, setError] = useState<string>('');
@@ -227,6 +229,30 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
         columnMappings.filter(m => m.dbField !== 'ignore').map(m => [m.csvColumn, m.dbField])
       );
 
+      // Determine target list ID — create new list if needed
+      let targetListId = '';
+      if (listMode === 'existing' && selectedListId) {
+        targetListId = selectedListId;
+      } else if (listMode === 'new' && newListName.trim()) {
+        const { data: newList, error: listError } = await supabase
+          .from('lists')
+          .insert({
+            name: newListName.trim(),
+            org_id: orgId,
+            owner_id: currentUser.id,
+            is_shared: false,
+          })
+          .select('id')
+          .single();
+
+        if (listError || !newList) {
+          setError(`Failed to create list "${newListName.trim()}": ${listError?.message || 'Unknown error'}`);
+          setStep('complete');
+          return;
+        }
+        targetListId = newList.id;
+      }
+
       let imported = 0;
       let skipped = 0;
       let errors = 0;
@@ -266,7 +292,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
             if (duplicateStrategy === 'skip') {
               skipped++;
               // Track for list assignment if list is selected
-              if (selectedListId) {
+              if (targetListId) {
                 contactsToAddToList.push(existing.id);
               }
               continue;
@@ -282,7 +308,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
               } else {
                 imported++;
                 // Track for list assignment if list is selected
-                if (selectedListId) {
+                if (targetListId) {
                   contactsToAddToList.push(existing.id);
                 }
               }
@@ -309,7 +335,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
             imported++;
 
             // Add to list if selected
-            if (selectedListId && newContact) {
+            if (targetListId && newContact) {
               contactsToAddToList.push(newContact.id);
             }
           }
@@ -323,14 +349,14 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
       }
 
       // Batch insert all tracked contacts into list_contacts if a list is selected (chunk into batches of 500)
-      if (selectedListId && contactsToAddToList.length > 0) {
+      if (targetListId && contactsToAddToList.length > 0) {
         const BATCH_SIZE = 500;
         let listAssignmentErrors = 0;
 
         for (let i = 0; i < contactsToAddToList.length; i += BATCH_SIZE) {
           const batch = contactsToAddToList.slice(i, i + BATCH_SIZE);
           const listContactsToInsert = batch.map((contactId) => ({
-            list_id: selectedListId,
+            list_id: targetListId,
             contact_id: contactId,
             position: 0,
           }));
@@ -362,7 +388,9 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
     setCsvData([]);
     setColumnMappings([]);
     setDuplicateStrategy('skip');
+    setListMode('none');
     setSelectedListId('');
+    setNewListName('');
     setImportProgress({ imported: 0, skipped: 0, errors: 0 });
     setError('');
     // Remove worker event listeners on close
@@ -524,21 +552,75 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Add to List (Optional)
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Add to List
                   </label>
-                  <select
-                    value={selectedListId}
-                    onChange={(e) => setSelectedListId(e.target.value)}
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="">None</option>
-                    {lists.map((list) => (
-                      <option key={list.id} value={list.id}>
-                        {list.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <input
+                        type="radio"
+                        name="listMode"
+                        value="none"
+                        checked={listMode === 'none'}
+                        onChange={() => { setListMode('none'); setSelectedListId(''); setNewListName(''); }}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Don't add to a list</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <input
+                        type="radio"
+                        name="listMode"
+                        value="existing"
+                        checked={listMode === 'existing'}
+                        onChange={() => { setListMode('existing'); setNewListName(''); }}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Add to existing list</span>
+                    </label>
+
+                    {listMode === 'existing' && (
+                      <div className="ml-8">
+                        <select
+                          value={selectedListId}
+                          onChange={(e) => setSelectedListId(e.target.value)}
+                          className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white text-sm"
+                        >
+                          <option value="">Select a list...</option>
+                          {lists.map((list) => (
+                            <option key={list.id} value={list.id}>
+                              {list.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <label className="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <input
+                        type="radio"
+                        name="listMode"
+                        value="new"
+                        checked={listMode === 'new'}
+                        onChange={() => { setListMode('new'); setSelectedListId(''); }}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Create a new list</span>
+                    </label>
+
+                    {listMode === 'new' && (
+                      <div className="ml-8">
+                        <input
+                          type="text"
+                          value={newListName}
+                          onChange={(e) => setNewListName(e.target.value)}
+                          placeholder="Enter list name..."
+                          className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -551,7 +633,11 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                 </button>
                 <button
                   onClick={handleImport}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={
+                    (listMode === 'existing' && !selectedListId) ||
+                    (listMode === 'new' && !newListName.trim())
+                  }
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Start Import
                 </button>

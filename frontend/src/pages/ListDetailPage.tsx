@@ -2,21 +2,22 @@
  * @crumb
  * @id frontend-page-list-detail
  * @area UI/Pages
- * @intent Contact list detail view — browse, search, sort, and act on contacts in a specific list; remove contacts; launch email/social/meeting actions; start SalesBlock session
- * @responsibilities Load list metadata + contacts by listId param, render sortable contact table, search contacts, remove contacts from list, open action modals per contact, navigate to ContactDetailPage, start SalesBlock from list
- * @contracts ListDetailPage() → JSX; receives listId via useParams; reads lists + list_contacts + contacts from Supabase; writes on contact remove; uses useAuth
- * @in useParams (listId), useAuth (user), supabase (lists + list_contacts joined to contacts), ComposeEmailModal + LogSocialActivityModal + BookMeetingModal + ListBuilderModal components
- * @out Searchable sortable contact table with action buttons per row, list header with metadata, Run SalesBlock CTA
- * @err listId not found in Supabase (undefined state — page renders blank with no 404); contact remove failure (silent)
- * @hazard Remove contact fires Supabase delete immediately without confirmation — user can accidentally remove contacts from list with no undo
+ * @intent Contact list detail view — browse, search, sort, bulk-select, and act on contacts in a specific list; single or bulk remove contacts with confirmation; launch email/social/meeting actions; start SalesBlock session
+ * @responsibilities Load list metadata + contacts by listId param (with filter_criteria fallback for legacy lists), render sortable contact table with checkbox selection, search contacts, single remove with confirm dialog, bulk remove with confirmation modal, batch activity date loading, open action modals per contact, navigate to ContactDetailPage, start SalesBlock from list, edit list via ListBuilderModal
+ * @contracts ListDetailPage() → JSX; receives listId via useParams; reads lists + list_contacts + contacts + activities from Supabase; writes on contact remove (single or bulk); uses useAuth
+ * @in useParams (listId), useAuth (user), supabase (lists + list_contacts + contacts + activities), ComposeEmailModal + LogSocialActivityModal + BookMeetingModal + ListBuilderModal components
+ * @out Searchable sortable contact table with checkbox selection + bulk actions bar, action buttons per row, list header with metadata + edit button, Run SalesBlock CTA, delete confirmation modal
+ * @err listId not found in Supabase (shows loading spinner indefinitely — no 404); contact remove failure (alert displayed); load error (error state with retry button)
+ * @hazard Single contact remove still uses browser confirm() — inconsistent UX with the new bulk delete modal
  * @hazard Sort state is client-side only — if contact list is paginated in future, sort breaks silently (sorts only the loaded page, not full list)
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES lists+list_contacts+contacts; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/pages/ContactDetailPage.tsx→NAVIGATES to; frontend/src/App.tsx→ROUTES to /lists/:id
- * @trail list-detail#1 | ListDetailPage mounts with listId → load list + contacts → render table → user searches → filter client-side → user removes contact → immediate delete → user emails → ComposeEmailModal
- * @prompt Add confirmation on contact remove. Add 404 state when list not found. Move sort to server-side when list grows. Add bulk select for mass actions. VV design applied: void-950 page bg, VV spinner loading state, vv-section-title "Lists" label + font-display h1, indigo-electric Start SalesBlock CTA + links, glass-card table container, white/5 thead bg + vv-section-title th cells, white/10 table dividers + dark hover rows, font-display contact name, font-mono last activity dates, emerald-signal meeting icon, purple-neon social icon, red-alert remove icon, ease-snappy transitions.
+ * @hazard Chunked .in() queries (200 per chunk) for large lists — may be slow for lists with 10,000+ contacts
+ * @shared-edges frontend/src/lib/supabase.ts→QUERIES lists+list_contacts+contacts+activities; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/components/ListBuilderModal.tsx→LAUNCHES; frontend/src/pages/ContactDetailPage.tsx→NAVIGATES to; frontend/src/App.tsx→ROUTES to /lists/:id
+ * @trail list-detail#1 | ListDetailPage mounts with listId → load list metadata → load contacts (junction table with filter_criteria fallback) → batch load activities → render table with checkboxes → user selects contacts → bulk actions bar appears → user clicks "Remove from list" → confirmation modal → chunked delete from list_contacts → reload contacts
+ * @prompt Consider migrating single-contact remove to use modal confirmation (matching bulk pattern). Add 404 state when list not found. Move sort to server-side when list grows. VV design applied throughout.
  */
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil } from 'lucide-react';
+import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { ROUTES, getSalesBlocksRoute } from '../lib/routes';
@@ -68,6 +69,9 @@ export default function ListDetailPage() {
   const [orgId, setOrgId] = useState<string>('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const listDetailRef = useRef<ListDetail | null>(null);
 
   useEffect(() => {
@@ -303,6 +307,56 @@ export default function ListDetailPage() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedContactIds.size === 0) return;
+    setIsDeleting(true);
+
+    try {
+      const ids = Array.from(selectedContactIds);
+      const CHUNK_SIZE = 200;
+
+      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + CHUNK_SIZE);
+        const { error } = await supabase
+          .from('list_contacts')
+          .delete()
+          .eq('list_id', listId)
+          .in('contact_id', chunk);
+
+        if (error) throw error;
+      }
+
+      setSelectedContactIds(new Set());
+      setIsDeleteModalOpen(false);
+      loadContacts();
+    } catch (err) {
+      console.error('Error removing contacts:', err);
+      alert('Failed to remove some contacts from list');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelectContact = (contactId: string) => {
+    setSelectedContactIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(contactId)) {
+        next.delete(contactId);
+      } else {
+        next.add(contactId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedContactIds.size === filteredContacts.length) {
+      setSelectedContactIds(new Set());
+    } else {
+      setSelectedContactIds(new Set(filteredContacts.map((c) => c.id)));
+    }
+  };
+
   const handleStartSalesBlock = () => {
     // Navigate to create salesblock with this list pre-selected
     navigate(getSalesBlocksRoute(listId));
@@ -414,12 +468,44 @@ export default function ListDetailPage() {
         </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedContactIds.size > 0 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-indigo-50 dark:bg-indigo-electric/10 border border-indigo-200 dark:border-indigo-electric/20 rounded-lg">
+          <span className="text-sm font-medium text-indigo-700 dark:text-indigo-electric">
+            {selectedContactIds.size} contact{selectedContactIds.size !== 1 ? 's' : ''} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedContactIds(new Set())}
+              className="text-sm text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 transition-colors"
+            >
+              Clear selection
+            </button>
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Remove from list
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Contacts Table */}
       <div className="glass-card">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-white/5">
               <tr>
+                <th className="px-3 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={filteredContacts.length > 0 && selectedContactIds.size === filteredContacts.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
+                  />
+                </th>
                 <th
                   onClick={() => handleSort('name')}
                   className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
@@ -464,7 +550,7 @@ export default function ListDetailPage() {
             <tbody className="divide-y divide-gray-200 dark:divide-white/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center gap-3 text-gray-400 dark:text-white/40">
                       <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
                       <span className="font-mono text-sm">Loading contacts...</span>
@@ -473,7 +559,7 @@ export default function ListDetailPage() {
                 </tr>
               ) : loadError ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <p className="text-red-500 dark:text-red-alert mb-2">Failed to load contacts</p>
                     <p className="text-sm text-gray-400 dark:text-white/30 mb-3">{loadError}</p>
                     <button
@@ -486,7 +572,7 @@ export default function ListDetailPage() {
                 </tr>
               ) : filteredContacts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <p className="text-gray-500 dark:text-white/40 mb-2">
                       {searchQuery ? 'No contacts match your search' : 'No contacts in this list'}
                     </p>
@@ -498,6 +584,14 @@ export default function ListDetailPage() {
               ) : (
                 filteredContacts.map((contact) => (
                   <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150">
+                    <td className="px-3 py-4 w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedContactIds.has(contact.id)}
+                        onChange={() => toggleSelectContact(contact.id)}
+                        className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
+                      />
+                    </td>
                     <td className="px-6 py-4">
                       <button
                         onClick={() =>
@@ -645,6 +739,56 @@ export default function ListDetailPage() {
           loadContacts(); // Re-fetch contacts (filters may have changed)
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-alert" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Remove contacts</h3>
+                <p className="text-sm text-gray-500 dark:text-white/50">This cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 dark:text-white/60 mb-6">
+              Remove <strong>{selectedContactIds.size}</strong> contact{selectedContactIds.size !== 1 ? 's' : ''} from
+              {' '}<strong>{listDetail?.name}</strong>? The contacts will still exist in your database but will no
+              longer be in this list.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Removing...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Remove {selectedContactIds.size} contact{selectedContactIds.size !== 1 ? 's' : ''}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
