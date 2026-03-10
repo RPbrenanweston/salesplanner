@@ -2,26 +2,28 @@
  * @crumb
  * @id frontend-page-outlook-oauth-callback
  * @area UI/Auth/OAuth
- * @intent Outlook OAuth callback — receive authorization code from Microsoft, exchange for tokens, store mail integration, redirect to settings
- * @responsibilities Parse code/state/error/error_description from URL params on mount, exchange code for tokens via backend, persist connection, navigate to /settings
- * @contracts OutlookOAuthCallback() → JSX; reads window.location.search for OAuth params; calls token exchange; uses useNavigate
- * @in window.location.search (code, state, error, error_description params), backend token exchange, useNavigate
- * @out Outlook access/refresh tokens stored; redirect to /settings on success; error state displayed on failure
- * @err OAuth error param from Microsoft (error + error_description displayed); missing code (error state set); token exchange failure (error displayed)
- * @hazard Microsoft OAuth uses error_description in addition to error — if error_description is logged or displayed verbatim, it may contain sensitive OAuth state details that should not be shown to end users
- * @hazard Outlook and Gmail OAuth callbacks share nearly identical structure — any divergence in error handling or token exchange logic between the two will create inconsistent user experiences across integrations
- * @shared-edges frontend/src/components/OutlookOAuthButton.tsx→INITIATES OAuth flow; frontend/src/pages/SettingsPage.tsx→RETURNS to after success; frontend/src/App.tsx→ROUTES to /oauth/outlook/callback
- * @trail outlook-oauth#1 | OutlookOAuthButton redirects to Microsoft → Microsoft redirects to callback → parse params → exchange code → store tokens → navigate('/settings')
- * @prompt VV tokens applied — void-950 gradient background, glass-card container, red-alert error heading, white/70 error body, indigo-electric CTA button with ease-snappy, VV spinner (border-indigo-electric border-t-transparent). Remaining: Consolidate all OAuth callbacks into a shared hook with provider param. Sanitize error_description before display. Add CSRF state validation.
+ * @intent Outlook OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, close popup
+ * @responsibilities Parse code/state/error/error_description from URL params on mount, validate CSRF nonce, exchange code for tokens via Supabase edge function, close popup
+ * @contracts OutlookOAuthCallback() → JSX; reads window.location.search for OAuth params; calls exchange-microsoft-token edge function; uses useNavigate
+ * @in window.location.search (code, state, error, error_description params), Supabase session (JWT), exchange-microsoft-token edge function
+ * @out Outlook access/refresh tokens stored via edge function; popup closes on success; error state displayed on failure
+ * @err OAuth error param from Microsoft (error + error_description displayed); missing code; CSRF nonce mismatch; edge function failure
+ * @hazard StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+ * @shared-edges frontend/src/components/OutlookOAuthButton.tsx→INITIATES OAuth flow; supabase/functions/exchange-microsoft-token→EXCHANGES code for tokens
+ * @trail outlook-oauth#1 | OutlookOAuthButton redirects to Microsoft → Microsoft redirects to callback → parse params → validate CSRF → exchange code via edge function → popup closes
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 export default function OutlookOAuthCallback() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
+  const hasRun = useRef(false) // StrictMode double-invoke guard
 
   useEffect(() => {
+    if (hasRun.current) return
+    hasRun.current = true
     handleCallback()
   }, [])
 
@@ -34,7 +36,7 @@ export default function OutlookOAuthCallback() {
       const errorParam = params.get('error')
       const errorDescription = params.get('error_description')
 
-      // Handle OAuth errors
+      // Handle OAuth errors from Microsoft
       if (errorParam) {
         throw new Error(errorDescription || `OAuth error: ${errorParam}`)
       }
@@ -43,28 +45,47 @@ export default function OutlookOAuthCallback() {
         throw new Error('No authorization code received')
       }
 
-      // Parse state to get user_id
+      // Parse and validate state
       const stateData = state ? JSON.parse(state) : null
-      const userId = stateData?.user_id
-
-      if (!userId) {
+      if (!stateData?.user_id) {
         throw new Error('Invalid state parameter')
       }
 
-      // Exchange authorization code for tokens
-      // NOTE: This should happen in a secure backend (Supabase Edge Function)
-      // For now, we'll just show a message and close the popup
-      // TODO: Implement token exchange in backend (US-023 follow-up)
+      // Validate CSRF nonce against sessionStorage
+      const storedNonce = sessionStorage.getItem('oauth_csrf_nonce')
+      if (!storedNonce || storedNonce !== stateData.nonce) {
+        throw new Error('CSRF validation failed. Please try connecting again.')
+      }
+      sessionStorage.removeItem('oauth_csrf_nonce') // Clean up — single use
 
-      // Close popup and return to main window
+      // Build redirect_uri to match what was sent in the authorization request
+      const redirectUri = import.meta.env.VITE_OUTLOOK_REDIRECT_URI || `${window.location.origin}/oauth/outlook/callback`
+
+      // Exchange authorization code for tokens via Supabase edge function
+      const { data, error: fnError } = await supabase.functions.invoke('exchange-microsoft-token', {
+        body: {
+          code,
+          redirect_uri: redirectUri,
+          provider: 'outlook',
+        },
+      })
+
+      if (fnError) {
+        throw new Error(fnError.message || 'Token exchange failed')
+      }
+
+      if (data?.error) {
+        throw new Error(data.error)
+      }
+
+      // Success — close popup or redirect
       if (window.opener) {
         window.close()
       } else {
-        // If not in popup, redirect to settings
         navigate('/settings')
       }
     } catch (err) {
-      console.error('OAuth callback error:', err)
+      console.error('Outlook OAuth callback error:', err)
       setError(err instanceof Error ? err.message : 'OAuth flow failed')
     }
   }
@@ -95,7 +116,7 @@ export default function OutlookOAuthCallback() {
       <div className="max-w-md w-full p-6 glass-card text-center">
         <div className="w-12 h-12 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
         <h1 className="text-xl font-semibold text-white mb-2">
-          Completing OAuth...
+          Connecting Outlook...
         </h1>
         <p className="text-white/60">
           This window will close automatically.
