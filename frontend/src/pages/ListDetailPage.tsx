@@ -14,7 +14,7 @@
  * @trail list-detail#1 | ListDetailPage mounts with listId → load list + contacts → render table → user searches → filter client-side → user removes contact → immediate delete → user emails → ComposeEmailModal
  * @prompt Add confirmation on contact remove. Add 404 state when list not found. Move sort to server-side when list grows. Add bulk select for mass actions. VV design applied: void-950 page bg, VV spinner loading state, vv-section-title "Lists" label + font-display h1, indigo-electric Start SalesBlock CTA + links, glass-card table container, white/5 thead bg + vv-section-title th cells, white/10 table dividers + dark hover rows, font-display contact name, font-mono last activity dates, emerald-signal meeting icon, purple-neon social icon, red-alert remove icon, ease-snappy transitions.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -67,11 +67,13 @@ export default function ListDetailPage() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [orgId, setOrgId] = useState<string>('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const listDetailRef = useRef<ListDetail | null>(null);
 
   useEffect(() => {
     if (listId) {
-      loadListDetail();
-      loadContacts();
+      // Load list detail first, then contacts (contacts may need filter_criteria from list)
+      loadListDetail().then(() => loadContacts());
     }
   }, [listId]);
 
@@ -148,6 +150,7 @@ export default function ListDetailPage() {
 
       if (error) throw error;
       setListDetail(data);
+      listDetailRef.current = data;
     } catch (err) {
       console.error('Error loading list detail:', err);
     }
@@ -155,6 +158,7 @@ export default function ListDetailPage() {
 
   const loadContacts = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       // Get contacts in this list via the junction table
       const { data: listContactsData, error: listContactsError } = await supabase
@@ -164,7 +168,51 @@ export default function ListDetailPage() {
 
       if (listContactsError) throw listContactsError;
 
-      const contactIds = (listContactsData || []).map((lc) => lc.contact_id);
+      let contactIds = (listContactsData || []).map((lc) => lc.contact_id);
+
+      // Fallback: if list_contacts is empty, re-resolve via filter_criteria.
+      // Lists created before the junction table fix may only have filter_criteria stored.
+      const currentList = listDetailRef.current;
+      if (contactIds.length === 0 && currentList?.filter_criteria) {
+        const filters = (currentList.filter_criteria as { filters?: Array<{ field: string; operator: string; value: string; customFieldKey?: string }> }).filters;
+        if (filters && filters.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let contactQuery: any = supabase
+            .from('contacts')
+            .select('id');
+
+          for (const filter of filters) {
+            if (!filter.value) continue;
+            if (filter.field === 'custom_field' && filter.customFieldKey) {
+              const jsonbPath = `custom_fields->${filter.customFieldKey}`;
+              if (filter.operator === 'equals') contactQuery = contactQuery.eq(jsonbPath, filter.value);
+              else if (filter.operator === 'contains') contactQuery = contactQuery.ilike(jsonbPath, `%${filter.value}%`);
+            } else {
+              if (filter.operator === 'equals') contactQuery = contactQuery.eq(filter.field, filter.value);
+              else if (filter.operator === 'contains') contactQuery = contactQuery.ilike(filter.field, `%${filter.value}%`);
+              else if (filter.operator === 'starts_with') contactQuery = contactQuery.ilike(filter.field, `${filter.value}%`);
+              else if (filter.operator === 'greater_than' && filter.field === 'created_at') contactQuery = contactQuery.gt(filter.field, filter.value);
+              else if (filter.operator === 'less_than' && filter.field === 'created_at') contactQuery = contactQuery.lt(filter.field, filter.value);
+            }
+          }
+
+          const { data: resolvedContacts } = await contactQuery;
+          const resolved = (resolvedContacts ?? []) as { id: string }[];
+          if (resolved.length > 0) {
+            // Re-populate list_contacts so future loads are instant
+            const BATCH_SIZE = 500;
+            for (let i = 0; i < resolved.length; i += BATCH_SIZE) {
+              const batch = resolved.slice(i, i + BATCH_SIZE).map((c, idx) => ({
+                list_id: listId!,
+                contact_id: c.id,
+                position: i + idx,
+              }));
+              await supabase.from('list_contacts').insert(batch);
+            }
+            contactIds = resolved.map((c) => c.id);
+          }
+        }
+      }
 
       if (contactIds.length === 0) {
         setContacts([]);
@@ -173,36 +221,52 @@ export default function ListDetailPage() {
         return;
       }
 
-      // Fetch the actual contact records
-      const { data: contactsData, error: contactsError } = await supabase
-        .from('contacts')
-        .select('id, first_name, last_name, email, phone, company, title, created_at')
-        .in('id', contactIds);
+      // Fetch the actual contact records (chunk .in() for large lists)
+      const CHUNK_SIZE = 200;
+      let allContactsData: typeof contacts = [];
+      for (let i = 0; i < contactIds.length; i += CHUNK_SIZE) {
+        const chunk = contactIds.slice(i, i + CHUNK_SIZE);
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('contacts')
+          .select('id, first_name, last_name, email, phone, company, title, created_at')
+          .in('id', chunk);
 
-      if (contactsError) throw contactsError;
+        if (contactsError) throw contactsError;
+        allContactsData = allContactsData.concat(contactsData || []);
+      }
 
-      // For each contact, get the last activity date
-      const contactsWithActivity = await Promise.all(
-        (contactsData || []).map(async (contact) => {
-          const { data: activityData } = await supabase
+      // Batch-fetch last activity dates (single query instead of N+1)
+      const activityMap = new Map<string, string>();
+      try {
+        for (let i = 0; i < contactIds.length; i += CHUNK_SIZE) {
+          const chunk = contactIds.slice(i, i + CHUNK_SIZE);
+          const { data: actData } = await supabase
             .from('activities')
-            .select('created_at')
-            .eq('contact_id', contact.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .select('contact_id, created_at')
+            .in('contact_id', chunk)
+            .order('created_at', { ascending: false });
 
-          return {
-            ...contact,
-            last_activity_date: activityData?.created_at || null,
-          };
-        })
-      );
+          for (const row of actData || []) {
+            // First occurrence per contact_id is the latest (ordered desc)
+            if (!activityMap.has(row.contact_id)) {
+              activityMap.set(row.contact_id, row.created_at);
+            }
+          }
+        }
+      } catch {
+        // Activity dates are non-critical — show contacts without them
+      }
+
+      const contactsWithActivity = allContactsData.map((contact) => ({
+        ...contact,
+        last_activity_date: activityMap.get(contact.id) || null,
+      }));
 
       setContacts(contactsWithActivity);
       setFilteredContacts(contactsWithActivity);
     } catch (err) {
       console.error('Error loading contacts:', err);
+      setLoadError(err instanceof Error ? err.message : 'Failed to load contacts');
     } finally {
       setIsLoading(false);
     }
@@ -310,6 +374,11 @@ export default function ListDetailPage() {
             {listDetail.description && (
               <p className="text-gray-600 dark:text-white/50">{listDetail.description}</p>
             )}
+            {!isLoading && (
+              <p className="text-sm text-gray-400 dark:text-white/30 mt-1">
+                {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -395,8 +464,24 @@ export default function ListDetailPage() {
             <tbody className="divide-y divide-gray-200 dark:divide-white/10">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-white/40">
-                    Loading contacts...
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex items-center justify-center gap-3 text-gray-400 dark:text-white/40">
+                      <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+                      <span className="font-mono text-sm">Loading contacts...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : loadError ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <p className="text-red-500 dark:text-red-alert mb-2">Failed to load contacts</p>
+                    <p className="text-sm text-gray-400 dark:text-white/30 mb-3">{loadError}</p>
+                    <button
+                      onClick={() => loadContacts()}
+                      className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
+                    >
+                      Try again
+                    </button>
                   </td>
                 </tr>
               ) : filteredContacts.length === 0 ? (
@@ -406,7 +491,7 @@ export default function ListDetailPage() {
                       {searchQuery ? 'No contacts match your search' : 'No contacts in this list'}
                     </p>
                     <p className="text-sm text-gray-400 dark:text-white/30">
-                      {searchQuery ? 'Try a different search term' : 'Add contacts from the Lists page'}
+                      {searchQuery ? 'Try a different search term' : 'Edit the list filters or import contacts via CSV'}
                     </p>
                   </td>
                 </tr>
