@@ -15,11 +15,12 @@
  * @prompt When adding multi-calendar support (multiple Google/Outlook accounts per user), ensure free/busy queries aggregate across ALL accounts. Verify timezone normalization before slot comparison—test DST transitions. Add exponential backoff retry for transient 429/503 errors.
  */
 
-import { supabase } from './supabase';
+import { getValidToken } from './token-refresh';
 
 /**
  * Calendar API wrapper for Google Calendar and Microsoft Outlook Calendar.
  * Handles event creation, updates, and deletion via OAuth-connected accounts.
+ * Uses getValidToken() for automatic token refresh before API calls.
  */
 
 interface CalendarEvent {
@@ -35,42 +36,28 @@ interface CalendarEventResponse {
 }
 
 /**
- * Get user's connected calendar OAuth connection (Google or Outlook)
+ * Get user's connected calendar OAuth connection (Google or Outlook).
+ * Uses getValidToken() which auto-refreshes expired tokens.
  */
 async function getCalendarConnection(): Promise<{
   provider: 'google_calendar' | 'outlook_calendar';
   accessToken: string;
 } | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  // Check for Google Calendar connection first
-  const { data: googleConn } = await supabase
-    .from('oauth_connections')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('provider', 'google_calendar')
-    .maybeSingle();
-
-  if (googleConn) {
+  // Try Google Calendar first (with auto-refresh)
+  const googleToken = await getValidToken('google_calendar');
+  if (googleToken) {
     return {
       provider: 'google_calendar',
-      accessToken: googleConn.access_token,
+      accessToken: googleToken,
     };
   }
 
-  // Fallback to Outlook Calendar
-  const { data: outlookConn } = await supabase
-    .from('oauth_connections')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('provider', 'outlook_calendar')
-    .maybeSingle();
-
-  if (outlookConn) {
+  // Fallback to Outlook Calendar (with auto-refresh)
+  const outlookToken = await getValidToken('outlook_calendar');
+  if (outlookToken) {
     return {
       provider: 'outlook_calendar',
-      accessToken: outlookConn.access_token,
+      accessToken: outlookToken,
     };
   }
 
