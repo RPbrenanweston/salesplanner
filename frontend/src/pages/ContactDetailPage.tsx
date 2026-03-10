@@ -109,7 +109,7 @@ export default function ContactDetailPage() {
     try {
       const { data, error } = await supabase
         .from('contacts')
-        .select('id, first_name, last_name, email, phone, company, title, notes, created_at, domain, linkedin_url, company_linkedin_url, twitter_handle, company_twitter')
+        .select('*')
         .eq('id', contactId)
         .single();
 
