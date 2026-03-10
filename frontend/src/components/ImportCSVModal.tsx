@@ -14,9 +14,8 @@
  * @trail csv-import#1 | User clicks "Import CSV" → ImportCSVModal renders → user selects file → PapaParse parses → column mapping UI → validate → supabase bulk insert → onImported(count) → modal closes
  * @prompt Use PapaParse streaming or Web Workers for large files. Chunk bulk inserts into batches of 500. Show per-row error details in summary.
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Upload, AlertCircle, CheckCircle } from 'lucide-react';
-import Papa from 'papaparse';
 import { supabase } from '../lib/supabase';
 
 interface ImportCSVModalProps {
@@ -25,7 +24,7 @@ interface ImportCSVModalProps {
   onImportComplete: () => void;
 }
 
-type ImportStep = 'upload' | 'mapping' | 'preview' | 'importing' | 'complete';
+type ImportStep = 'upload' | 'parsing' | 'mapping' | 'preview' | 'importing' | 'complete';
 
 interface ColumnMapping {
   csvColumn: string;
@@ -66,6 +65,20 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
   const [lists, setLists] = useState<any[]>([]);
   const [importProgress, setImportProgress] = useState({ imported: 0, skipped: 0, errors: 0 });
   const [error, setError] = useState<string>('');
+  const workerRef = useRef<Worker | null>(null);
+
+  // Initialize Web Worker on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      workerRef.current = new Worker(new URL('../workers/parse-csv.worker.ts', import.meta.url), { type: 'module' });
+    }
+
+    return () => {
+      if (workerRef.current) {
+        workerRef.current.terminate();
+      }
+    };
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -82,52 +95,70 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
     }
 
     setError('');
+    setStep('parsing');
 
-    // Parse CSV
-    Papa.parse(selectedFile, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        if (results.data.length === 0) {
-          setError('CSV file is empty');
-          return;
-        }
+    // Send file to Web Worker for parsing
+    if (!workerRef.current) {
+      setError('Failed to initialize CSV parser');
+      setStep('upload');
+      return;
+    }
 
-        if (results.data.length > 10000) {
-          setError('Maximum 10,000 contacts allowed per import');
-          return;
-        }
+    // Set up worker message handler
+    const messageHandler = (event: MessageEvent) => {
+      const { success, data, meta, error: workerError } = event.data;
 
-        const headers = results.meta.fields || [];
-        setCsvData(results.data);
+      if (!success) {
+        setError(workerError || 'Failed to parse CSV file');
+        setStep('upload');
+        workerRef.current?.removeEventListener('message', messageHandler);
+        return;
+      }
 
-        // Auto-detect column mappings
-        const autoMappings = headers.map((header) => {
-          const normalized = header.toLowerCase().replace(/[^a-z]/g, '');
-          let dbField = 'ignore';
+      if (data.length === 0) {
+        setError('CSV file is empty');
+        setStep('upload');
+        workerRef.current?.removeEventListener('message', messageHandler);
+        return;
+      }
 
-          if (normalized.includes('firstname') || normalized === 'fname') dbField = 'first_name';
-          else if (normalized.includes('lastname') || normalized === 'lname') dbField = 'last_name';
-          else if (normalized.includes('email')) dbField = 'email';
-          else if (normalized.includes('phone') || normalized.includes('mobile')) dbField = 'phone';
-          else if (normalized.includes('company') || normalized.includes('organization')) dbField = 'company';
-          else if (normalized.includes('title') || normalized.includes('position')) dbField = 'title';
-          else if (normalized.includes('domain') || normalized.includes('website') || normalized === 'url') dbField = 'domain';
-          else if (normalized.includes('companylinkedin') || normalized.includes('organizationlinkedin')) dbField = 'company_linkedin_url';
-          else if (normalized.includes('linkedin')) dbField = 'linkedin_url';
-          else if (normalized.includes('companytwitter') || normalized.includes('organizationtwitter')) dbField = 'company_twitter';
-          else if (normalized.includes('twitter') || normalized.includes('xhandle')) dbField = 'twitter_handle';
+      if (data.length > 10000) {
+        setError('Maximum 10,000 contacts allowed per import');
+        setStep('upload');
+        workerRef.current?.removeEventListener('message', messageHandler);
+        return;
+      }
 
-          return { csvColumn: header, dbField };
-        });
+      const headers = meta.fields || [];
+      setCsvData(data);
 
-        setColumnMappings(autoMappings);
-        setStep('mapping');
-      },
-      error: () => {
-        setError('Failed to parse CSV file');
-      },
-    });
+      // Auto-detect column mappings
+      const autoMappings = headers.map((header: string) => {
+        const normalized = header.toLowerCase().replace(/[^a-z]/g, '');
+        let dbField = 'ignore';
+
+        if (normalized.includes('firstname') || normalized === 'fname') dbField = 'first_name';
+        else if (normalized.includes('lastname') || normalized === 'lname') dbField = 'last_name';
+        else if (normalized.includes('email')) dbField = 'email';
+        else if (normalized.includes('phone') || normalized.includes('mobile')) dbField = 'phone';
+        else if (normalized.includes('company') || normalized.includes('organization')) dbField = 'company';
+        else if (normalized.includes('title') || normalized.includes('position')) dbField = 'title';
+        else if (normalized.includes('domain') || normalized.includes('website') || normalized === 'url') dbField = 'domain';
+        else if (normalized.includes('companylinkedin') || normalized.includes('organizationlinkedin')) dbField = 'company_linkedin_url';
+        else if (normalized.includes('linkedin')) dbField = 'linkedin_url';
+        else if (normalized.includes('companytwitter') || normalized.includes('organizationtwitter')) dbField = 'company_twitter';
+        else if (normalized.includes('twitter') || normalized.includes('xhandle')) dbField = 'twitter_handle';
+
+        return { csvColumn: header, dbField };
+      });
+
+      setColumnMappings(autoMappings);
+      setStep('mapping');
+      workerRef.current?.removeEventListener('message', messageHandler);
+    };
+
+    workerRef.current.addEventListener('message', messageHandler);
+    workerRef.current.postMessage({ file: selectedFile });
   };
 
   const handleMappingChange = (csvColumn: string, dbField: string) => {
@@ -334,6 +365,10 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
     setSelectedListId('');
     setImportProgress({ imported: 0, skipped: 0, errors: 0 });
     setError('');
+    // Remove worker event listeners on close
+    if (workerRef.current) {
+      workerRef.current.removeEventListener('message', () => {});
+    }
     onClose();
   };
 
@@ -382,6 +417,15 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                   <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Parsing Step */}
+          {step === 'parsing' && (
+            <div className="space-y-4 text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Parsing CSV file...</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">This may take a moment for large files</p>
             </div>
           )}
 
