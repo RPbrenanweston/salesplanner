@@ -7,7 +7,7 @@
  * @contracts ContactDetailPage() → JSX; receives contactId via useParams; reads contacts+activities+deals from Supabase; writes on field save and activity log
  * @in useParams (contactId), useLocation (back navigation state), useAuth (user), supabase (contacts, activities, deals tables), 4 action modal components
  * @out Contact detail card with inline edit, activity timeline, action button row, deal association panel
- * @err Contact not found by id (undefined state — no 404 handling, page renders blank); Supabase update failure on field save (silent, no error feedback)
+ * @err Contact not found by id → notFound state renders 404 UI with back button; Supabase update failure on notes save → alert shown; Research save failure → alert shown
  * @hazard useLocation back navigation depends on location.state.from — if navigated directly (not from list), state is null and back button may navigate to wrong route
  * @hazard Inline field editing with no optimistic rollback — if save fails, input still shows new value but DB has old value (silent desync)
  * @shared-edges frontend/src/components/LogActivityModal.tsx→LAUNCHES; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/components/ContactActivityTimeline.tsx→RENDERS; frontend/src/lib/supabase.ts→QUERIES+UPDATES; frontend/src/App.tsx→ROUTES to /contacts/:id
@@ -16,7 +16,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, Building2, Briefcase, Share2, Calendar, Zap, X, Search } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Building2, Briefcase, Share2, Calendar, Zap, X, Search, Pencil, Check, Globe, Linkedin, Twitter } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import ContactActivityTimeline from '../components/ContactActivityTimeline';
@@ -34,6 +34,11 @@ interface Contact {
   title: string | null;
   notes: string | null;
   created_at: string;
+  domain: string | null;
+  linkedin_url: string | null;
+  company_linkedin_url: string | null;
+  twitter_handle: string | null;
+  company_twitter: string | null;
 }
 
 interface ResearchData {
@@ -52,6 +57,7 @@ export default function ContactDetailPage() {
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
@@ -63,6 +69,9 @@ export default function ContactDetailPage() {
     signals: [],
   });
   const [isSavingResearch, setIsSavingResearch] = useState(false);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [editableNotes, setEditableNotes] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   // Get return path from location state (fallback to /lists)
   const returnPath = (location.state as any)?.returnPath || '/lists';
@@ -96,18 +105,23 @@ export default function ContactDetailPage() {
 
   const loadContact = async () => {
     setLoading(true);
+    setNotFound(false);
     try {
       const { data, error } = await supabase
         .from('contacts')
-        .select('id, first_name, last_name, email, phone, company, title, notes, created_at')
+        .select('id, first_name, last_name, email, phone, company, title, notes, created_at, domain, linkedin_url, company_linkedin_url, twitter_handle, company_twitter')
         .eq('id', contactId)
         .single();
 
       if (error) throw error;
+      if (!data) {
+        setNotFound(true);
+        return;
+      }
       setContact(data);
     } catch (err) {
       console.error('Error loading contact:', err);
-      alert('Failed to load contact details');
+      setNotFound(true);
     } finally {
       setLoading(false);
     }
@@ -115,23 +129,36 @@ export default function ContactDetailPage() {
 
   const loadResearchData = async () => {
     try {
+      // Research data is stored as a 'note' activity with JSON in the notes field
+      // We identify research notes by outcome='research_lab'
       const { data, error } = await supabase
         .from('activities')
-        .select('metadata')
+        .select('notes')
         .eq('contact_id', contactId)
-        .eq('type', 'research_note')
+        .eq('type', 'note')
+        .eq('outcome', 'other')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(10);
 
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+      if (error) throw error;
 
-      if (data && data.metadata) {
-        const metadata = typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata;
+      // Find the most recent research lab entry (JSON with scratchpad key)
+      const researchEntry = (data || []).find((row) => {
+        if (!row.notes) return false;
+        try {
+          const parsed = JSON.parse(row.notes);
+          return parsed._type === 'research_lab';
+        } catch {
+          return false;
+        }
+      });
+
+      if (researchEntry?.notes) {
+        const parsed = JSON.parse(researchEntry.notes);
         setResearchData({
-          scratchpad: metadata.scratchpad || '',
-          intelNotes: metadata.intelNotes || '',
-          signals: metadata.signals || [],
+          scratchpad: parsed.scratchpad || '',
+          intelNotes: parsed.intelNotes || '',
+          signals: parsed.signals || [],
         });
       }
     } catch (err) {
@@ -140,19 +167,27 @@ export default function ContactDetailPage() {
   };
 
   const saveResearchData = async () => {
-    if (!user) return;
+    if (!user || !orgId) return;
 
     setIsSavingResearch(true);
     try {
+      const researchPayload = {
+        _type: 'research_lab',
+        scratchpad: researchData.scratchpad,
+        intelNotes: researchData.intelNotes,
+        signals: researchData.signals,
+      };
+
       const { error } = await supabase
         .from('activities')
         .insert([
           {
+            org_id: orgId,
             contact_id: contactId,
             user_id: user.id,
-            type: 'research_note',
-            description: 'Research Lab update',
-            metadata: JSON.stringify(researchData),
+            type: 'note',
+            outcome: 'other',
+            notes: JSON.stringify(researchPayload),
           },
         ]);
 
@@ -166,12 +201,55 @@ export default function ContactDetailPage() {
     }
   };
 
-  if (loading || !contact) {
+  const saveNotes = async () => {
+    if (!contact) return;
+    setIsSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .update({ notes: editableNotes || null })
+        .eq('id', contact.id);
+
+      if (error) throw error;
+      setContact({ ...contact, notes: editableNotes || null });
+      setIsEditingNotes(false);
+    } catch (err) {
+      console.error('Error saving notes:', err);
+      alert('Failed to save notes');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
         <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
           <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
           <span className="font-mono text-sm tracking-widest uppercase">Loading Contact...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !contact) {
+    return (
+      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+            <X className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Contact Not Found</h2>
+          <p className="text-gray-500 dark:text-white/50 text-sm max-w-md">
+            This contact may have been deleted or you may not have permission to view it.
+          </p>
+          <button
+            onClick={() => navigate(returnPath)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </button>
         </div>
       </div>
     );
@@ -235,6 +313,45 @@ export default function ContactDetailPage() {
                     </a>
                   </p>
                 )}
+                {contact.domain && (
+                  <p className="flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    <a
+                      href={`https://${contact.domain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                    >
+                      {contact.domain}
+                    </a>
+                  </p>
+                )}
+                {contact.linkedin_url && (
+                  <p className="flex items-center gap-2">
+                    <Linkedin className="w-4 h-4" />
+                    <a
+                      href={contact.linkedin_url.startsWith('http') ? contact.linkedin_url : `https://${contact.linkedin_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                    >
+                      LinkedIn Profile
+                    </a>
+                  </p>
+                )}
+                {contact.twitter_handle && (
+                  <p className="flex items-center gap-2">
+                    <Twitter className="w-4 h-4" />
+                    <a
+                      href={`https://x.com/${contact.twitter_handle.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                    >
+                      @{contact.twitter_handle.replace('@', '')}
+                    </a>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -265,13 +382,55 @@ export default function ContactDetailPage() {
           </div>
         </div>
 
-        {/* Contact Notes */}
-        {contact.notes && (
-          <div className="glass-card p-4 border-l-4 border-amber-400">
-            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-2">Contact Notes</h3>
-            <p className="text-sm text-gray-600 dark:text-white/50">{contact.notes}</p>
+        {/* Contact Notes — Editable */}
+        <div className="glass-card p-4 border-l-4 border-amber-400">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-display font-semibold text-gray-900 dark:text-white">Contact Notes</h3>
+            {!isEditingNotes ? (
+              <button
+                onClick={() => {
+                  setEditableNotes(contact.notes || '');
+                  setIsEditingNotes(true);
+                }}
+                className="flex items-center gap-1 text-xs text-gray-500 dark:text-white/40 hover:text-indigo-electric dark:hover:text-indigo-electric transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={saveNotes}
+                  disabled={isSavingNotes}
+                  className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 disabled:opacity-50 transition-colors"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  {isSavingNotes ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setIsEditingNotes(false)}
+                  className="flex items-center gap-1 text-xs text-gray-500 dark:text-white/40 hover:text-red-500 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
-        )}
+          {isEditingNotes ? (
+            <textarea
+              value={editableNotes}
+              onChange={(e) => setEditableNotes(e.target.value)}
+              placeholder="Add notes about this contact, call session details, follow-up items..."
+              className="w-full min-h-[100px] px-3 py-2 border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-void-800/50 text-gray-900 dark:text-white text-sm resize-y focus:outline-none focus:border-indigo-electric focus:ring-1 focus:ring-indigo-electric/30"
+              autoFocus
+            />
+          ) : (
+            <p className="text-sm text-gray-600 dark:text-white/50 whitespace-pre-wrap">
+              {contact.notes || 'No notes yet — click Edit to add session notes, follow-ups, or context.'}
+            </p>
+          )}
+        </div>
 
         {/* Activity Timeline */}
         <div className="glass-card p-6">
