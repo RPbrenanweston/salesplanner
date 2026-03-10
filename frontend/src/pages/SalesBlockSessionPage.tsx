@@ -86,6 +86,10 @@ export default function SalesBlockSessionPage() {
   const [sessionNotes, setSessionNotes] = useState('');
   const [noteSaveError, setNoteSaveError] = useState('');
 
+  // Session resume state
+  const [resumeBannerVisible, setResumeBannerVisible] = useState(false);
+  const [savedState, setSavedState] = useState<{ activeIndex: number; elapsedSeconds: number; sessionNotes: string } | null>(null);
+
   // Load user's org_id
   useEffect(() => {
     if (!user) return;
@@ -209,6 +213,18 @@ export default function SalesBlockSessionPage() {
         );
 
         setContacts(contactsWithActivity);
+
+        // Check for saved session state to offer resume
+        const savedRaw = localStorage.getItem(`salesblock_session_${salesblockId}`);
+        if (savedRaw) {
+          try {
+            const saved = JSON.parse(savedRaw) as { activeIndex: number; elapsedSeconds: number; sessionNotes: string };
+            setSavedState(saved);
+            setResumeBannerVisible(true);
+          } catch {
+            localStorage.removeItem(`salesblock_session_${salesblockId}`);
+          }
+        }
       } catch (error) {
         console.error('Error loading session data:', error);
         alert('Failed to load session data');
@@ -242,6 +258,17 @@ export default function SalesBlockSessionPage() {
 
     startSession();
   }, [salesblockId, salesblock]);
+
+  // Auto-save session state to localStorage when active contact or notes change
+  useEffect(() => {
+    if (!salesblockId || loading || isCompleted) return;
+    localStorage.setItem(`salesblock_session_${salesblockId}`, JSON.stringify({
+      activeIndex,
+      elapsedSeconds,
+      sessionNotes,
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex, sessionNotes]);
 
   // Timer interval (counts up from 0, triggers completion on expiry)
   useEffect(() => {
@@ -337,6 +364,8 @@ export default function SalesBlockSessionPage() {
 
       setSessionStats(stats);
       setIsCompleted(true);
+      // Clear saved resume state — session is now complete
+      if (salesblockId) localStorage.removeItem(`salesblock_session_${salesblockId}`);
     } catch (error) {
       console.error('Error ending session:', error);
       alert('Failed to end session');
@@ -396,6 +425,20 @@ export default function SalesBlockSessionPage() {
       connects,
       conversations,
     };
+  };
+
+  const handleResume = () => {
+    if (savedState) {
+      setActiveIndex(Math.min(savedState.activeIndex, contacts.length - 1));
+      setElapsedSeconds(savedState.elapsedSeconds);
+      setSessionNotes(savedState.sessionNotes);
+    }
+    setResumeBannerVisible(false);
+  };
+
+  const handleStartFresh = () => {
+    if (salesblockId) localStorage.removeItem(`salesblock_session_${salesblockId}`);
+    setResumeBannerVisible(false);
   };
 
   const handleSaveNotes = async () => {
@@ -606,6 +649,32 @@ export default function SalesBlockSessionPage() {
           />
         </div>
       </div>
+
+      {/* Session Resume Banner */}
+      {resumeBannerVisible && (
+        <div className="bg-indigo-electric/10 border-b border-indigo-electric/30 px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-indigo-electric">Resume where you left off?</p>
+            <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
+              Saved progress found — contact {(savedState?.activeIndex ?? 0) + 1} of {contacts.length}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleStartFresh}
+              className="px-3 py-1.5 text-xs border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
+            >
+              Start Fresh
+            </button>
+            <button
+              onClick={handleResume}
+              className="px-3 py-1.5 text-xs bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 transition-all duration-200 ease-snappy"
+            >
+              Resume
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Content: Queue + Active Contact */}
       <div className="flex flex-1 overflow-hidden">
