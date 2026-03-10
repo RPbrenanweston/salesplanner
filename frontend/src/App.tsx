@@ -47,6 +47,7 @@ const OutlookCalendarOAuthCallback = lazy(() => import('./pages/OutlookCalendarO
 const SalesforceOAuthCallback = lazy(() => import('./pages/SalesforceOAuthCallback'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
 const MarketingPage = lazy(() => import('./pages/MarketingPage'))
+const Diagnostics = lazy(() => import('./pages/Diagnostics'))
 
 const queryClient = new QueryClient()
 
@@ -64,6 +65,16 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/pricing" element={<PricingPage />} />
+
+            {/* Diagnostics - protected, no layout (standalone debug page) */}
+            <Route
+              path="/diagnostics"
+              element={
+                <ProtectedRoute>
+                  <Diagnostics />
+                </ProtectedRoute>
+              }
+            />
 
             {/* OAuth callbacks - public */}
             <Route path="/oauth/gmail/callback" element={<GmailOAuthCallback />} />
