@@ -2,16 +2,16 @@
  * @crumb
  * @id frontend-component-import-csv-modal
  * @area UI/Contacts/Import
- * @intent CSV import modal — upload a CSV file of contacts, map columns to contact fields, validate rows, bulk-insert into contacts table, and optionally assign to new or existing list
- * @responsibilities Parse CSV via Web Worker, render column mapping UI, validate required columns, handle duplicate strategy (skip/update/create), batch-insert mapped rows to Supabase contacts, optionally create new list or assign to existing list via list_contacts junction table, show success/error summary
+ * @intent CSV import modal — upload a CSV file of contacts, map columns to contact fields, validate rows, bulk-insert into contacts table, and ALWAYS assign to a list (no orphaned contacts)
+ * @responsibilities Parse CSV via Web Worker, render column mapping UI, validate required columns, handle duplicate strategy (skip/update/create), batch-insert mapped rows to Supabase contacts, create new list or assign to existing list via list_contacts junction table (auto-creates fallback list if none selected), capture per-row error details (row number, email, reason), show success/error summary with scrollable error detail panel
  * @contracts ImportCSVModal({ isOpen, onClose, onImportComplete }) → JSX; uses Web Worker for CSV parsing; calls supabase.from('contacts').insert (per-row with duplicate check); calls supabase.from('lists').insert (on new list); calls supabase.from('list_contacts').insert (batch); requires org_id from auth context
  * @in CSV file (user upload), Web Worker parse result, supabase contacts+lists+list_contacts tables, useAuth (user), onClose callback, onImportComplete callback
  * @out Contact rows inserted/updated in contacts table; optional list created in lists table; contact-list associations in list_contacts; onImportComplete called on success; import summary (imported/skipped/errors) displayed
- * @err CSV parse error (Web Worker error displayed); missing required email column (row skipped with error count); Supabase insert/update failure (per-row error counted); list creation failure (import aborted with error); list assignment batch failure (error count incremented)
+ * @err CSV parse error (Web Worker error displayed); missing required email column (row skipped with detail captured); Supabase insert/update failure (per-row error detail captured: row, email, reason); list creation failure (import aborted with error); list assignment batch failure (error count incremented); all errors displayed in scrollable table on completion
  * @hazard Per-row duplicate check issues individual SELECT+INSERT/UPDATE queries — N queries for N rows; large imports (5000+) will be slow
  * @hazard list_contacts batch insert does not use ON CONFLICT — if contacts already exist in the target list, duplicate junction rows may be created
  * @shared-edges frontend/src/lib/supabase.ts→QUERIES contacts+lists+list_contacts; parent page (Contacts or Lists)→RENDERS modal; onImportComplete callback→REFRESHES contact list; frontend/src/workers/parse-csv.worker.ts→PARSES CSV file
- * @trail csv-import#1 | User clicks "Import CSV" → ImportCSVModal renders → user selects file → Web Worker parses → column mapping UI → preview with list mode selection (none/existing/new) → import: create list if needed → per-row insert/update → batch list assignment → complete summary
+ * @trail csv-import#1 | User clicks "Import CSV" → ImportCSVModal renders → user selects file → Web Worker parses → column mapping UI → preview with list mode selection (default: new / existing / none-with-auto-fallback) → import: ALWAYS create or select list → per-row insert/update with error detail capture → batch list assignment → complete summary with list name and scrollable error table
  * @prompt Add batch insert for contacts (chunk 500). Add ON CONFLICT to list_contacts insert to prevent duplicate junction rows. Consider streaming progress updates during import.
  */
 import { useState, useEffect, useRef } from 'react';
@@ -61,12 +61,16 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
   const [duplicateStrategy, setDuplicateStrategy] = useState<'skip' | 'update' | 'create'>('skip');
-  const [listMode, setListMode] = useState<'none' | 'existing' | 'new'>('none');
+  const [listMode, setListMode] = useState<'none' | 'existing' | 'new'>('new');
   const [selectedListId, setSelectedListId] = useState<string>('');
-  const [newListName, setNewListName] = useState<string>('');
+  const [newListName, setNewListName] = useState<string>(
+    `CSV Import — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+  );
   const [lists, setLists] = useState<any[]>([]);
   const [importProgress, setImportProgress] = useState({ imported: 0, skipped: 0, errors: 0 });
   const [error, setError] = useState<string>('');
+  const [errorDetails, setErrorDetails] = useState<Array<{ row: number; email: string; reason: string }>>([]);
+  const [importedListName, setImportedListName] = useState<string>('');
   const workerRef = useRef<Worker | null>(null);
 
   // Initialize Web Worker on mount
@@ -196,6 +200,8 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
   const handleImport = async () => {
     setStep('importing');
     setImportProgress({ imported: 0, skipped: 0, errors: 0 });
+    setErrorDetails([]);
+    setImportedListName('');
     setError('');
 
     try {
@@ -229,15 +235,21 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
         columnMappings.filter(m => m.dbField !== 'ignore').map(m => [m.csvColumn, m.dbField])
       );
 
-      // Determine target list ID — create new list if needed
+      // Determine target list ID — ALWAYS ensure contacts land on a list (no orphans)
       let targetListId = '';
+      const autoListName = `CSV Import — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+
       if (listMode === 'existing' && selectedListId) {
         targetListId = selectedListId;
+        // Look up the list name for display
+        const selectedList = lists.find(l => l.id === selectedListId);
+        setImportedListName(selectedList?.name || 'Selected list');
       } else if (listMode === 'new' && newListName.trim()) {
+        const listNameToCreate = newListName.trim();
         const { data: newList, error: listError } = await supabase
           .from('lists')
           .insert({
-            name: newListName.trim(),
+            name: listNameToCreate,
             org_id: orgId,
             owner_id: currentUser.id,
             is_shared: false,
@@ -246,19 +258,42 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
           .single();
 
         if (listError || !newList) {
-          setError(`Failed to create list "${newListName.trim()}": ${listError?.message || 'Unknown error'}`);
+          setError(`Failed to create list "${listNameToCreate}": ${listError?.message || 'Unknown error'}`);
           setStep('complete');
           return;
         }
         targetListId = newList.id;
+        setImportedListName(listNameToCreate);
+      } else {
+        // Fallback: listMode === 'none' or missing data — auto-create a list to prevent orphaned contacts
+        const { data: fallbackList, error: fallbackError } = await supabase
+          .from('lists')
+          .insert({
+            name: autoListName,
+            org_id: orgId,
+            owner_id: currentUser.id,
+            is_shared: false,
+          })
+          .select('id')
+          .single();
+
+        if (fallbackError || !fallbackList) {
+          setError(`Failed to create auto-list: ${fallbackError?.message || 'Unknown error'}`);
+          setStep('complete');
+          return;
+        }
+        targetListId = fallbackList.id;
+        setImportedListName(autoListName);
       }
 
       let imported = 0;
       let skipped = 0;
       let errors = 0;
+      const rowErrors: Array<{ row: number; email: string; reason: string }> = [];
       const contactsToAddToList: string[] = []; // Track IDs of skipped/updated contacts
 
-      for (const row of csvData) {
+      for (let rowIndex = 0; rowIndex < csvData.length; rowIndex++) {
+        const row = csvData[rowIndex];
         try {
           const contact: ContactRow = {};
 
@@ -273,6 +308,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
           // Email is required
           if (!contact.email) {
             errors++;
+            rowErrors.push({ row: rowIndex + 1, email: '(missing)', reason: 'No email address found in row' });
             continue;
           }
 
@@ -291,10 +327,8 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
           if (existing) {
             if (duplicateStrategy === 'skip') {
               skipped++;
-              // Track for list assignment if list is selected
-              if (targetListId) {
-                contactsToAddToList.push(existing.id);
-              }
+              // Track for list assignment (always — no orphans)
+              contactsToAddToList.push(existing.id);
               continue;
             } else if (duplicateStrategy === 'update') {
               const { error: updateError } = await supabase
@@ -305,12 +339,11 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
               if (updateError) {
                 console.error('Update error:', updateError);
                 errors++;
+                rowErrors.push({ row: rowIndex + 1, email: contact.email || '', reason: `Update failed: ${updateError.message}` });
               } else {
                 imported++;
-                // Track for list assignment if list is selected
-                if (targetListId) {
-                  contactsToAddToList.push(existing.id);
-                }
+                // Track for list assignment (always — no orphans)
+                contactsToAddToList.push(existing.id);
               }
               continue;
             }
@@ -331,11 +364,12 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
           if (insertError) {
             console.error('Insert error:', insertError);
             errors++;
+            rowErrors.push({ row: rowIndex + 1, email: contact.email || '', reason: `Insert failed: ${insertError.message}` });
           } else {
             imported++;
 
-            // Add to list if selected
-            if (targetListId && newContact) {
+            // Track for list assignment (always — no orphans)
+            if (newContact) {
               contactsToAddToList.push(newContact.id);
             }
           }
@@ -344,11 +378,16 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
         } catch (rowErr) {
           console.error('Row processing error:', rowErr);
           errors++;
+          const rowEmail = row?.email || row?.Email || '(unknown)';
+          rowErrors.push({ row: rowIndex + 1, email: String(rowEmail), reason: `Unexpected error: ${rowErr instanceof Error ? rowErr.message : 'Unknown'}` });
           setImportProgress({ imported, skipped, errors });
         }
       }
 
-      // Batch insert all tracked contacts into list_contacts if a list is selected (chunk into batches of 500)
+      // Persist error details to state for display in completion step
+      setErrorDetails(rowErrors);
+
+      // Batch insert all tracked contacts into list_contacts (targetListId is always set — no orphans)
       if (targetListId && contactsToAddToList.length > 0) {
         const BATCH_SIZE = 500;
         let listAssignmentErrors = 0;
@@ -388,10 +427,14 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
     setCsvData([]);
     setColumnMappings([]);
     setDuplicateStrategy('skip');
-    setListMode('none');
+    setListMode('new');
     setSelectedListId('');
-    setNewListName('');
+    setNewListName(
+      `CSV Import — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+    );
     setImportProgress({ imported: 0, skipped: 0, errors: 0 });
+    setErrorDetails([]);
+    setImportedListName('');
     setError('');
     // Remove worker event listeners on close
     if (workerRef.current) {
@@ -679,13 +722,48 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
 
               <div className="text-sm space-y-1 text-gray-600 dark:text-gray-300">
                 <p className="text-green-600 dark:text-green-400">✓ Imported: {importProgress.imported}</p>
-                <p className="text-yellow-600 dark:text-yellow-400">⊘ Skipped: {importProgress.skipped}</p>
+                <p className="text-yellow-600 dark:text-yellow-400">⊘ Skipped (duplicates): {importProgress.skipped}</p>
                 <p className="text-red-600 dark:text-red-400">✗ Errors: {importProgress.errors}</p>
               </div>
 
+              {importedListName && (
+                <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                  📋 All contacts added to list: "{importedListName}"
+                </p>
+              )}
+
+              {/* Error detail panel — scrollable list of per-row errors */}
+              {errorDetails.length > 0 && (
+                <div className="mx-auto max-w-lg text-left">
+                  <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">
+                    Error Details ({errorDetails.length} rows failed):
+                  </p>
+                  <div className="max-h-48 overflow-y-auto border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-red-100 dark:bg-red-900/40">
+                        <tr>
+                          <th className="px-3 py-1.5 text-left text-red-700 dark:text-red-300 font-medium">Row</th>
+                          <th className="px-3 py-1.5 text-left text-red-700 dark:text-red-300 font-medium">Email</th>
+                          <th className="px-3 py-1.5 text-left text-red-700 dark:text-red-300 font-medium">Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-red-200 dark:divide-red-800">
+                        {errorDetails.map((err, idx) => (
+                          <tr key={idx}>
+                            <td className="px-3 py-1.5 text-red-600 dark:text-red-400 tabular-nums">{err.row}</td>
+                            <td className="px-3 py-1.5 text-red-600 dark:text-red-400 font-mono truncate max-w-[200px]">{err.email}</td>
+                            <td className="px-3 py-1.5 text-red-600 dark:text-red-400">{err.reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={() => {
-                  if (importProgress.imported > 0) {
+                  if (importProgress.imported > 0 || importProgress.skipped > 0) {
                     onImportComplete();
                   }
                   handleClose();
