@@ -62,6 +62,10 @@ export default function OutlookOAuthButton() {
       return
     }
 
+    // Generate CSRF nonce and store in sessionStorage for callback validation
+    const nonce = crypto.randomUUID()
+    sessionStorage.setItem('oauth_csrf_nonce', nonce)
+
     // Build OAuth URL for Microsoft Graph API
     const params = new URLSearchParams({
       client_id: OUTLOOK_CLIENT_ID,
@@ -69,7 +73,7 @@ export default function OutlookOAuthButton() {
       response_type: 'code',
       scope: OUTLOOK_SCOPES,
       response_mode: 'query',
-      state: JSON.stringify({ user_id: user?.id, nonce: generateOAuthNonce('outlook') }), // Pass user context + CSRF nonce
+      state: JSON.stringify({ user_id: user?.id, nonce }), // Pass user context + CSRF nonce
     })
 
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`

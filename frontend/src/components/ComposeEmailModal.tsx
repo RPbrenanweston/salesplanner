@@ -20,6 +20,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { getFreeBusySlots, formatAvailabilityText } from '../lib/calendar';
 import { markActivityForSync } from '../lib/salesforce';
+import { getValidToken } from '../lib/token-refresh';
 
 interface ComposeEmailModalProps {
   isOpen: boolean;
@@ -44,9 +45,6 @@ interface EmailTemplate {
 
 interface OAuthConnection {
   provider: 'gmail' | 'outlook';
-  access_token: string;
-  refresh_token: string;
-  expires_at: string;
 }
 
 export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess }: ComposeEmailModalProps) {
@@ -86,14 +84,16 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
 
   const loadOAuthConnection = async () => {
     try {
+      // Check for connected email provider (just need to know which one is connected)
       const { data, error } = await supabase
         .from('oauth_connections')
-        .select('provider, access_token, refresh_token, expires_at')
+        .select('provider')
         .in('provider', ['gmail', 'outlook'])
+        .eq('is_active', true)
         .maybeSingle();
 
       if (error) throw error;
-      setOauthConnection(data);
+      setOauthConnection(data ? { provider: data.provider } : null);
     } catch (err) {
       console.error('Error loading OAuth connection:', err);
     }
@@ -272,14 +272,20 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
     setIsSending(true);
 
     try {
+      // Get a valid (auto-refreshed) access token at send time
+      const accessToken = await getValidToken(oauthConnection.provider);
+      if (!accessToken) {
+        throw new Error('Failed to get valid access token. Please reconnect your email in Settings > Integrations.');
+      }
+
       let threadId: string | undefined;
       let conversationId: string | undefined;
 
       if (oauthConnection.provider === 'gmail') {
-        const result = await sendViaGmail(oauthConnection.access_token);
+        const result = await sendViaGmail(accessToken);
         threadId = result.threadId;
       } else if (oauthConnection.provider === 'outlook') {
-        const result = await sendViaOutlook(oauthConnection.access_token);
+        const result = await sendViaOutlook(accessToken);
         conversationId = result.conversationId;
       }
 

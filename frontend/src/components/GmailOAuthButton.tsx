@@ -62,6 +62,10 @@ export default function GmailOAuthButton() {
       return
     }
 
+    // Generate CSRF nonce and store in sessionStorage for callback validation
+    const nonce = crypto.randomUUID()
+    sessionStorage.setItem('oauth_csrf_nonce', nonce)
+
     // Build OAuth URL
     const params = new URLSearchParams({
       client_id: GMAIL_CLIENT_ID,
@@ -70,7 +74,7 @@ export default function GmailOAuthButton() {
       scope: GMAIL_SCOPES,
       access_type: 'offline', // Request refresh token
       prompt: 'consent', // Force consent screen to ensure refresh token
-      state: JSON.stringify({ user_id: user?.id, nonce: generateOAuthNonce('gmail') }), // Pass user context + CSRF nonce
+      state: JSON.stringify({ user_id: user?.id, nonce }), // Pass user context + CSRF nonce
     })
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`

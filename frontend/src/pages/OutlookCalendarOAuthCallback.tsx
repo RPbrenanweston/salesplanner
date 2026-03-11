@@ -2,31 +2,126 @@
  * @crumb
  * @id frontend-page-outlook-calendar-oauth-callback
  * @area UI/Auth/OAuth
- * @intent Outlook Calendar OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, show status, close popup
- * @responsibilities Delegate to useOAuthCallback hook with provider='outlook_calendar', render processing/success/error states
- * @contracts OutlookCalendarOAuthCallback() -> JSX; uses useOAuthCallback('outlook_calendar', redirectUri)
- * @in URL search params (code, state, error, error_description), useOAuthCallback hook
+ * @intent Outlook Calendar OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, close popup
+ * @responsibilities Parse code/state/error/error_description from URL params on mount, validate CSRF nonce, exchange code for tokens via Supabase edge function, close popup
+ * @contracts OutlookCalendarOAuthCallback() → JSX; reads window.location.search for OAuth params; calls exchange-microsoft-token edge function; uses useNavigate
+ * @in window.location.search (code, state, error, error_description params), Supabase session (JWT), exchange-microsoft-token edge function
  * @out Outlook Calendar access/refresh tokens stored via edge function; popup closes on success; error state displayed on failure
- * @shared-edges frontend/src/components/OutlookCalendarOAuthButton.tsx->INITIATES OAuth flow; frontend/src/hooks/useOAuthCallback.ts->HANDLES token exchange
+ * @err OAuth error param from Microsoft (error + error_description displayed); missing code; CSRF nonce mismatch; edge function failure
+ * @hazard StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+ * @shared-edges frontend/src/components/OutlookCalendarOAuthButton.tsx→INITIATES OAuth flow; supabase/functions/exchange-microsoft-token→EXCHANGES code for tokens
+ * @trail outlook-calendar-oauth#1 | OutlookCalendarOAuthButton redirects to Microsoft → Microsoft redirects to callback → parse params → validate CSRF → exchange code via edge function → popup closes
  */
-import { useOAuthCallback } from '../hooks/useOAuthCallback'
-import OAuthCallbackLayout from '../components/OAuthCallbackLayout'
-
-const OUTLOOK_CALENDAR_REDIRECT_URI =
-  import.meta.env.VITE_OUTLOOK_CALENDAR_REDIRECT_URI ||
-  `${window.location.origin}/oauth/outlook-calendar/callback`
+import { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 export default function OutlookCalendarOAuthCallback() {
-  const { status, errorMessage } = useOAuthCallback(
-    'outlook_calendar',
-    OUTLOOK_CALENDAR_REDIRECT_URI
-  )
+  const navigate = useNavigate()
+  const [error, setError] = useState<string | null>(null)
+  const hasRun = useRef(false) // StrictMode double-invoke guard
+
+  useEffect(() => {
+    if (hasRun.current) return
+    hasRun.current = true
+    handleCallback()
+  }, [])
+
+  const handleCallback = async () => {
+    try {
+      // Parse URL parameters
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      const state = params.get('state')
+      const errorParam = params.get('error')
+      const errorDescription = params.get('error_description')
+
+      // Handle OAuth errors from Microsoft
+      if (errorParam) {
+        throw new Error(errorDescription || `OAuth error: ${errorParam}`)
+      }
+
+      if (!code) {
+        throw new Error('No authorization code received')
+      }
+
+      // Parse and validate state
+      const stateData = state ? JSON.parse(state) : null
+      if (!stateData?.user_id) {
+        throw new Error('Invalid state parameter')
+      }
+
+      // Validate CSRF nonce against sessionStorage
+      const storedNonce = sessionStorage.getItem('oauth_csrf_nonce')
+      if (!storedNonce || storedNonce !== stateData.nonce) {
+        throw new Error('CSRF validation failed. Please try connecting again.')
+      }
+      sessionStorage.removeItem('oauth_csrf_nonce') // Clean up — single use
+
+      // Build redirect_uri to match what was sent in the authorization request
+      const redirectUri = import.meta.env.VITE_OUTLOOK_CALENDAR_REDIRECT_URI || `${window.location.origin}/oauth/outlook-calendar/callback`
+
+      // Exchange authorization code for tokens via Supabase edge function
+      const { data, error: fnError } = await supabase.functions.invoke('exchange-microsoft-token', {
+        body: {
+          code,
+          redirect_uri: redirectUri,
+          provider: 'outlook_calendar',
+        },
+      })
+
+      if (fnError) {
+        throw new Error(fnError.message || 'Token exchange failed')
+      }
+
+      if (data?.error) {
+        throw new Error(data.error)
+      }
+
+      // Success — close popup or redirect
+      if (window.opener) {
+        window.close()
+      } else {
+        navigate('/settings')
+      }
+    } catch (err) {
+      console.error('Outlook Calendar OAuth callback error:', err)
+      setError(err instanceof Error ? err.message : 'OAuth flow failed')
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-void-950 via-void-900 to-void-950">
+        <div className="max-w-md w-full p-6 glass-card">
+          <h1 className="text-2xl font-bold font-display text-red-alert mb-4">
+            OAuth Error
+          </h1>
+          <p className="text-white/70 mb-4">
+            {error}
+          </p>
+          <button
+            onClick={() => window.close()}
+            className="px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg transition-colors ease-snappy"
+          >
+            Close Window
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <OAuthCallbackLayout
-      status={status}
-      errorMessage={errorMessage}
-      providerName="Outlook Calendar"
-    />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-void-950 via-void-900 to-void-950">
+      <div className="max-w-md w-full p-6 glass-card text-center">
+        <div className="w-12 h-12 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <h1 className="text-xl font-semibold text-white mb-2">
+          Connecting Outlook Calendar...
+        </h1>
+        <p className="text-white/60">
+          This window will close automatically.
+        </p>
+      </div>
+    </div>
   )
 }
