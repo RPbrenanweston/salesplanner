@@ -27,6 +27,7 @@ import BookMeetingModal from '../components/BookMeetingModal'
 import ContactActivityTimeline from '../components/ContactActivityTimeline'
 import { DispositionButtons } from '../components/session/DispositionButtons'
 import { ConnectedFlowPanel } from '../components/session/ConnectedFlowPanel'
+import DebriefFunnel from '../components/session/DebriefFunnel'
 import { logActivity, getSessionStats } from '../lib/queries/activityQueries'
 import type { SessionType, ProgressFlags } from '../types/domain'
 import type { ActivityOutcome } from '../types/enums'
@@ -112,6 +113,14 @@ export default function SalesBlockSessionPage() {
   } | null>(null)
   const [sessionNotes, setSessionNotes] = useState('')
   const [noteSaveError, setNoteSaveError] = useState('')
+  const [debriefStats, setDebriefStats] = useState<{
+    totalDials: number
+    connects: number
+    intros: number
+    conversations: number
+    asks: number
+    meetings: number
+  } | null>(null)
 
   // Session resume
   const [resumeBannerVisible, setResumeBannerVisible] = useState(false)
@@ -479,6 +488,10 @@ export default function SalesBlockSessionPage() {
 
       if (error) throw error
 
+      // Fetch full 7-rate funnel stats
+      const funnelStats = await getSessionStats(salesblockId)
+      setDebriefStats(funnelStats)
+
       setCompletionStats(stats)
       setIsCompleted(true)
       if (salesblockId) localStorage.removeItem(`salesblock_session_${salesblockId}`)
@@ -549,19 +562,6 @@ export default function SalesBlockSessionPage() {
   // ---------- Completion screen ----------
 
   if (isCompleted && completionStats) {
-    const contactWorkedPct =
-      completionStats.totalContacts > 0
-        ? Math.round((completionStats.contactsWorked / completionStats.totalContacts) * 100)
-        : 0
-    const callsToConnects =
-      completionStats.calls > 0
-        ? Math.round((completionStats.connects / completionStats.calls) * 100)
-        : 0
-    const connectsToMeetings =
-      completionStats.connects > 0
-        ? Math.round((completionStats.meetings / completionStats.connects) * 100)
-        : 0
-
     return (
       <div className="flex flex-col h-full bg-gray-50 dark:bg-void-950 p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto w-full space-y-6">
@@ -575,99 +575,16 @@ export default function SalesBlockSessionPage() {
             </p>
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="glass-card p-6">
-              <p className="vv-section-title mb-1">Contacts Worked</p>
-              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
-                {completionStats.contactsWorked}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-white/40 font-mono mt-1">
-                of {completionStats.totalContacts} ({contactWorkedPct}%)
-              </p>
-            </div>
-            <div className="glass-card p-6">
-              <p className="vv-section-title mb-1">Calls Made</p>
-              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
-                {completionStats.calls}
-              </p>
-            </div>
-            <div className="glass-card p-6">
-              <p className="vv-section-title mb-1">Emails Sent</p>
-              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
-                {completionStats.emails}
-              </p>
-            </div>
-            <div className="glass-card p-6">
-              <p className="vv-section-title mb-1">Social Touches</p>
-              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
-                {completionStats.social}
-              </p>
-            </div>
-            <div className="glass-card p-6">
-              <p className="vv-section-title mb-1">Meetings Booked</p>
-              <p className="font-display text-3xl font-bold text-emerald-signal">
-                {completionStats.meetings}
-              </p>
-            </div>
-            <div className="glass-card p-6">
-              <p className="vv-section-title mb-1">Duration</p>
-              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white font-mono">
-                {Math.round(elapsedSeconds / 60)} min
-              </p>
-            </div>
-          </div>
-
-          {/* Conversion Ratios */}
-          <div className="glass-card p-6">
-            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-4">
-              Conversion Ratios
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Contacts Worked / Total</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
-                    <div
-                      className="bg-indigo-electric h-2 rounded-full transition-all"
-                      style={{ width: `${contactWorkedPct}%` }}
-                    />
-                  </div>
-                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
-                    {contactWorkedPct}%
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Calls to Connects</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
-                    <div
-                      className="bg-emerald-signal h-2 rounded-full transition-all"
-                      style={{ width: `${callsToConnects}%` }}
-                    />
-                  </div>
-                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
-                    {callsToConnects}%
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Connects to Meetings</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
-                    <div
-                      className="bg-purple-neon h-2 rounded-full transition-all"
-                      style={{ width: `${connectsToMeetings}%` }}
-                    />
-                  </div>
-                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
-                    {connectsToMeetings}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* 7-Rate Debrief Funnel */}
+          <DebriefFunnel
+            totalDials={debriefStats?.totalDials ?? completionStats.calls}
+            connects={debriefStats?.connects ?? completionStats.connects}
+            intros={debriefStats?.intros ?? 0}
+            conversations={debriefStats?.conversations ?? completionStats.conversations}
+            asks={debriefStats?.asks ?? 0}
+            meetings={debriefStats?.meetings ?? completionStats.meetings}
+            elapsedSeconds={elapsedSeconds}
+          />
 
           {/* Session Notes */}
           <div className="glass-card p-6">
