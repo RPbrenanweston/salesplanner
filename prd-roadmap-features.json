@@ -1,53 +1,8 @@
 {
   "project": "SalesBlock.io — Roadmap Features",
   "branchName": "ralph/roadmap-features",
-  "description": "New features and UI improvements for post-launch development. Sourced entirely from prompt: fields in Schema C breadcrumbs across 84 source files. Prioritised by user-facing impact: P1=revenue/retention critical, P2=productivity features, P3=polish and technical improvements.",
+  "description": "Post-launch roadmap features for future sprints — productivity, polish, and platform growth. 21 stories.",
   "userStories": [
-    {
-      "id": "FEAT-001",
-      "title": "Add Google SSO and returnTo deep link on SignIn page",
-      "description": "As a user, I need to sign in with Google and have my destination preserved so I can reach deep-linked pages directly after authentication.",
-      "acceptanceCriteria": [
-        "SignIn.tsx has a 'Continue with Google' button that triggers Supabase social login",
-        "SignIn.tsx reads a returnTo query param and redirects to that path after successful sign-in",
-        "returnTo value is validated to be a relative path (prevents open redirect)",
-        "Rate limit error from Supabase shows lockout feedback message",
-        "Typecheck passes"
-      ],
-      "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/SignIn.tsx — Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback for rate limit errors."
-    },
-    {
-      "id": "FEAT-002",
-      "title": "Add root ErrorBoundary and Sentry error tracking",
-      "description": "As an operator, I need uncaught render errors to be captured and reported so I can diagnose and fix production issues proactively.",
-      "acceptanceCriteria": [
-        "main.tsx initialises Sentry (or equivalent) with VITE_SENTRY_DSN env var",
-        "Root ErrorBoundary reports uncaught errors to Sentry",
-        "ErrorBoundary renders user-visible fallback UI with reload CTA",
-        "Sentry is only initialised when VITE_SENTRY_DSN is present (no crash in dev without it)",
-        "Typecheck passes"
-      ],
-      "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/main.tsx — Add root ErrorBoundary. Add Sentry or similar error tracking initialization for production error monitoring."
-    },
-    {
-      "id": "FEAT-003",
-      "title": "Pull pricing from Supabase config table instead of hardcoded constants",
-      "description": "As a product manager, I need pricing to be stored in Supabase so price changes do not require a code deploy and Stripe price IDs stay in sync.",
-      "acceptanceCriteria": [
-        "Supabase table pricing_plans stores: id, name, monthly_price_cents, annual_price_cents, stripe_price_id_monthly, stripe_price_id_annual, features (jsonb)",
-        "PricingPage.tsx fetches from pricing_plans table on mount",
-        "create-checkout-session edge function uses Stripe price ID from pricing_plans (not hardcoded)",
-        "PricingPage shows loading skeleton and error toast (not alert) on load failure",
-        "Typecheck passes"
-      ],
-      "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/PricingPage.tsx — Pull pricing from Supabase table to avoid price drift. Add error toast instead of alert."
-    },
     {
       "id": "FEAT-004",
       "title": "Add Analytics time-range filter and Recharts trend visualisation",
@@ -63,22 +18,6 @@
       "priority": 1,
       "passes": false,
       "notes": "Breadcrumb prompt: frontend/src/pages/Analytics.tsx — Add time-range filter. Add loading skeleton per KPI card. Validate custom KPI bounds. Consider Recharts for trend visualisation."
-    },
-    {
-      "id": "FEAT-005",
-      "title": "Add invite member flow to Team page",
-      "description": "As a manager, I need an invite button on the Team page so I can onboard new reps without leaving the team management view.",
-      "acceptanceCriteria": [
-        "Team.tsx has an Invite Member button that triggers the send-team-invitation flow",
-        "Invite modal collects email and role (sdr | ae | manager)",
-        "Success state shows confirmation message; failure shows error with retry",
-        "Time-range filter on activity aggregation (Last 30 days / 90 days / All time)",
-        "Empty team state renders onboarding CTA",
-        "Typecheck passes"
-      ],
-      "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Team.tsx — Add time-range filter for activity aggregation. Handle empty org_id gracefully. Add invite member flow."
     },
     {
       "id": "FEAT-006",

@@ -1,7 +1,7 @@
 {
   "project": "SalesBlock.io — Pre-Launch Fixes",
   "branchName": "ralph/prelaunch-fixes",
-  "description": "Critical fixes to resolve before public launch. Sourced entirely from hazard: fields in Schema C breadcrumbs across 84 source files. Prioritised: P1=security/data-loss, P2=functionality-breaks, P3=UX-blockers.",
+  "description": "Pre-launch required fixes and features — security, data-loss, functionality-breaks, UX-blockers, and launch-critical features. 28 stories.",
   "userStories": [
     {
       "id": "FIX-001",
@@ -82,18 +82,20 @@
     },
     {
       "id": "FIX-006",
-      "title": "Add root ErrorBoundary and per-OAuth ErrorBoundaries",
+      "title": "Add root ErrorBoundary, Sentry error tracking, and per-OAuth error boundaries",
       "description": "As a user, I need render errors to show a recoverable error screen rather than a blank white page so I understand what went wrong.",
       "acceptanceCriteria": [
         "main.tsx wraps <App /> in a root ErrorBoundary component that renders a user-visible error message",
         "SettingsPage.tsx wraps each of the 5 OAuth integration buttons in its own ErrorBoundary",
         "Single OAuth button throw no longer crashes the entire integrations tab",
         "ErrorBoundary displays fallback UI with a reload CTA",
-        "Typecheck passes"
+        "Typecheck passes",
+        "Sentry DSN configured via VITE_SENTRY_DSN env var",
+        "Unhandled errors captured in Sentry with user context"
       ],
       "priority": 1,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/main.tsx — no root ErrorBoundary causes blank white screen; frontend/src/pages/SettingsPage.tsx — single OAuth throw crashes entire integrations tab."
+      "notes": "Breadcrumb hazard: frontend/src/main.tsx — no root ErrorBoundary causes blank white screen; frontend/src/pages/SettingsPage.tsx — single OAuth throw crashes entire integrations tab. | FEAT-002 merged here — install @sentry/react in main.tsx alongside ErrorBoundary"
     },
     {
       "id": "FIX-007",
@@ -368,6 +370,52 @@
       "priority": 3,
       "passes": false,
       "notes": "Breadcrumb hazard: frontend/src/pages/ForgotPassword.tsx — window.location.origin used for redirectTo; in dev points to localhost; reset links expire if opened in different environment."
+    },
+    {
+      "id": "FEAT-001",
+      "title": "Add Google SSO and returnTo deep link on SignIn page",
+      "description": "As a user, I need to sign in with Google and have my destination preserved so I can reach deep-linked pages directly after authentication.",
+      "acceptanceCriteria": [
+        "SignIn.tsx has a 'Continue with Google' button that triggers Supabase social login",
+        "SignIn.tsx reads a returnTo query param and redirects to that path after successful sign-in",
+        "returnTo value is validated to be a relative path (prevents open redirect)",
+        "Rate limit error from Supabase shows lockout feedback message",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/SignIn.tsx — Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback for rate limit errors. [MOVED from roadmap — pre-launch blocker]"
+    },
+    {
+      "id": "FEAT-003",
+      "title": "Pull pricing from Supabase config table instead of hardcoded constants",
+      "description": "As a product manager, I need pricing to be stored in Supabase so price changes do not require a code deploy and Stripe price IDs stay in sync.",
+      "acceptanceCriteria": [
+        "Supabase table pricing_plans stores: id, name, monthly_price_cents, annual_price_cents, stripe_price_id_monthly, stripe_price_id_annual, features (jsonb)",
+        "PricingPage.tsx fetches from pricing_plans table on mount",
+        "create-checkout-session edge function uses Stripe price ID from pricing_plans (not hardcoded)",
+        "PricingPage shows loading skeleton and error toast (not alert) on load failure",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/PricingPage.tsx — Pull pricing from Supabase table to avoid price drift. Add error toast instead of alert. [MOVED from roadmap — pre-launch blocker]"
+    },
+    {
+      "id": "FEAT-005",
+      "title": "Add invite member flow to Team page",
+      "description": "As a manager, I need an invite button on the Team page so I can onboard new reps without leaving the team management view.",
+      "acceptanceCriteria": [
+        "Team.tsx has an Invite Member button that triggers the send-team-invitation flow",
+        "Invite modal collects email and role (sdr | ae | manager)",
+        "Success state shows confirmation message; failure shows error with retry",
+        "Time-range filter on activity aggregation (Last 30 days / 90 days / All time)",
+        "Empty team state renders onboarding CTA",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Team.tsx — Add time-range filter for activity aggregation. Handle empty org_id gracefully. Add invite member flow. [MOVED from roadmap — pre-launch blocker]"
     }
   ]
 }
