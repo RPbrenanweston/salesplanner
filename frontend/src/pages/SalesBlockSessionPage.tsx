@@ -45,6 +45,7 @@ interface SalesBlock {
   duration_minutes: number;
   status: string;
   list_id: string;
+  script_id?: string | null;
 }
 
 interface SessionStats {
@@ -79,6 +80,7 @@ export default function SalesBlockSessionPage() {
 
   // Call script panel state
   const [scriptExpanded, setScriptExpanded] = useState(false);
+  const [scriptContent, setScriptContent] = useState<string | null>(null);
 
   // Completion state
   const [isCompleted, setIsCompleted] = useState(false);
@@ -126,6 +128,19 @@ export default function SalesBlockSessionPage() {
 
         if (sbError) throw sbError;
         setSalesblock(sbData);
+
+        // Load call script if one was assigned to this salesblock
+        if (sbData.script_id) {
+          const { data: scriptData } = await supabase
+            .from('call_scripts')
+            .select('content')
+            .eq('id', sbData.script_id)
+            .single();
+
+          if (scriptData?.content) {
+            setScriptContent(scriptData.content);
+          }
+        }
 
         // Fetch contacts from the list
         const { data: listContactsData, error: lcError } = await supabase
@@ -832,13 +847,9 @@ export default function SalesBlockSessionPage() {
                 {scriptExpanded && (
                   <div className="mt-3 p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg">
                     <p className="text-sm text-gray-600 dark:text-white/50 whitespace-pre-wrap">
-                      {/* Placeholder: Future integration with call_scripts table */}
-                      Hi, this is [Your Name] from [Company]. I'm reaching out because we help companies like{' '}
-                      {activeContact.company || '[Company]'} with [Value Proposition].
-                      {'\n\n'}
-                      I wanted to see if you have a few minutes to discuss how we could help you with [Specific Pain Point]?
-                      {'\n\n'}
-                      [Listen for response and move to qualification questions...]
+                      {scriptContent
+                        ? scriptContent
+                        : `Hi, this is [Your Name] from [Company]. I'm reaching out because we help companies like ${activeContact.company || '[Company]'} with [Value Proposition].\n\nI wanted to see if you have a few minutes to discuss how we could help you with [Specific Pain Point]?\n\n[Listen for response and move to qualification questions...]`}
                     </p>
                   </div>
                 )}

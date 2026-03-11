@@ -24,7 +24,7 @@ import { markActivityForSync } from '../lib/salesforce';
 interface ComposeEmailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  contact: {
+  contact?: {
     id: string;
     first_name: string;
     last_name: string;
@@ -51,7 +51,7 @@ interface OAuthConnection {
 
 export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess }: ComposeEmailModalProps) {
   const { user } = useAuth();
-  const [to, setTo] = useState(contact.email);
+  const [to, setTo] = useState(contact?.email || '');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -65,9 +65,9 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
     if (isOpen && user) {
       loadTemplates();
       loadOAuthConnection();
-      setTo(contact.email);
+      setTo(contact?.email || '');
     }
-  }, [isOpen, user, contact.email]);
+  }, [isOpen, user, contact?.email]);
 
   const loadTemplates = async () => {
     try {
@@ -105,10 +105,10 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
 
     // Replace variables with contact data
     const replacements: Record<string, string> = {
-      '{{first_name}}': contact.first_name,
-      '{{last_name}}': contact.last_name,
-      '{{company}}': contact.company || '',
-      '{{title}}': contact.title || '',
+      '{{first_name}}': contact?.first_name || '',
+      '{{last_name}}': contact?.last_name || '',
+      '{{company}}': contact?.company || '',
+      '{{title}}': contact?.title || '',
     };
 
     Object.entries(replacements).forEach(([placeholder, value]) => {
@@ -234,7 +234,7 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
 
       const { data, error } = await supabase.from('activities').insert({
         org_id: dbUser?.org_id,
-        contact_id: contact.id,
+        contact_id: contact?.id || null,
         user_id: userData.user?.id,
         type: 'email',
         outcome: 'other',

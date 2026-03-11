@@ -15,7 +15,7 @@
  * @prompt Add routes for /arena (Arena.tsx) and /content-library (ContentLibrary.tsx) when those pages are ready to surface; consider a route registry pattern to avoid dual-entry (import + Route) for each new page
  */
 import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import PageLoader from './components/PageLoader'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -51,6 +51,15 @@ const Diagnostics = lazy(() => import('./pages/Diagnostics'))
 
 const queryClient = new QueryClient()
 
+/** Gate: only renders children when ?debug=true is present, otherwise redirects to /dashboard */
+function DebugGate({ children }: { children: React.ReactNode }) {
+  const [searchParams] = useSearchParams()
+  if (searchParams.get('debug') !== 'true') {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <>{children}</>
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -66,12 +75,14 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/pricing" element={<PricingPage />} />
 
-            {/* Diagnostics - protected, no layout (standalone debug page) */}
+            {/* Diagnostics - protected, gated behind ?debug=true, no layout (standalone debug page) */}
             <Route
               path="/diagnostics"
               element={
                 <ProtectedRoute>
-                  <Diagnostics />
+                  <DebugGate>
+                    <Diagnostics />
+                  </DebugGate>
                 </ProtectedRoute>
               }
             />

@@ -167,6 +167,7 @@ const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
 
 export default function SalesBlocks() {
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingSalesblock, setEditingSalesblock] = useState<SalesBlock | null>(null)
   const [salesblocks, setSalesblocks] = useState<SalesBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('upcoming')
@@ -306,8 +307,10 @@ export default function SalesBlocks() {
   }
 
   const handleEdit = (salesblockId: string) => {
-    // TODO: Open edit modal when implemented
-    alert(`Edit salesblock: ${salesblockId}`)
+    const sb = salesblocks.find(s => s.id === salesblockId)
+    if (sb) {
+      setEditingSalesblock(sb)
+    }
   }
 
   const handleCancel = async (salesblockId: string) => {
@@ -631,6 +634,26 @@ export default function SalesBlocks() {
           loadSalesblocks()
         }}
       />
+
+      {/* Edit Modal — reuses CreateSalesBlockModal in edit mode */}
+      {editingSalesblock && (
+        <CreateSalesBlockModal
+          isOpen={!!editingSalesblock}
+          onClose={() => setEditingSalesblock(null)}
+          onSuccess={() => {
+            setEditingSalesblock(null)
+            loadSalesblocks()
+          }}
+          editData={{
+            id: editingSalesblock.id,
+            title: editingSalesblock.title,
+            list_id: editingSalesblock.list_id,
+            script_id: (editingSalesblock as any).script_id ?? null,
+            scheduled_start: editingSalesblock.scheduled_start,
+            duration_minutes: editingSalesblock.duration_minutes,
+          }}
+        />
+      )}
     </div>
   )
 }

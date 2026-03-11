@@ -216,6 +216,20 @@ export default function Analytics() {
 
     if (!activities) return 0;
 
+    // Pre-fetch deals for pipeline_value metric
+    let pipelineValue = 0;
+    if (kpi.numerator_metric === 'pipeline_value' || kpi.denominator_metric === 'pipeline_value') {
+      const { data: deals } = await supabase
+        .from('deals')
+        .select('value, stage')
+        .eq('user_id', user.id);
+      if (deals) {
+        pipelineValue = deals
+          .filter(d => d.stage !== 'Closed Won' && d.stage !== 'Closed Lost')
+          .reduce((sum, d) => sum + (d.value || 0), 0);
+      }
+    }
+
     const metricValue = (metric: string): number => {
       switch (metric) {
         case 'calls':
@@ -235,8 +249,7 @@ export default function Analytics() {
         case 'replies':
           return activities.filter((a) => a.type === 'email' && a.replied_at !== null).length;
         case 'pipeline_value':
-          // TODO: Implement pipeline value calculation from deals table
-          return 0;
+          return pipelineValue;
         default:
           return 0;
       }

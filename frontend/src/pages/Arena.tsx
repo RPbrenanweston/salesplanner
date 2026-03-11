@@ -47,7 +47,7 @@ export default function Arena() {
     try {
       const { data: activities, error } = await supabase
         .from('activities')
-        .select('user_id, type, team_members(display_name)')
+        .select('user_id, type, users!activities_user_id_fkey(display_name)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -56,7 +56,7 @@ export default function Arena() {
 
       activities.forEach((activity: any) => {
         const userId = activity.user_id;
-        const userName = activity.team_members?.display_name || 'Unknown';
+        const userName = activity.users?.display_name || 'Unknown';
 
         if (!userStats.has(userId)) {
           userStats.set(userId, {

@@ -22,14 +22,24 @@ import { useUserLists, useCallScripts, useUserTeamInfo, useTeamMembers, useUserP
 import { createCalendarEvent } from '../lib/calendar'
 import { DURATION, SALESBLOCK_STATUS, USER_ROLE } from '../lib/constants'
 
+interface EditSalesBlockData {
+  id: string
+  title: string
+  list_id: string
+  script_id?: string | null
+  scheduled_start: string
+  duration_minutes: number
+}
+
 interface CreateSalesBlockModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess?: () => void
   preSelectedListId?: string // Optional: pre-select a list (e.g., from List detail page)
+  editData?: EditSalesBlockData | null // When provided, modal operates in edit mode
 }
 
-export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedListId }: CreateSalesBlockModalProps) {
+export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedListId, editData }: CreateSalesBlockModalProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
@@ -44,6 +54,8 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
 
   const isManager = userTeamInfo?.role === USER_ROLE.MANAGER
 
+  const isEditMode = !!editData
+
   // Form fields
   const [selectedListId, setSelectedListId] = useState(preSelectedListId || '')
   const [selectedScriptId, setSelectedScriptId] = useState('')
@@ -53,8 +65,22 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
   const [duration, setDuration] = useState(String(DURATION.DEFAULT_SALESBLOCK_MINUTES))
   const [assignedToUserId, setAssignedToUserId] = useState('') // Empty = assign to self
 
-  // Auto-generate title when list or date changes
+  // Populate form when editing
   useEffect(() => {
+    if (editData && isOpen) {
+      setSelectedListId(editData.list_id)
+      setSelectedScriptId(editData.script_id || '')
+      setTitle(editData.title)
+      setDuration(String(editData.duration_minutes))
+      const startDate = new Date(editData.scheduled_start)
+      setScheduledDate(startDate.toISOString().split('T')[0])
+      setScheduledTime(startDate.toTimeString().slice(0, 5))
+    }
+  }, [editData, isOpen])
+
+  // Auto-generate title when list or date changes (only in create mode)
+  useEffect(() => {
+    if (isEditMode) return
     if (selectedListId && scheduledDate) {
       const selectedList = lists.find(l => l.id === selectedListId)
       if (selectedList) {
@@ -63,7 +89,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
         setTitle(`${selectedList.name} - ${formattedDate}`)
       }
     }
-  }, [selectedListId, scheduledDate, lists])
+  }, [selectedListId, scheduledDate, lists, isEditMode])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -78,6 +104,32 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
       const scheduledStart = new Date(`${scheduledDate}T${scheduledTime}`)
       const scheduledEnd = new Date(scheduledStart.getTime() + parseInt(duration) * 60000)
 
+      if (isEditMode && editData) {
+        // UPDATE existing salesblock
+        const { error } = await supabase
+          .from('salesblocks')
+          .update({
+            list_id: selectedListId,
+            title,
+            scheduled_start: scheduledStart.toISOString(),
+            scheduled_end: scheduledEnd.toISOString(),
+            duration_minutes: parseInt(duration),
+            script_id: selectedScriptId || null,
+          })
+          .eq('id', editData.id)
+
+        if (error) throw error
+
+        setSuccessMessage('SalesBlock updated successfully!')
+
+        setTimeout(() => {
+          resetAndClose()
+          if (onSuccess) onSuccess()
+        }, 1500)
+        return
+      }
+
+      // CREATE new salesblock
       // Determine user_id and assigned_by
       const targetUserId = assignedToUserId || user.id
       const assignedBy = assignedToUserId ? user.id : null
@@ -151,8 +203,8 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
         if (onSuccess) onSuccess()
       }, 2000)
     } catch (error) {
-      console.error('Error creating salesblock:', error)
-      setErrorMessage('Failed to create SalesBlock. Please try again.')
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} salesblock:`, error)
+      setErrorMessage(`Failed to ${isEditMode ? 'update' : 'create'} SalesBlock. Please try again.`)
     } finally {
       setLoading(false)
     }
@@ -180,7 +232,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
           <div className="flex items-center gap-2 mb-4">
             <Clock className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create SalesBlock</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{isEditMode ? 'Edit' : 'Create'} SalesBlock</h2>
           </div>
           <p className="text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
@@ -194,7 +246,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create SalesBlock</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">{isEditMode ? 'Edit' : 'Create'} SalesBlock</h2>
           </div>
           <button onClick={resetAndClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             <X className="w-5 h-5" />
@@ -349,7 +401,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
               disabled={loading || !selectedListId || !scheduledDate || !scheduledTime}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create SalesBlock'}
+              {loading ? (isEditMode ? 'Saving...' : 'Creating...') : (isEditMode ? 'Save Changes' : 'Create SalesBlock')}
             </button>
           </div>
         </form>
