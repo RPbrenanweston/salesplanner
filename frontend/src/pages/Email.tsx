@@ -195,7 +195,7 @@ export default function Email() {
         </div>
       ) : filteredEmails.length === 0 ? (
         <div className="glass-card text-center py-16">
-          <Mail className="w-12 h-12 text-white/20 mx-auto mb-3" />
+          <Mail className="w-12 h-12 text-gray-300 dark:text-white/20 mx-auto mb-3" />
           <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">
             {searchQuery ? 'No emails match your search' : 'No emails yet'}
           </p>
