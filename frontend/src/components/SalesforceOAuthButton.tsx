@@ -18,6 +18,7 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { generateOAuthNonce } from '../lib/oauth-csrf'
 
 const SALESFORCE_CLIENT_ID = import.meta.env.VITE_SALESFORCE_CLIENT_ID
 const SALESFORCE_REDIRECT_URI = import.meta.env.VITE_SALESFORCE_REDIRECT_URI || `${window.location.origin}/oauth/salesforce/callback`
@@ -69,7 +70,7 @@ export default function SalesforceOAuthButton() {
       scope: 'api refresh_token',
       // Force consent screen for refresh token
       prompt: 'consent',
-      state: JSON.stringify({ user_id: user?.id }),
+      state: JSON.stringify({ user_id: user?.id, nonce: generateOAuthNonce('salesforce') }),
     })
 
     const authUrl = `https://login.salesforce.com/services/oauth2/authorize?${params.toString()}`

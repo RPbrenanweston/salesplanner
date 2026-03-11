@@ -18,6 +18,7 @@ import { useState, useEffect } from 'react'
 import { Mail, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { generateOAuthNonce } from '../lib/oauth-csrf'
 
 const OUTLOOK_CLIENT_ID = import.meta.env.VITE_OUTLOOK_CLIENT_ID
 const OUTLOOK_REDIRECT_URI = import.meta.env.VITE_OUTLOOK_REDIRECT_URI || `${window.location.origin}/oauth/outlook/callback`
@@ -68,7 +69,7 @@ export default function OutlookOAuthButton() {
       response_type: 'code',
       scope: OUTLOOK_SCOPES,
       response_mode: 'query',
-      state: JSON.stringify({ user_id: user?.id }), // Pass user context
+      state: JSON.stringify({ user_id: user?.id, nonce: generateOAuthNonce('outlook') }), // Pass user context + CSRF nonce
     })
 
     const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`

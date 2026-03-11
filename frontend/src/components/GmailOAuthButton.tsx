@@ -18,6 +18,7 @@ import { useState, useEffect } from 'react'
 import { Mail, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { generateOAuthNonce } from '../lib/oauth-csrf'
 
 const GMAIL_CLIENT_ID = import.meta.env.VITE_GMAIL_CLIENT_ID
 const GMAIL_REDIRECT_URI = import.meta.env.VITE_GMAIL_REDIRECT_URI || `${window.location.origin}/oauth/gmail/callback`
@@ -69,7 +70,7 @@ export default function GmailOAuthButton() {
       scope: GMAIL_SCOPES,
       access_type: 'offline', // Request refresh token
       prompt: 'consent', // Force consent screen to ensure refresh token
-      state: JSON.stringify({ user_id: user?.id }), // Pass user context
+      state: JSON.stringify({ user_id: user?.id, nonce: generateOAuthNonce('gmail') }), // Pass user context + CSRF nonce
     })
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`

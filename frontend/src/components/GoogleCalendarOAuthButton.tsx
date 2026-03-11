@@ -18,6 +18,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { generateOAuthNonce } from '../lib/oauth-csrf'
 
 const GOOGLE_CALENDAR_CLIENT_ID = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID
 const GOOGLE_CALENDAR_REDIRECT_URI = import.meta.env.VITE_GOOGLE_CALENDAR_REDIRECT_URI || `${window.location.origin}/oauth/google-calendar/callback`
@@ -69,7 +70,7 @@ export default function GoogleCalendarOAuthButton() {
       scope: GOOGLE_CALENDAR_SCOPES,
       access_type: 'offline', // Request refresh token
       prompt: 'consent', // Force consent screen to ensure refresh token
-      state: JSON.stringify({ user_id: user?.id }), // Pass user context
+      state: JSON.stringify({ user_id: user?.id, nonce: generateOAuthNonce('google_calendar') }), // Pass user context + CSRF nonce
     })
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
