@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import ComposeEmailModal from '../components/ComposeEmailModal'
 import BookMeetingModal from '../components/BookMeetingModal'
-import ContactActivityTimeline from '../components/ContactActivityTimeline'
+import RightPanelTabs from '../components/session/RightPanelTabs'
 import { DispositionButtons } from '../components/session/DispositionButtons'
 import { ConnectedFlowPanel } from '../components/session/ConnectedFlowPanel'
 import DebriefFunnel from '../components/session/DebriefFunnel'
@@ -867,21 +867,19 @@ export default function SalesBlockSessionPage() {
           )}
         </div>
 
-        {/* ─── RIGHT: Activity Timeline ─── */}
-        <div className="w-80 border-l border-gray-200 dark:border-white/10 overflow-y-auto bg-gray-50 dark:bg-white/[0.02] flex-shrink-0">
-          <div className="p-3 border-b border-gray-200 dark:border-white/10">
-            <h3 className="vv-section-title text-xs">Activity</h3>
-          </div>
+        {/* ─── RIGHT: Tabbed Panel (History / Research / Notes) ─── */}
+        <div className="w-80 border-l border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.02] flex-shrink-0 flex flex-col overflow-hidden">
           {activeContact ? (
-            <div className="p-3">
-              <ContactActivityTimeline
-                contactId={activeContact.id}
-                showAddNote={false}
-                onActivityLogged={refreshLiveStats}
-              />
-            </div>
+            <RightPanelTabs
+              contactId={activeContact.id}
+              contactCompany={activeContact.company ?? null}
+              orgId={orgId}
+              userId={user!.id}
+              salesblockId={salesblockId!}
+              onActivityLogged={refreshLiveStats}
+            />
           ) : (
-            <div className="p-6 text-center">
+            <div className="flex items-center justify-center h-full">
               <p className="text-xs text-gray-400 dark:text-white/30">Select a contact</p>
             </div>
           )}
