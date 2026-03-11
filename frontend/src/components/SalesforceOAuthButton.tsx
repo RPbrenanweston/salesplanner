@@ -1,19 +1,15 @@
-/**
- * @crumb
- * @id frontend-component-salesforce-oauth-button
- * @area UI/Integrations/OAuth
- * @intent Salesforce OAuth button — initiate Salesforce Connected App OAuth flow to authorize CRM sync, render connection status and disconnect option
- * @responsibilities Check Salesforce connection status from Supabase oauth_connections, render Connect/Disconnect button, construct Salesforce OAuth URL with state param, open popup OAuth window, poll for popup close to refresh status
- * @contracts SalesforceOAuthButton() → JSX; reads oauth_connections for provider='salesforce'; constructs Salesforce OAuth URL with VITE_SALESFORCE_CLIENT_ID; opens popup; on disconnect: deletes from oauth_connections
- * @in useAuth (user_id), supabase oauth_connections table, VITE_SALESFORCE_CLIENT_ID + VITE_SALESFORCE_REDIRECT_URI env vars
- * @out Redirect to Salesforce OAuth in popup; or Disconnect: supabase oauth_connections delete; connection status display updated
- * @err Missing VITE_SALESFORCE_CLIENT_ID (error state shown); popup blocked (OAuth silently fails); disconnect failure (caught, error shown)
- * @hazard Salesforce OAuth returns an instance_url in the token response that must be stored alongside the tokens — if the backend callback does not capture and store instance_url, all subsequent Salesforce API calls will target the wrong org endpoint (production vs sandbox)
- * @hazard Salesforce Connected Apps require the redirect URI to be whitelisted in Salesforce Setup — if VITE_SALESFORCE_REDIRECT_URI doesn't exactly match the Salesforce app configuration, the OAuth flow will fail with an error that appears on the Salesforce authorization page, not in the app UI
- * @shared-edges frontend/src/hooks/useAuth.ts→READS user_id; supabase oauth_connections table→READS/DELETES; frontend/src/pages/SalesforceOAuthCallback.tsx→RECEIVES OAuth redirect; lib/salesforce.ts→USES stored tokens; frontend/src/pages/SettingsPage.tsx→RENDERS button
- * @trail sf-connect#1 | User clicks "Connect Salesforce" → SalesforceOAuthButton constructs OAuth URL → popup opens → Salesforce login → SalesforceOAuthCallback → tokens + instance_url stored → popup closes → connection reloads
- * @prompt Add CSRF nonce to state param. Validate instance_url storage in callback. Show clear error if popup is blocked. Differentiate sandbox vs production OAuth endpoints.
- */
+// @crumb frontend-component-salesforce-oauth-button
+// UI/Integrations/OAuth | connection_status_check | connect_disconnect_button | oauth_url_construction | popup_oauth_window | popup_close_polling
+// why: Salesforce OAuth button — initiate Salesforce Connected App OAuth flow to authorize CRM sync, render connection status and disconnect option
+// in:useAuth (user_id),supabase oauth_connections table,VITE_SALESFORCE_CLIENT_ID + VITE_SALESFORCE_REDIRECT_URI env vars out:Redirect to Salesforce OAuth in popup,Disconnect deletes connection err:Missing client_id (error shown),popup blocked (silent fail),disconnect failure
+// hazard: Salesforce instance_url must be stored alongside tokens — missing it targets wrong org endpoint (production vs sandbox)
+// hazard: Redirect URI must exactly match Salesforce Setup whitelist — mismatch causes error on Salesforce page, not in app UI
+// edge:frontend/src/hooks/useAuth.ts -> READS
+// edge:frontend/src/pages/SalesforceOAuthCallback.tsx -> RELATES
+// edge:frontend/src/lib/salesforce.ts -> CALLS
+// edge:frontend/src/pages/SettingsPage.tsx -> RELATES
+// edge:sf-connect#1 -> STEP_IN
+// prompt: Add CSRF nonce to state param. Validate instance_url storage in callback. Show clear error if popup is blocked. Differentiate sandbox vs production OAuth endpoints.
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'

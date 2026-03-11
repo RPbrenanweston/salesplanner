@@ -1,16 +1,14 @@
-/**
- * @crumb
- * @id edge-exchange-oauth-token
- * @area Auth/OAuth
- * @intent Exchange OAuth authorization code for access/refresh tokens across all providers (Gmail, Outlook, Google Calendar, Outlook Calendar, Salesforce)
- * @responsibilities Accept provider + code + redirect_uri + user_id, exchange code with provider token endpoint, upsert tokens into oauth_connections table
- * @contracts POST { provider, code, redirect_uri, user_id } -> { success: true } | { error: string }
- * @in POST body (provider, code, redirect_uri, user_id), env vars (GMAIL_CLIENT_SECRET, OUTLOOK_CLIENT_SECRET, SALESFORCE_CLIENT_SECRET, GMAIL_CLIENT_ID, OUTLOOK_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_ID, OUTLOOK_CALENDAR_CLIENT_ID, SALESFORCE_CLIENT_ID, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
- * @out JSON { success: true } on success; JSON { error: string } on failure; upserts row in oauth_connections table
- * @err Missing env vars -> 500; invalid provider -> 400; token exchange failure -> 502; DB upsert failure -> 500
- * @hazard Client secrets in Deno env — ensure edge function logs are restricted
- * @hazard OAuth codes are single-use — if this function is called twice with the same code, the second call will fail
- */
+// @crumb edge-exchange-oauth-token
+// Auth/OAuth | provider_code_exchange | token_endpoint_resolution | oauth_connection_upsert
+// why: Exchange OAuth authorization code for access/refresh tokens across all providers (Gmail, Outlook, Google Calendar, Outlook Calendar, Salesforce)
+// in:POST body (provider,code,redirect_uri,user_id), env vars (GMAIL_CLIENT_SECRET,OUTLOOK_CLIENT_SECRET,SALESFORCE_CLIENT_SECRET,GMAIL_CLIENT_ID,OUTLOOK_CLIENT_ID,GOOGLE_CALENDAR_CLIENT_ID,OUTLOOK_CALENDAR_CLIENT_ID,SALESFORCE_CLIENT_ID,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY) out:JSON {success:true} on success; JSON {error:string} on failure; upserts row in oauth_connections table err:Missing env vars -> 500; invalid provider -> 400; token exchange failure -> 502; DB upsert failure -> 500
+// hazard: Client secrets in Deno env — ensure edge function logs are restricted
+// hazard: OAuth codes are single-use — if this function is called twice with the same code, the second call will fail
+// edge:frontend/src/hooks/useOAuthCallback.ts -> SERVES
+// edge:supabase/functions/exchange-google-token/index.ts -> RELATES
+// edge:supabase/functions/exchange-microsoft-token/index.ts -> RELATES
+// edge:oauth-exchange#1 -> STEP_IN
+// prompt: When adding a new OAuth provider, add a new case to the provider switch, add the corresponding env vars (CLIENT_ID, CLIENT_SECRET, REDIRECT_URI), and add the token endpoint URL. Test with CSRF nonce validation. Ensure tokens are upserted not inserted to handle reconnect flows.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 

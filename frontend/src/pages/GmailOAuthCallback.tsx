@@ -1,17 +1,12 @@
-/**
- * @crumb
- * @id frontend-page-gmail-oauth-callback
- * @area UI/Auth/OAuth
- * @intent Gmail OAuth callback — receive authorization code from Google, exchange for tokens via edge function, close popup
- * @responsibilities Parse code/state/error from URL params on mount, validate CSRF nonce, exchange code for tokens via Supabase edge function, close popup
- * @contracts GmailOAuthCallback() → JSX; reads window.location.search for OAuth params; calls exchange-google-token edge function; uses useNavigate
- * @in window.location.search (code, state, error params), Supabase session (JWT), exchange-google-token edge function
- * @out Gmail access/refresh tokens stored via edge function; popup closes on success; error state displayed on failure
- * @err OAuth error param from Google (error displayed); missing code (error state set); CSRF nonce mismatch (error); edge function failure (error displayed)
- * @hazard StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
- * @shared-edges frontend/src/components/GmailOAuthButton.tsx→INITIATES OAuth flow; supabase/functions/exchange-google-token→EXCHANGES code for tokens
- * @trail gmail-oauth#1 | GmailOAuthButton redirects to Google → Google redirects to callback → parse params → validate CSRF → exchange code via edge function → popup closes
- */
+// @crumb frontend-page-gmail-oauth-callback
+// UI/AUTH/OAUTH | parse_oauth_params | validate_csrf_nonce | exchange_tokens | close_popup
+// why: Gmail OAuth callback — receive authorization code from Google, exchange for tokens via edge function, close popup
+// in:window.location.search(code,state,error),Supabase session(JWT),exchange-google-token edge function out:Gmail access/refresh tokens stored via edge function,popup closes on success err:OAuth error from Google,missing code,CSRF nonce mismatch,edge function failure
+// hazard: StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+// edge:frontend/src/components/GmailOAuthButton.tsx -> RELATES
+// edge:supabase/functions/exchange-google-token -> CALLS
+// edge:gmail-oauth#1 -> STEP_IN
+// prompt: Test CSRF nonce round-trip with sessionStorage. Verify popup close fires window.opener.postMessage for parent to detect connection. Add explicit error display for nonce mismatch failure.
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'

@@ -1,15 +1,15 @@
-/**
- * @crumb
- * @id frontend-page-email
- * @area UI/Pages
- * @intent Email outreach page — display sent emails from activities table, filter by status, compose new emails
- * @responsibilities Load email activities with contact info, render filterable email list, launch ComposeEmailModal
- * @contracts Email() -> JSX; reads activities(type=email) joined to contacts from Supabase; uses useAuth for user scoping
- * @in supabase (activities table filtered by type=email, contacts), useAuth, ComposeEmailModal
- * @out Filterable email list with contact name, subject, timestamp, reply status; compose button
- * @err Supabase query failure (empty list shown with error state)
- * @shared-edges frontend/src/components/ComposeEmailModal.tsx->LAUNCHES; frontend/src/lib/supabase.ts->QUERIES; frontend/src/App.tsx->ROUTES to /email
- */
+// @crumb frontend-page-email
+// UI/PAGES | load_email_activities | render_filterable_list | launch_compose_modal
+// why: Email outreach page — display sent emails from activities table, filter by status, compose new emails
+// in:supabase activities(type=email) joined to contacts,useAuth,ComposeEmailModal out:filterable email list with contact name,subject,timestamp,reply status err:Supabase query failure (empty list with error state)
+// hazard: Email activities join to contacts via contact_id — if contact deleted, join returns null and email card renders with missing name
+// hazard: No pagination — loads all email activities; large volumes cause slow query and blank state before data arrives
+// edge:frontend/src/components/ComposeEmailModal.tsx -> CALLS
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:email#1 -> STEP_IN
+// prompt: Add pagination or virtual scroll for email activity list. Guard deleted contact joins with null fallback. Add empty state with compose CTA.
 import { useState, useEffect } from 'react'
 import { Mail, Plus, Send, Reply, Clock, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'

@@ -1,19 +1,13 @@
-/**
- * @crumb
- * @id frontend-component-create-salesblock-modal
- * @area UI/SalesBlocks
- * @intent Create SalesBlock modal — form to create a new SalesBlock (named outreach unit) with optional calendar event for a kickoff meeting
- * @responsibilities Render SalesBlock creation form (name, description, target company, assigned contacts), optionally create a calendar event at creation time, insert into salesblocks table, call onCreated callback
- * @contracts CreateSalesBlockModal({ onClose, onCreated }) → JSX; calls supabase.from('salesblocks').insert; optionally calls createCalendarEvent from lib/calendar; uses useAuth for org_id + user_id
- * @in useAuth (org_id, user_id), supabase salesblocks table, lib/calendar.createCalendarEvent (optional), onClose callback, onCreated callback
- * @out New salesblock row in salesblocks table associated to org_id + user_id; optional calendar event created; onCreated called with new salesblock; modal closed
- * @err Supabase insert failure (caught, error shown); createCalendarEvent failure if calendar not connected (caught, salesblock created without calendar event)
- * @hazard createCalendarEvent is called inside the salesblock creation flow — if it fails and the error is not surfaced, the user may not know their kickoff calendar event was never created, leading to a missing meeting
- * @hazard salesblocks are inserted with user_id from useAuth — if useAuth returns null user (race condition on auth state), the insert will fail or create an unowned salesblock depending on DB constraints
- * @shared-edges frontend/src/hooks/useAuth.ts→READS org_id + user_id; frontend/src/lib/calendar.ts→CALLS createCalendarEvent; supabase salesblocks table→INSERTS to; parent page (Lists or Dashboard)→RENDERS modal
- * @trail create-salesblock#1 | User clicks "New SalesBlock" → CreateSalesBlockModal renders → user fills form → handleCreate → supabase insert → optionally createCalendarEvent → onCreated(newBlock) → modal closes
- * @prompt Guard createCalendarEvent failure separately from salesblock insert. Validate user is authenticated before rendering form. Show explicit calendar event creation status.
- */
+// @crumb frontend-component-create-salesblock-modal
+// UI/SalesBlocks | creation_form | calendar_event_creation | salesblock_insert | on_created_callback
+// why: Create SalesBlock modal — form to create a new SalesBlock (named outreach unit) with optional calendar event for a kickoff meeting
+// in:useAuth (org_id, user_id),supabase salesblocks table,lib/calendar.createCalendarEvent out:New salesblock row,optional calendar event,onCreated called err:Supabase insert failure,createCalendarEvent failure (salesblock created without event)
+// hazard: createCalendarEvent failure inside creation flow is not surfaced — user may not know kickoff meeting was never created
+// hazard: useAuth null user race condition may cause insert failure or create unowned salesblock
+// edge:frontend/src/hooks/useAuth.ts -> READS
+// edge:frontend/src/lib/calendar.ts -> CALLS
+// edge:create-salesblock#1 -> STEP_IN
+// prompt: Guard createCalendarEvent failure separately from salesblock insert. Validate user is authenticated before rendering form. Show explicit calendar event creation status.
 import { useState, useEffect } from 'react'
 import { X, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'

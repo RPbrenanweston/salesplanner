@@ -1,20 +1,20 @@
-/**
- * @crumb
- * @id frontend-page-list-detail
- * @area UI/Pages
- * @intent Contact list detail view — browse, search, sort, bulk-select, and act on contacts in a specific list; single or bulk remove contacts with confirmation; launch email/social/meeting actions; start SalesBlock session
- * @responsibilities Load list metadata + contacts by listId param (with filter_criteria fallback for legacy lists), render sortable contact table with checkbox selection, search contacts, single remove with confirm dialog, bulk remove with confirmation modal, batch activity date loading, open action modals per contact, navigate to ContactDetailPage, start SalesBlock from list, edit list via ListBuilderModal
- * @contracts ListDetailPage() → JSX; receives listId via useParams; reads lists + list_contacts + contacts + activities from Supabase; writes on contact remove (single or bulk); uses useAuth
- * @in useParams (listId), useAuth (user), supabase (lists + list_contacts + contacts + activities), ComposeEmailModal + LogSocialActivityModal + BookMeetingModal + ListBuilderModal components
- * @out Searchable sortable contact table with checkbox selection + bulk actions bar, action buttons per row, list header with metadata + edit button, Run SalesBlock CTA, delete confirmation modal
- * @err listId not found in Supabase (shows loading spinner indefinitely — no 404); contact remove failure (alert displayed); load error (error state with retry button)
- * @hazard Single contact remove still uses browser confirm() — inconsistent UX with the new bulk delete modal
- * @hazard Sort state is client-side only — if contact list is paginated in future, sort breaks silently (sorts only the loaded page, not full list)
- * @hazard Chunked .in() queries (200 per chunk) for large lists — may be slow for lists with 10,000+ contacts
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES lists+list_contacts+contacts+activities; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/components/ListBuilderModal.tsx→LAUNCHES; frontend/src/pages/ContactDetailPage.tsx→NAVIGATES to; frontend/src/App.tsx→ROUTES to /lists/:id
- * @trail list-detail#1 | ListDetailPage mounts with listId → load list metadata → load contacts (junction table with filter_criteria fallback) → batch load activities → render table with checkboxes → user selects contacts → bulk actions bar appears → user clicks "Remove from list" → confirmation modal → chunked delete from list_contacts → reload contacts
- * @prompt Consider migrating single-contact remove to use modal confirmation (matching bulk pattern). Add 404 state when list not found. Move sort to server-side when list grows. VV design applied throughout.
- */
+// @crumb frontend-page-list-detail
+// UI/PAGES | load_list_metadata | render_sortable_contact_table | checkbox_selection | bulk_remove | single_remove | action_modals | salesblock_launch | list_edit
+// why: Contact list detail view — browse, search, sort, bulk-select, and act on contacts in a specific list
+// in:useParams(listId),useAuth(user),supabase(lists+list_contacts+contacts+activities),ComposeEmailModal+LogSocialActivityModal+BookMeetingModal+ListBuilderModal out:searchable sortable contact table with bulk actions,action buttons per row,list header,Run SalesBlock CTA err:listId not found(loading spinner indefinitely),contact remove failure(alert),load error(error state with retry)
+// hazard: Single contact remove still uses browser confirm() — inconsistent UX with the new bulk delete modal
+// hazard: Sort state is client-side only — if contact list is paginated in future, sort breaks silently
+// hazard: Chunked .in() queries (200 per chunk) for large lists — may be slow for 10,000+ contacts
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/components/ComposeEmailModal.tsx -> CALLS
+// edge:frontend/src/components/LogSocialActivityModal.tsx -> CALLS
+// edge:frontend/src/components/BookMeetingModal.tsx -> CALLS
+// edge:frontend/src/components/ListBuilderModal.tsx -> CALLS
+// edge:frontend/src/pages/ContactDetailPage.tsx -> RELATES
+// edge:frontend/src/App.tsx -> RELATES
+// edge:list-detail#1 -> STEP_IN
+// prompt: Consider migrating single-contact remove to use modal confirmation (matching bulk pattern). Add 404 state when list not found. Move sort to server-side when list grows. VV design applied throughout.
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil, Trash2, AlertTriangle } from 'lucide-react';

@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id frontend-component-gmail-oauth-button
- * @area UI/Integrations/OAuth
- * @intent Gmail OAuth button — initiate Gmail OAuth flow by redirecting user to Google's authorization endpoint with the correct scopes and state param
- * @responsibilities Check current Gmail connection status from Supabase, render Connect/Disconnect button, construct Google OAuth URL with state param containing user_id, redirect to Google
- * @contracts GmailOAuthButton({ onConnected?, onDisconnected? }) → JSX; reads gmail_integrations table for current user; constructs OAuth URL with state=JSON.stringify({user_id}); window.location.href redirect
- * @in useAuth (user_id), supabase gmail_integrations table, Google OAuth env vars (VITE_GOOGLE_CLIENT_ID, VITE_GOOGLE_OAUTH_REDIRECT_URI), onConnected callback (optional), onDisconnected callback (optional)
- * @out Redirect to Google OAuth URL; or Disconnect: supabase gmail_integrations delete; connection status display updated
- * @err Missing env vars (OAuth URL malformed — silent failure); Google redirect failure (user sees Google error page); disconnect Supabase delete failure (caught, error shown)
- * @hazard state param contains user_id as JSON but no CSRF nonce — if the redirect URI is known to an attacker, they can forge a state param with a victim's user_id and complete the OAuth flow on their behalf
- * @hazard OAuth redirect uses window.location.href (full page navigation) — if the user has unsaved changes on SettingsPage, those changes are silently lost when the OAuth redirect happens
- * @shared-edges frontend/src/hooks/useAuth.ts→READS user_id; supabase gmail_integrations table→READS connection status; frontend/src/pages/GmailOAuthCallback.tsx→RECEIVES redirect; frontend/src/pages/SettingsPage.tsx→RENDERS button
- * @trail gmail-connect#1 | User clicks "Connect Gmail" → GmailOAuthButton constructs OAuth URL → window.location.href redirect → Google login → GmailOAuthCallback → tokens stored → /settings
- * @prompt Add CSRF nonce to state param. Warn user about unsaved changes before redirect. Use popup window instead of full page redirect to preserve page state.
- */
+// @crumb frontend-component-gmail-oauth-button
+// UI/Integrations/OAuth | connection_status_check | connect_disconnect_button | oauth_url_construction | google_redirect
+// why: Gmail OAuth button — initiate Gmail OAuth flow by redirecting user to Google's authorization endpoint with the correct scopes and state param
+// in:useAuth (user_id),supabase gmail_integrations table,Google OAuth env vars out:Redirect to Google OAuth URL,Disconnect deletes connection err:Missing env vars (silent failure),Google redirect failure,disconnect delete failure
+// hazard: State param contains user_id without CSRF nonce — attacker can forge state and complete OAuth on victim's behalf
+// hazard: OAuth redirect uses window.location.href — unsaved changes on SettingsPage are silently lost
+// edge:frontend/src/hooks/useAuth.ts -> READS
+// edge:frontend/src/pages/GmailOAuthCallback.tsx -> RELATES
+// edge:frontend/src/pages/SettingsPage.tsx -> RELATES
+// edge:gmail-connect#1 -> STEP_IN
+// prompt: Add CSRF nonce to state param. Warn user about unsaved changes before redirect. Use popup window instead of full page redirect to preserve page state.
 import { useState, useEffect } from 'react'
 import { Mail, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'

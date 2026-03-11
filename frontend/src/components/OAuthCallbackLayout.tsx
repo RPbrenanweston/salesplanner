@@ -1,11 +1,14 @@
-/**
- * @crumb
- * @id frontend-component-oauth-callback-layout
- * @area UI/Auth/OAuth
- * @intent Shared OAuth callback layout — renders processing/success/error states with VV design tokens
- * @responsibilities Display spinner during processing, checkmark on success, error icon and message on failure, close button on error
- * @contracts OAuthCallbackLayout({ status, errorMessage, providerName }) -> JSX
- */
+// @crumb frontend-component-oauth-callback-layout
+// UI/Auth/OAuth | processing_spinner | success_checkmark | error_display | close_button
+// why: Shared OAuth callback layout — renders processing/success/error states with VV design tokens
+// in:status,errorMessage,providerName out:JSX rendering processing/success/error states err:none
+// edge:frontend/src/pages/GmailOAuthCallback.tsx -> SERVES
+// edge:frontend/src/pages/GoogleCalendarOAuthCallback.tsx -> SERVES
+// edge:frontend/src/pages/OutlookOAuthCallback.tsx -> SERVES
+// edge:frontend/src/pages/OutlookCalendarOAuthCallback.tsx -> SERVES
+// edge:frontend/src/pages/SalesforceOAuthCallback.tsx -> SERVES
+// edge:oauth-layout#1 -> STEP_IN
+// prompt: Add animated transition between processing/success/error states. Ensure providerName displays human-readable label (Gmail not gmail). Test with popup blocker active — error state should explain manual close.
 
 interface OAuthCallbackLayoutProps {
   status: 'processing' | 'success' | 'error'

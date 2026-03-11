@@ -1,19 +1,19 @@
-/**
- * @crumb
- * @id frontend-page-settings
- * @area UI/Pages
- * @intent Multi-tab settings hub — manage profile, organisation, team, integrations, pipeline stages, and billing for the current user and org
- * @responsibilities Load org data + pipeline stages + billing info, render 6-tab UI, handle logo upload, save org settings, toggle Salesforce auto-push, manage pipeline stages CRUD, render all 5 OAuth integration buttons
- * @contracts SettingsPage() → JSX; reads/writes orgs + pipeline_stages + users tables + Supabase Storage; uses useAuth for current user
- * @in supabase (orgs + pipeline_stages + users + storage), useAuth, GmailOAuthButton + OutlookOAuthButton + GoogleCalendarOAuthButton + OutlookCalendarOAuthButton + SalesforceOAuthButton
- * @out 6-tab settings UI with profile edit, org management, team roster, OAuth integration buttons, pipeline stage editor, billing display
- * @err Logo upload failure (uploadError state shown); org save failure (silent console.error); pipeline stage save failure (silent); Supabase Storage URL construction may fail silently on non-standard bucket config
- * @hazard All 5 OAuth integrations render inside a single tab — if any OAuth button throws on mount it will crash the entire integrations tab and potentially the full SettingsPage via unhandled render error
- * @hazard Logo upload uses Supabase Storage with a hardcoded bucket name — if the bucket name or path conventions change, uploads silently store to wrong location and the logo_url in orgs will be stale/broken
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES orgs+pipeline_stages+users; frontend/src/hooks/useAuth.ts→READS current user; frontend/src/components/GmailOAuthButton.tsx→RENDERS; frontend/src/components/OutlookOAuthButton.tsx→RENDERS; frontend/src/components/GoogleCalendarOAuthButton.tsx→RENDERS; frontend/src/components/OutlookCalendarOAuthButton.tsx→RENDERS; frontend/src/components/SalesforceOAuthButton.tsx→RENDERS; frontend/src/App.tsx→ROUTES to /settings
- * @trail settings#1 | SettingsPage mounts → load org + pipeline stages → render tabs → user edits profile or org → save → user connects integration → OAuth button redirects → callback page returns → user edits pipeline → save
- * @prompt Wrap each OAuth button in its own ErrorBoundary to isolate render crashes. Add success/error toasts for all save actions. Validate org logo URL before displaying. Extract each tab into a sub-component for maintainability. VV design applied: void-950 page bg, glass-card panels, indigo-electric active tab + CTAs + toggles ON, red-alert danger zone + destructive actions, vv-section-title labels, font-display headings, font-mono stats, white/10 borders, VV inline spinners (hierarchy/team/stages/billing), bg-black/60 modal backdrop, disabled inputs dark:bg-white/5 dark:text-white/50, ease-snappy transitions.
- */
+// @crumb frontend-page-settings
+// UI/PAGES | load_org_data | render_six_tab_ui | logo_upload | org_settings_save | salesforce_auto_push | pipeline_stages_crud | oauth_buttons
+// why: Multi-tab settings hub — manage profile, organisation, team, integrations, pipeline stages, and billing
+// in:supabase(orgs+pipeline_stages+users+storage),useAuth,GmailOAuthButton+OutlookOAuthButton+GoogleCalendarOAuthButton+OutlookCalendarOAuthButton+SalesforceOAuthButton out:6-tab settings UI with profile edit,org management,team roster,OAuth buttons,pipeline stage editor,billing display err:logo upload failure(uploadError state),org save failure(silent),pipeline stage save failure(silent),Storage URL construction may fail silently
+// hazard: All 5 OAuth integrations render inside a single tab — if any OAuth button throws on mount it crashes the entire integrations tab
+// hazard: Logo upload uses Supabase Storage with a hardcoded bucket name — path convention changes cause silent stale/broken logo_url
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> READS
+// edge:frontend/src/components/GmailOAuthButton.tsx -> RELATES
+// edge:frontend/src/components/OutlookOAuthButton.tsx -> RELATES
+// edge:frontend/src/components/GoogleCalendarOAuthButton.tsx -> RELATES
+// edge:frontend/src/components/OutlookCalendarOAuthButton.tsx -> RELATES
+// edge:frontend/src/components/SalesforceOAuthButton.tsx -> RELATES
+// edge:frontend/src/App.tsx -> RELATES
+// edge:settings#1 -> STEP_IN
+// prompt: Wrap each OAuth button in its own ErrorBoundary. Add success/error toasts for all save actions. Validate org logo URL before displaying. Extract each tab into a sub-component.
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'

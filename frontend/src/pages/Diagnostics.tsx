@@ -1,10 +1,14 @@
-/**
- * @crumb diagnostics
- * @id salesblock-diagnostics
- * @area Debug
- * @intent Runtime diagnostic page to identify why list creation fails silently
- * @responsibilities Run sequential auth/user/org/RLS/INSERT/SELECT tests; report pass/fail with details
- */
+// @crumb salesblock-diagnostics
+// DEBUG | sequential_auth_tests | user_org_rls_tests | insert_select_tests | pass_fail_reporting
+// why: Runtime diagnostic page to identify why list creation fails silently
+// in:supabase auth client,user session out:sequential test results with pass/fail/detail err:any test step can throw on network/auth failure
+// hazard: Diagnostic page has no auth guard — direct URL access exposes internal DB state to unauthenticated users
+// hazard: Each test fires real Supabase writes — running diagnostics in production modifies live data
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:diagnostics#1 -> STEP_IN
+// prompt: Add ProtectedRoute wrapper. Add read-only mode for diagnostics that uses SELECT-only queries. Remove or gate behind admin role flag in production.
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 

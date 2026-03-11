@@ -1,19 +1,15 @@
-/**
- * @crumb
- * @id frontend-page-home
- * @area UI/Pages
- * @intent Dashboard home — displays today's SalesBlock schedule, recent activity feed, goal progress rings, and quick-start actions for the authenticated rep
- * @responsibilities Load and display scheduled SalesBlocks, recent activities with contact names, goal progress vs targets, today's activity summary counts; navigate to session or create new SalesBlock
- * @contracts Home() → JSX; reads salesblocks+lists, activities+contacts, goals+user_goals from Supabase; uses useAuth for user+org_id scoping
- * @in supabase (salesblocks, activities, goals, users tables), useAuth (user), useNavigate for session entry
- * @out Dashboard with KPI summary row, SalesBlock schedule cards, activity feed, goal progress
- * @err Supabase query failure on any of 4 parallel data loads (silently empty state); no org_id on user row (all org-scoped queries return nothing)
- * @hazard Goal progress calculation uses activities table aggregate — if activities table is empty for the period, goals show 0% with no empty-state messaging, looks broken
- * @hazard CreateSalesBlockModal launched from Home must re-fetch salesblocks after close — if callback not wired, new block won't appear without page reload
- * @shared-edges frontend/src/components/CreateSalesBlockModal.tsx→LAUNCHES for new blocks; frontend/src/lib/supabase.ts→QUERIES all data; frontend/src/hooks/useAuth.ts→CALLS for user; frontend/src/App.tsx→ROUTES to /
- * @trail home#1 | Home mounts → parallel data load (salesblocks + activities + goals) → render KPI row + schedule + feed + progress → Play button navigates to /salesblocks/:id/session → CreateSalesBlockModal opens inline
- * @prompt VV tokens applied — stripped dual dark:/gray- artifacts, void-950 background, VV spinner on load state. Remaining: add empty-state messaging when goals have no activities. Consider skeleton loaders per data section independently.
- */
+// @crumb frontend-page-home
+// UI/PAGES | load_salesblock_schedule | recent_activity_feed | goal_progress_rings | quick_start_actions
+// why: Dashboard home — displays today's SalesBlock schedule, recent activity feed, goal progress, and quick-start actions
+// in:supabase(salesblocks,activities,goals,users),useAuth(user),useNavigate out:dashboard with KPI summary,SalesBlock schedule cards,activity feed,goal progress err:Supabase query failure on parallel loads(silently empty),no org_id on user(all queries return nothing)
+// hazard: Goal progress uses activities aggregate — if empty for the period, goals show 0% with no empty-state messaging
+// hazard: CreateSalesBlockModal launched from Home must re-fetch salesblocks after close — if callback not wired, new block won't appear without reload
+// edge:frontend/src/components/CreateSalesBlockModal.tsx -> CALLS
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:home#1 -> STEP_IN
+// prompt: Add empty-state messaging when goals have no activities. Consider skeleton loaders per data section independently.
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {

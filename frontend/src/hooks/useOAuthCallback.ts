@@ -1,13 +1,13 @@
-/**
- * @crumb
- * @id frontend-hook-use-oauth-callback
- * @area Auth/OAuth
- * @intent Shared OAuth callback hook — consolidates token exchange logic for all 5 providers into a single reusable hook
- * @responsibilities Parse OAuth params from URL, validate CSRF nonce, exchange code via edge function, handle success/error states
- * @contracts useOAuthCallback(provider, redirectUri) -> { status, errorMessage }
- * @in provider string, redirect_uri string, URL search params (code, state, error, error_description)
- * @out status ('processing' | 'success' | 'error'), errorMessage string | null
- */
+// @crumb frontend-hook-use-oauth-callback
+// Auth/OAuth | url_param_parsing | csrf_nonce_validation | token_exchange | success_error_handling
+// why: Shared OAuth callback hook — consolidates token exchange logic for all 5 providers into a single reusable hook
+// in:provider string,redirect_uri string,URL search params (code,state,error,error_description) out:status (processing|success|error),errorMessage string|null err:missing code,invalid state,token exchange failure
+// hazard: OAuth codes are single-use — React StrictMode double-invoke can consume code before real callback
+// hazard: CSRF nonce validation fails in popup scenario where sessionStorage is on different origin
+// edge:frontend/src/lib/oauth-csrf.ts -> CALLS
+// edge:supabase/functions/exchange-oauth-token -> CALLS
+// edge:oauth-callback#1 -> STEP_IN
+// prompt: Test double-invoke protection in StrictMode. Verify CSRF nonce cleared from sessionStorage after successful validation. Add timeout handling if exchange-oauth-token edge function takes >10s.
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { validateOAuthNonce } from '../lib/oauth-csrf';

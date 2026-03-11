@@ -1,19 +1,15 @@
-/**
- * @crumb
- * @id backend-discovery-web
- * @area OBS
- * @intent Web discovery — search the web for engineer candidates using GatingConfig parameters, return DiscoveredCandidate objects with raw evidence links for downstream validation
- * @responsibilities Build search queries from GatingConfig, call web search APIs, extract candidate names + URLs + evidence links, validate source URLs against allowed source tiers
- * @contracts discoverCandidates(config: GatingConfig) → Promise<DiscoveredCandidate[]>; uses validateSourceUrl from sources.ts to filter evidence; DiscoveredCandidate shape: {name, handle?, primaryUrl, languages[], evidenceLinks[], discoverySource}
- * @in GatingConfig (engineeringFocus, languages, geography, evidencePriorities), sources.ts validateSourceUrl
- * @out DiscoveredCandidate[] — raw candidates with evidence links, not yet validated for signal quality
- * @err Web search API failure (caught — returns empty array or partial results); source URL validation failure (candidate excluded from results)
- * @hazard Discovery depends on web search API availability — if the API rate limits or goes down, the agent silently returns fewer candidates than expected with no user-visible error; downstream report may be generated from an insufficient pool
- * @hazard DiscoveredCandidate.evidenceLinks are not validated for liveness at discovery time — dead links are passed to validation, which may produce false signal failures for candidates whose evidence links have rotted
- * @shared-edges src/types.ts→IMPORTS GatingConfig; src/sources.ts→CALLS validateSourceUrl; src/validation.ts→CONSUMES DiscoveredCandidate[]; src/hybrid-discovery.ts→CALLS discoverCandidates as webDiscoveryFn callback
- * @trail discovery#1 | index.ts triggers discovery → discoverCandidates(config) → web search API → candidates extracted → source URLs validated → DiscoveredCandidate[] returned → passed to validation
- * @prompt Add retry logic for web search API failures. Log discovery counts per search query for diagnostics. Consider caching raw discovery results to avoid redundant API calls on re-runs.
- */
+// @crumb backend-discovery-web
+// OBS | search_query_building | web_search_api_calling | candidate_extraction | source_url_validation
+// why: Web discovery — search the web for engineer candidates using GatingConfig parameters, return DiscoveredCandidate objects with raw evidence links for downstream validation
+// in:GatingConfig (engineeringFocus,languages,geography,evidencePriorities), sources.ts validateSourceUrl out:DiscoveredCandidate[] — raw candidates with evidence links, not yet validated for signal quality err:Web search API failure returns empty or partial results; source URL validation failure excludes candidate
+// hazard: Discovery depends on web search API availability — silent degradation returns fewer candidates with no user-visible error
+// hazard: DiscoveredCandidate.evidenceLinks are not validated for liveness at discovery time — dead links cause false signal failures
+// edge:src/types.ts -> READS
+// edge:src/sources.ts -> CALLS
+// edge:src/validation.ts -> SERVES
+// edge:src/hybrid-discovery.ts -> SERVES
+// edge:discovery#1 -> STEP_IN
+// prompt: Add retry logic for web search API failures. Log discovery counts per search query for diagnostics. Consider caching raw discovery results.
 import type { GatingConfig } from './types.js';
 import { validateSourceUrl } from './sources.js';
 

@@ -1,14 +1,9 @@
-/**
- * @crumb
- * @id frontend-page-salesforce-oauth-callback
- * @area UI/Auth/OAuth
- * @intent Salesforce OAuth callback — receive authorization code from Salesforce, exchange for tokens + instance_url via edge function, show status, close popup
- * @responsibilities Delegate to useOAuthCallback hook with provider='salesforce', render processing/success/error states
- * @contracts SalesforceOAuthCallback() -> JSX; uses useOAuthCallback('salesforce', redirectUri)
- * @in URL search params (code, state, error, error_description), useOAuthCallback hook
- * @out Salesforce access/refresh tokens + instance_url stored via edge function; popup closes on success; error state displayed on failure
- * @shared-edges frontend/src/components/SalesforceOAuthButton.tsx->INITIATES OAuth flow; frontend/src/hooks/useOAuthCallback.ts->HANDLES token exchange
- */
+// @crumb frontend-page-salesforce-oauth-callback
+// UI/AUTH/OAUTH | delegate_to_useOAuthCallback | render_processing_success_error_states
+// why: Salesforce OAuth callback — receive authorization code from Salesforce, exchange for tokens + instance_url via edge function
+// in:URL search params(code,state,error,error_description),useOAuthCallback hook out:Salesforce access/refresh tokens+instance_url stored via edge function,popup closes on success err:OAuth error from Salesforce,edge function failure
+// edge:frontend/src/components/SalesforceOAuthButton.tsx -> RELATES
+// edge:frontend/src/hooks/useOAuthCallback.ts -> CALLS
 import { useOAuthCallback } from '../hooks/useOAuthCallback'
 import OAuthCallbackLayout from '../components/OAuthCallbackLayout'
 

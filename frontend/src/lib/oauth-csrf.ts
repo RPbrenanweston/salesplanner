@@ -1,11 +1,10 @@
-/**
- * @crumb
- * @id frontend-lib-oauth-csrf
- * @area Auth/OAuth/Security
- * @intent CSRF protection for OAuth flows — generate, store, and validate nonces to prevent state forgery attacks
- * @responsibilities Generate cryptographic nonces, store in sessionStorage with provider key, validate nonces on callback
- * @contracts generateOAuthNonce(provider) -> string; validateOAuthNonce(provider, nonce) -> boolean
- */
+// @crumb frontend-lib-oauth-csrf
+// Auth/OAuth/Security | nonce_generation | session_storage | nonce_validation
+// why: CSRF protection for OAuth flows — generate, store, and validate nonces to prevent state forgery attacks
+// in:provider string,crypto.getRandomValues out:nonce string,validation boolean err:sessionStorage unavailable;nonce mismatch on cross-origin popup
+// hazard: sessionStorage is per-origin — popup OAuth flows on different origin cannot access stored nonce
+// hazard: Single-use nonce removal means retry after validation failure requires new OAuth flow
+// edge:frontend/src/hooks/useOAuthCallback.ts -> SERVES
 
 const STORAGE_PREFIX = 'oauth_csrf_nonce_';
 

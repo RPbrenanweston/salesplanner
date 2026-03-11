@@ -1,3 +1,14 @@
+// @crumb edge-exchange-google-token
+// Auth/OAuth | authorization_code_exchange | token_storage | provider_dispatch
+// why: Exchange Google OAuth authorization code for access and refresh tokens — handles both Gmail and Google Calendar providers
+// in:POST body (code,redirect_uri,provider:'gmail'|'google_calendar'),env vars (GMAIL_CLIENT_ID,GMAIL_CLIENT_SECRET,GOOGLE_CALENDAR_CLIENT_ID,GOOGLE_CALENDAR_CLIENT_SECRET,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY) out:JSON {success:true,email_address} on success; JSON {error:string} on failure; upserts row in oauth_connections table err:Missing env vars -> 500; token exchange failure -> 502; DB upsert failure -> 500; unknown provider -> 400
+// hazard: Client secrets in Deno env — ensure edge function logs are restricted to prevent secret leakage
+// hazard: OAuth codes are single-use — React StrictMode double-invoke or duplicate requests will cause second call to fail
+// edge:frontend/src/pages/GmailOAuthCallback.tsx -> SERVES
+// edge:frontend/src/pages/GoogleCalendarOAuthCallback.tsx -> SERVES
+// edge:supabase/functions/refresh-google-token/index.ts -> RELATES
+// edge:google-oauth-exchange#1 -> STEP_IN
+// prompt: When adding new Google scopes, ensure redirect_uri matches the provider case exactly. Test double-submit protection. Verify upsert handles re-connect (user reconnects Gmail after disconnect). Confirm email_address returned for display in SettingsPage.
 /**
  * Exchange Google OAuth authorization code for access + refresh tokens.
  * Handles both Gmail and Google Calendar providers.
