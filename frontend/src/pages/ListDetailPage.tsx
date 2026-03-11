@@ -457,7 +457,7 @@ export default function ListDetailPage() {
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search contacts by name, email, or company..."
@@ -573,7 +573,7 @@ export default function ListDetailPage() {
               ) : filteredContacts.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
-                    <p className="text-gray-500 dark:text-white/40 mb-2">
+                    <p className="text-gray-500 dark:text-white/50 mb-2">
                       {searchQuery ? 'No contacts match your search' : 'No contacts in this list'}
                     </p>
                     <p className="text-sm text-gray-400 dark:text-white/30">
@@ -743,7 +743,7 @@ export default function ListDetailPage() {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+          <div className="bg-white dark:bg-void-900 rounded-lg shadow-xl w-full max-w-md p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-alert" />
@@ -764,7 +764,7 @@ export default function ListDetailPage() {
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
                 disabled={isDeleting}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-colors"
               >
                 Cancel
               </button>
