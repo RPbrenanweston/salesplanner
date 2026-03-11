@@ -1,121 +1,149 @@
 /**
- * @crumb
- * @id frontend-page-salesblock-session
- * @area UI/Pages
- * @intent Core session execution engine — step through contacts in a SalesBlock with live activity logging, elapsed timer, call script panel, and session completion summary
- * @responsibilities Load SalesBlock + contacts list, run elapsed timer, advance contact index, log calls/emails/social/meetings via modals, display inline call script, mark session complete with stats summary, persist session_notes
- * @contracts SalesBlockSessionPage() → JSX; receives salesblockId via useParams; reads salesblocks+lists+contacts from Supabase; writes activities on every log action; writes session_notes on complete
- * @in useParams (salesblockId), useAuth (user/org_id), supabase (salesblocks, lists, contacts, activities tables), 4 activity modal components
- * @out Full-screen session UI with contact card, action buttons, script panel, timer, progress bar; completion screen with stats breakdown
- * @err Contact load failure (session starts with empty contacts array, no error shown); Supabase write failure on activity log (silent loss — no retry, no error toast)
- * @hazard Elapsed timer uses setInterval with no cleanup guard — if component unmounts mid-session (navigate away), interval leaks and continues firing; causes memory leak + stale state updates
- * @hazard Session completion writes sessionNotes to a field that may not exist on the salesblocks table — verify notes column exists before trusting completion persistence
- * @shared-edges frontend/src/components/LogActivityModal.tsx→LAUNCHES for call/email/note; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES for social; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES for email compose; frontend/src/components/BookMeetingModal.tsx→LAUNCHES for meetings; frontend/src/components/ContactActivityTimeline.tsx→RENDERS below contact card; frontend/src/lib/supabase.ts→ALL queries
- * @trail session#1 | Page mounts with salesblockId → load salesblock+contacts → start elapsed timer → show first contact → log activity via modal → advance index → script panel expandable → all contacts done → show completion screen with stats
- * @prompt Fix setInterval cleanup — add clearInterval in useEffect return. Verify session_notes column exists on salesblocks table. Add error toast on activity log failure (currently silent). Consider persisting progress so session can be resumed if navigated away. VV design applied: void-950 bg, VV spinner, font-display headings, glass-card summary cards with indigo-electric/emerald-signal/cyan-neon/purple-neon labels, indigo-electric progress bars, VV secondary outlined buttons, indigo-electric active queue item, white/10 borders, font-mono timer, dark:text-white/40 muted text, ease-snappy CTAs.
+ * SalesBlock Session Page — 3-Column Layout
+ *
+ * Left:   Contact queue with worked indicators
+ * Center: Active contact card + disposition buttons + connected flow panel
+ * Right:  Activity timeline / notes
+ *
+ * Dispositions replace modal-based activity logging. One click = log + auto-advance.
+ * Connected disposition opens inline ConnectedFlowPanel with progress checkboxes.
  */
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { ROUTES } from '../lib/routes';
-import { useAuth } from '../hooks/useAuth';
-import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home, Calendar } from 'lucide-react';
-import LogActivityModal from '../components/LogActivityModal';
-import LogSocialActivityModal from '../components/LogSocialActivityModal';
-import ComposeEmailModal from '../components/ComposeEmailModal';
-import BookMeetingModal from '../components/BookMeetingModal';
-import ContactActivityTimeline from '../components/ContactActivityTimeline';
+import { useEffect, useState, useCallback } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { ROUTES } from '../lib/routes'
+import { useAuth } from '../hooks/useAuth'
+import {
+  Phone,
+  Mail,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Home,
+  Calendar,
+} from 'lucide-react'
+import ComposeEmailModal from '../components/ComposeEmailModal'
+import BookMeetingModal from '../components/BookMeetingModal'
+import ContactActivityTimeline from '../components/ContactActivityTimeline'
+import { DispositionButtons } from '../components/session/DispositionButtons'
+import { ConnectedFlowPanel } from '../components/session/ConnectedFlowPanel'
+import { logActivity, getSessionStats } from '../lib/queries/activityQueries'
+import type { SessionType, ProgressFlags } from '../types/domain'
+import type { ActivityOutcome } from '../types/enums'
 
-interface Contact {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string | null;
-  company: string | null;
-  title: string | null;
-  notes: string | null;
-  hasActivity?: boolean;
+// ---------- Local interfaces ----------
+
+interface SessionContact {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone: string | null
+  company: string | null
+  title: string | null
+  notes: string | null
+  hasActivity?: boolean
 }
 
-interface SalesBlock {
-  id: string;
-  title: string;
-  scheduled_start: string;
-  duration_minutes: number;
-  status: string;
-  list_id: string;
-  script_id?: string | null;
+interface SalesBlockData {
+  id: string
+  title: string
+  scheduled_start: string
+  duration_minutes: number
+  status: string
+  list_id: string
+  script_id?: string | null
+  session_type?: SessionType
 }
 
-interface SessionStats {
-  totalContacts: number;
-  contactsWorked: number;
-  calls: number;
-  emails: number;
-  social: number;
-  meetings: number;
-  connects: number;
-  conversations: number;
+interface LiveStats {
+  totalDials: number
+  connects: number
+  meetings: number
 }
+
+// ---------- Component ----------
 
 export default function SalesBlockSessionPage() {
-  const { salesblockId } = useParams<{ salesblockId: string }>();
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { salesblockId } = useParams<{ salesblockId: string }>()
+  const { user } = useAuth()
+  const navigate = useNavigate()
 
-  const [salesblock, setSalesblock] = useState<SalesBlock | null>(null);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [orgId, setOrgId] = useState<string>('');
+  // Core state
+  const [salesblock, setSalesblock] = useState<SalesBlockData | null>(null)
+  const [contacts, setContacts] = useState<SessionContact[]>([])
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [orgId, setOrgId] = useState<string>('')
 
-  // Activity modal state
-  const [activityModalOpen, setActivityModalOpen] = useState(false);
-  const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
-  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
-  const [activityType, setActivityType] = useState<'call' | 'email' | 'note'>('call');
+  // Session type derived from salesblock
+  const sessionType: SessionType = salesblock?.session_type || 'call'
 
-  // Call script panel state
-  const [scriptExpanded, setScriptExpanded] = useState(false);
-  const [scriptContent, setScriptContent] = useState<string | null>(null);
+  // Connected flow panel
+  const [connectedFlowOpen, setConnectedFlowOpen] = useState(false)
+
+  // Live stats (updated after each disposition)
+  const [liveStats, setLiveStats] = useState<LiveStats>({
+    totalDials: 0,
+    connects: 0,
+    meetings: 0,
+  })
+
+  // Call script panel (call sessions only)
+  const [scriptExpanded, setScriptExpanded] = useState(false)
+  const [scriptContent, setScriptContent] = useState<string | null>(null)
+
+  // Email compose + Book meeting modals (complex flows kept as modals)
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
+  const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false)
 
   // Completion state
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
-  const [sessionNotes, setSessionNotes] = useState('');
-  const [noteSaveError, setNoteSaveError] = useState('');
+  const [isCompleted, setIsCompleted] = useState(false)
+  const [completionStats, setCompletionStats] = useState<{
+    totalContacts: number
+    contactsWorked: number
+    calls: number
+    emails: number
+    social: number
+    meetings: number
+    connects: number
+    conversations: number
+  } | null>(null)
+  const [sessionNotes, setSessionNotes] = useState('')
+  const [noteSaveError, setNoteSaveError] = useState('')
 
-  // Session resume state
-  const [resumeBannerVisible, setResumeBannerVisible] = useState(false);
-  const [savedState, setSavedState] = useState<{ activeIndex: number; elapsedSeconds: number; sessionNotes: string } | null>(null);
+  // Session resume
+  const [resumeBannerVisible, setResumeBannerVisible] = useState(false)
+  const [savedState, setSavedState] = useState<{
+    activeIndex: number
+    elapsedSeconds: number
+    sessionNotes: string
+  } | null>(null)
 
-  // Load user's org_id
+  const activeContact = contacts[activeIndex] || null
+
+  // ---------- Data loading ----------
+
   useEffect(() => {
-    if (!user) return;
-
+    if (!user) return
     async function loadOrgId() {
       const { data, error } = await supabase
         .from('users')
         .select('org_id')
         .eq('id', user!.id)
-        .single();
-
+        .single()
       if (error) {
-        console.error('Error loading org_id:', error);
+        console.error('Error loading org_id:', error)
       } else if (data) {
-        setOrgId(data.org_id);
+        setOrgId(data.org_id)
       }
     }
+    loadOrgId()
+  }, [user])
 
-    loadOrgId();
-  }, [user]);
-
-  // Load salesblock and contacts
   useEffect(() => {
-    if (!salesblockId || !user) return;
+    if (!salesblockId || !user) return
 
     async function loadData() {
       try {
@@ -124,21 +152,21 @@ export default function SalesBlockSessionPage() {
           .from('salesblocks')
           .select('*')
           .eq('id', salesblockId)
-          .single();
+          .single()
 
-        if (sbError) throw sbError;
-        setSalesblock(sbData);
+        if (sbError) throw sbError
+        setSalesblock(sbData)
 
-        // Load call script if one was assigned to this salesblock
+        // Load call script if assigned
         if (sbData.script_id) {
           const { data: scriptData } = await supabase
             .from('call_scripts')
             .select('content')
             .eq('id', sbData.script_id)
-            .single();
+            .single()
 
           if (scriptData?.content) {
-            setScriptContent(scriptData.content);
+            setScriptContent(scriptData.content)
           }
         }
 
@@ -147,63 +175,67 @@ export default function SalesBlockSessionPage() {
           .from('list_contacts')
           .select('contact_id')
           .eq('list_id', sbData.list_id)
-          .order('position', { ascending: true });
+          .order('position', { ascending: true })
 
-        if (lcError) throw lcError;
+        if (lcError) throw lcError
 
-        let contactIds = listContactsData.map((lc) => lc.contact_id);
+        let contactIds = listContactsData.map((lc) => lc.contact_id)
 
         if (contactIds.length === 0) {
-          // Fallback: re-resolve contacts via list filter_criteria.
-          // list_contacts may be empty if contacts were added after the list was saved,
-          // or if the list_contacts insert failed silently at creation time.
+          // Fallback: re-resolve via list filter_criteria
           const { data: listData } = await supabase
             .from('lists')
             .select('filter_criteria, org_id')
             .eq('id', sbData.list_id)
-            .single();
+            .single()
 
-          const filters = listData?.filter_criteria?.filters;
+          const filters = listData?.filter_criteria?.filters
           if (filters && filters.length > 0) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let contactQuery: any = supabase
               .from('contacts')
               .select('id')
-              .eq('org_id', listData.org_id);
+              .eq('org_id', listData.org_id)
 
             for (const filter of filters) {
-              if (!filter.value) continue;
+              if (!filter.value) continue
               if (filter.field === 'custom_field' && filter.customFieldKey) {
-                const jsonbPath = `custom_fields->${filter.customFieldKey}`;
-                if (filter.operator === 'equals') contactQuery = contactQuery.eq(jsonbPath, filter.value);
-                else if (filter.operator === 'contains') contactQuery = contactQuery.ilike(jsonbPath, `%${filter.value}%`);
+                const jsonbPath = `custom_fields->${filter.customFieldKey}`
+                if (filter.operator === 'equals')
+                  contactQuery = contactQuery.eq(jsonbPath, filter.value)
+                else if (filter.operator === 'contains')
+                  contactQuery = contactQuery.ilike(jsonbPath, `%${filter.value}%`)
               } else {
-                if (filter.operator === 'equals') contactQuery = contactQuery.eq(filter.field, filter.value);
-                else if (filter.operator === 'contains') contactQuery = contactQuery.ilike(filter.field, `%${filter.value}%`);
-                else if (filter.operator === 'starts_with') contactQuery = contactQuery.ilike(filter.field, `${filter.value}%`);
-                else if (filter.operator === 'greater_than' && filter.field === 'created_at') contactQuery = contactQuery.gt(filter.field, filter.value);
-                else if (filter.operator === 'less_than' && filter.field === 'created_at') contactQuery = contactQuery.lt(filter.field, filter.value);
+                if (filter.operator === 'equals')
+                  contactQuery = contactQuery.eq(filter.field, filter.value)
+                else if (filter.operator === 'contains')
+                  contactQuery = contactQuery.ilike(filter.field, `%${filter.value}%`)
+                else if (filter.operator === 'starts_with')
+                  contactQuery = contactQuery.ilike(filter.field, `${filter.value}%`)
+                else if (filter.operator === 'greater_than' && filter.field === 'created_at')
+                  contactQuery = contactQuery.gt(filter.field, filter.value)
+                else if (filter.operator === 'less_than' && filter.field === 'created_at')
+                  contactQuery = contactQuery.lt(filter.field, filter.value)
               }
             }
 
-            const { data: resolvedContacts } = await contactQuery;
-            const resolved = (resolvedContacts ?? []) as { id: string }[];
+            const { data: resolvedContacts } = await contactQuery
+            const resolved = (resolvedContacts ?? []) as { id: string }[]
             if (resolved.length > 0) {
-              // Re-populate list_contacts so future sessions load instantly
               const junctionRecords = resolved.map((c, index) => ({
                 list_id: sbData.list_id,
                 contact_id: c.id,
                 position: index,
-              }));
-              await supabase.from('list_contacts').insert(junctionRecords);
-              contactIds = resolved.map((c) => c.id);
+              }))
+              await supabase.from('list_contacts').insert(junctionRecords)
+              contactIds = resolved.map((c) => c.id)
             }
           }
 
           if (contactIds.length === 0) {
-            setContacts([]);
-            setLoading(false);
-            return;
+            setContacts([])
+            setLoading(false)
+            return
           }
         }
 
@@ -211,273 +243,287 @@ export default function SalesBlockSessionPage() {
         const { data: contactsData, error: contactsError } = await supabase
           .from('contacts')
           .select('id, first_name, last_name, email, phone, company, title, notes')
-          .in('id', contactIds);
+          .in('id', contactIds)
 
-        if (contactsError) throw contactsError;
+        if (contactsError) throw contactsError
 
-        // Fetch activity status for each contact
+        // Activity status for each contact
         const contactsWithActivity = await Promise.all(
           (contactsData || []).map(async (contact) => {
             const { count } = await supabase
               .from('activities')
               .select('id', { count: 'exact', head: true })
-              .eq('contact_id', contact.id);
-
-            return { ...contact, hasActivity: (count ?? 0) > 0 };
+              .eq('contact_id', contact.id)
+            return { ...contact, hasActivity: (count ?? 0) > 0 }
           })
-        );
+        )
 
-        setContacts(contactsWithActivity);
+        setContacts(contactsWithActivity)
 
-        // Check for saved session state to offer resume
-        const savedRaw = localStorage.getItem(`salesblock_session_${salesblockId}`);
+        // Check for saved session state
+        const savedRaw = localStorage.getItem(`salesblock_session_${salesblockId}`)
         if (savedRaw) {
           try {
-            const saved = JSON.parse(savedRaw) as { activeIndex: number; elapsedSeconds: number; sessionNotes: string };
-            setSavedState(saved);
-            setResumeBannerVisible(true);
+            const saved = JSON.parse(savedRaw)
+            setSavedState(saved)
+            setResumeBannerVisible(true)
           } catch {
-            localStorage.removeItem(`salesblock_session_${salesblockId}`);
+            localStorage.removeItem(`salesblock_session_${salesblockId}`)
           }
         }
       } catch (error) {
-        console.error('Error loading session data:', error);
-        alert('Failed to load session data');
+        console.error('Error loading session data:', error)
+        alert('Failed to load session data')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    loadData();
-  }, [salesblockId, user]);
+    loadData()
+  }, [salesblockId, user])
 
-  // Start session (update status to in_progress and set actual_start)
+  // Start session (status → in_progress)
   useEffect(() => {
-    if (!salesblockId || !salesblock || salesblock.status !== 'scheduled') return;
+    if (!salesblockId || !salesblock || salesblock.status !== 'scheduled') return
 
     async function startSession() {
       const { error } = await supabase
         .from('salesblocks')
-        .update({
-          status: 'in_progress',
-          actual_start: new Date().toISOString(),
-        })
-        .eq('id', salesblockId);
+        .update({ status: 'in_progress', actual_start: new Date().toISOString() })
+        .eq('id', salesblockId)
 
       if (error) {
-        console.error('Error starting session:', error);
+        console.error('Error starting session:', error)
       } else {
-        setSalesblock((prev) => (prev ? { ...prev, status: 'in_progress' } : null));
+        setSalesblock((prev) => (prev ? { ...prev, status: 'in_progress' } : null))
       }
     }
 
-    startSession();
-  }, [salesblockId, salesblock]);
+    startSession()
+  }, [salesblockId, salesblock])
 
-  // Auto-save session state to localStorage when active contact or notes change
+  // Auto-save to localStorage
   useEffect(() => {
-    if (!salesblockId || loading || isCompleted) return;
-    localStorage.setItem(`salesblock_session_${salesblockId}`, JSON.stringify({
-      activeIndex,
-      elapsedSeconds,
-      sessionNotes,
-    }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIndex, sessionNotes]);
+    if (!salesblockId || loading || isCompleted) return
+    localStorage.setItem(
+      `salesblock_session_${salesblockId}`,
+      JSON.stringify({ activeIndex, elapsedSeconds, sessionNotes })
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIndex, sessionNotes])
 
-  // Timer interval (counts up from 0, triggers completion on expiry)
+  // Timer
   useEffect(() => {
-    if (isCompleted) return; // Don't run timer if already completed
+    if (isCompleted) return
 
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => {
-        const newElapsed = prev + 1;
-
-        // Check if timer expired
-        if (salesblock && newElapsed >= salesblock.duration_minutes * 60) {
-          handleEndSession();
-          return newElapsed;
+        const next = prev + 1
+        if (salesblock && next >= salesblock.duration_minutes * 60) {
+          handleEndSession()
         }
+        return next
+      })
+    }, 1000)
 
-        return newElapsed;
-      });
-    }, 1000);
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salesblock, isCompleted])
 
-    return () => clearInterval(interval);
-  }, [salesblock, isCompleted]);
+  // Load live stats on mount + after dispositions
+  const refreshLiveStats = useCallback(async () => {
+    if (!salesblockId) return
+    try {
+      const stats = await getSessionStats(salesblockId)
+      setLiveStats({
+        totalDials: stats.totalDials,
+        connects: stats.connects,
+        meetings: stats.meetings,
+      })
+    } catch (error) {
+      console.error('Error refreshing stats:', error)
+    }
+  }, [salesblockId])
+
+  useEffect(() => {
+    if (salesblockId && !loading) {
+      refreshLiveStats()
+    }
+  }, [salesblockId, loading, refreshLiveStats])
+
+  // ---------- Handlers ----------
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
-  const totalDurationSeconds = salesblock ? salesblock.duration_minutes * 60 : 0;
-  const progressPercentage = totalDurationSeconds > 0 ? (elapsedSeconds / totalDurationSeconds) * 100 : 0;
+  const totalDurationSeconds = salesblock ? salesblock.duration_minutes * 60 : 0
+  const progressPct = totalDurationSeconds > 0 ? (elapsedSeconds / totalDurationSeconds) * 100 : 0
 
-  const activeContact = contacts[activeIndex] || null;
-
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
+    setConnectedFlowOpen(false)
     if (activeIndex < contacts.length - 1) {
-      setActiveIndex((prev) => prev + 1);
+      setActiveIndex((prev) => prev + 1)
     }
-  };
+  }, [activeIndex, contacts.length])
 
   const handleSkip = () => {
-    // Move current contact to end of queue
-    const skippedContact = contacts[activeIndex];
+    const skipped = contacts[activeIndex]
     const newContacts = [
       ...contacts.slice(0, activeIndex),
       ...contacts.slice(activeIndex + 1),
-      skippedContact,
-    ];
-    setContacts(newContacts);
-  };
+      skipped,
+    ]
+    setContacts(newContacts)
+    setConnectedFlowOpen(false)
+  }
 
-  const openActivityModal = (type: 'call' | 'email' | 'note') => {
-    setActivityType(type);
-    setActivityModalOpen(true);
-  };
+  // Disposition click → log activity + advance
+  const handleDisposition = useCallback(
+    async (outcome: ActivityOutcome, label: string) => {
+      if (!activeContact || !salesblockId || !user || !orgId) return
 
-  const openSocialModal = () => {
-    setIsSocialModalOpen(true);
-  };
+      try {
+        await logActivity({
+          orgId,
+          contactId: activeContact.id,
+          userId: user.id,
+          salesblockId,
+          type: sessionType,
+          outcome,
+          notes: label,
+        })
 
-  const refreshActivityStatus = async () => {
-    // Re-fetch activity status for all contacts
-    const contactsWithActivity = await Promise.all(
-      contacts.map(async (contact) => {
-        const { count } = await supabase
-          .from('activities')
-          .select('id', { count: 'exact', head: true })
-          .eq('contact_id', contact.id);
+        // Mark contact as worked
+        setContacts((prev) =>
+          prev.map((c, i) => (i === activeIndex ? { ...c, hasActivity: true } : c))
+        )
 
-        return { ...contact, hasActivity: (count ?? 0) > 0 };
-      })
-    );
+        refreshLiveStats()
+        handleNext()
+      } catch (error) {
+        console.error('Error logging activity:', error)
+      }
+    },
+    [activeContact, salesblockId, user, orgId, sessionType, activeIndex, refreshLiveStats, handleNext]
+  )
 
-    setContacts(contactsWithActivity);
-  };
+  // Connected flow → show panel
+  const handleConnectedFlowOpen = useCallback(() => {
+    setConnectedFlowOpen(true)
+  }, [])
+
+  // Connected flow → save with progress flags
+  const handleConnectedFlowSave = useCallback(
+    async (flags: ProgressFlags, advance: boolean) => {
+      if (!activeContact || !salesblockId || !user || !orgId) return
+
+      try {
+        await logActivity({
+          orgId,
+          contactId: activeContact.id,
+          userId: user.id,
+          salesblockId,
+          type: sessionType,
+          outcome: 'connect' as ActivityOutcome,
+          progressFlags: flags,
+        })
+
+        setContacts((prev) =>
+          prev.map((c, i) => (i === activeIndex ? { ...c, hasActivity: true } : c))
+        )
+
+        setConnectedFlowOpen(false)
+        refreshLiveStats()
+
+        if (advance) handleNext()
+      } catch (error) {
+        console.error('Error saving connected flow:', error)
+      }
+    },
+    [activeContact, salesblockId, user, orgId, sessionType, activeIndex, refreshLiveStats, handleNext]
+  )
 
   const handleEndSession = async () => {
-    if (!salesblockId) return;
+    if (!salesblockId) return
 
     try {
-      // Calculate session stats
-      const stats = await calculateSessionStats();
+      // Fetch completion stats
+      const { data: activities, error: actErr } = await supabase
+        .from('activities')
+        .select('type, outcome, contact_id')
+        .eq('salesblock_id', salesblockId)
 
-      // Update salesblock status
+      if (actErr) throw actErr
+
+      const uniqueContacts = new Set(activities?.map((a) => a.contact_id)).size
+      const stats = {
+        totalContacts: contacts.length,
+        contactsWorked: uniqueContacts,
+        calls: activities?.filter((a) => a.type === 'call').length || 0,
+        emails: activities?.filter((a) => a.type === 'email').length || 0,
+        social: activities?.filter((a) => a.type === 'social').length || 0,
+        meetings: activities?.filter((a) => a.outcome === 'meeting_booked').length || 0,
+        connects: activities?.filter(
+          (a) => a.outcome === 'connect' || a.outcome === 'conversation'
+        ).length || 0,
+        conversations: activities?.filter((a) => a.outcome === 'conversation').length || 0,
+      }
+
       const { error } = await supabase
         .from('salesblocks')
-        .update({
-          status: 'completed',
-          actual_end: new Date().toISOString(),
-        })
-        .eq('id', salesblockId);
+        .update({ status: 'completed', actual_end: new Date().toISOString() })
+        .eq('id', salesblockId)
 
-      if (error) throw error;
+      if (error) throw error
 
-      setSessionStats(stats);
-      setIsCompleted(true);
-      // Clear saved resume state — session is now complete
-      if (salesblockId) localStorage.removeItem(`salesblock_session_${salesblockId}`);
+      setCompletionStats(stats)
+      setIsCompleted(true)
+      if (salesblockId) localStorage.removeItem(`salesblock_session_${salesblockId}`)
     } catch (error) {
-      console.error('Error ending session:', error);
-      alert('Failed to end session');
+      console.error('Error ending session:', error)
+      alert('Failed to end session')
     }
-  };
-
-  const calculateSessionStats = async (): Promise<SessionStats> => {
-    if (!salesblockId) {
-      return {
-        totalContacts: contacts.length,
-        contactsWorked: 0,
-        calls: 0,
-        emails: 0,
-        social: 0,
-        meetings: 0,
-        connects: 0,
-        conversations: 0,
-      };
-    }
-
-    // Fetch all activities for this salesblock
-    const { data: activities, error } = await supabase
-      .from('activities')
-      .select('type, outcome, contact_id')
-      .eq('salesblock_id', salesblockId);
-
-    if (error) {
-      console.error('Error fetching activities:', error);
-      return {
-        totalContacts: contacts.length,
-        contactsWorked: 0,
-        calls: 0,
-        emails: 0,
-        social: 0,
-        meetings: 0,
-        connects: 0,
-        conversations: 0,
-      };
-    }
-
-    // Calculate stats
-    const uniqueContacts = new Set(activities?.map((a) => a.contact_id)).size;
-    const calls = activities?.filter((a) => a.type === 'call').length || 0;
-    const emails = activities?.filter((a) => a.type === 'email').length || 0;
-    const social = activities?.filter((a) => a.type === 'social').length || 0;
-    const meetings = activities?.filter((a) => a.outcome === 'meeting_booked').length || 0;
-    const connects = activities?.filter((a) => a.outcome === 'connect' || a.outcome === 'conversation').length || 0;
-    const conversations = activities?.filter((a) => a.outcome === 'conversation').length || 0;
-
-    return {
-      totalContacts: contacts.length,
-      contactsWorked: uniqueContacts,
-      calls,
-      emails,
-      social,
-      meetings,
-      connects,
-      conversations,
-    };
-  };
+  }
 
   const handleResume = () => {
     if (savedState) {
-      setActiveIndex(Math.min(savedState.activeIndex, contacts.length - 1));
-      setElapsedSeconds(savedState.elapsedSeconds);
-      setSessionNotes(savedState.sessionNotes);
+      setActiveIndex(Math.min(savedState.activeIndex, contacts.length - 1))
+      setElapsedSeconds(savedState.elapsedSeconds)
+      setSessionNotes(savedState.sessionNotes)
     }
-    setResumeBannerVisible(false);
-  };
+    setResumeBannerVisible(false)
+  }
 
   const handleStartFresh = () => {
-    if (salesblockId) localStorage.removeItem(`salesblock_session_${salesblockId}`);
-    setResumeBannerVisible(false);
-  };
+    if (salesblockId) localStorage.removeItem(`salesblock_session_${salesblockId}`)
+    setResumeBannerVisible(false)
+  }
 
   const handleSaveNotes = async () => {
-    if (!salesblockId) return;
-
-    setNoteSaveError('');
+    if (!salesblockId) return
+    setNoteSaveError('')
     try {
       const { error } = await supabase
         .from('salesblocks')
         .update({ notes: sessionNotes })
-        .eq('id', salesblockId);
-
-      if (error) throw error;
+        .eq('id', salesblockId)
+      if (error) throw error
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to save session notes';
-      setNoteSaveError(errorMsg);
-      console.error('Error saving notes:', error);
+      const msg = error instanceof Error ? error.message : 'Failed to save session notes'
+      setNoteSaveError(msg)
+      console.error('Error saving notes:', error)
     }
-  };
+  }
 
   const handleBackToHome = async () => {
-    await handleSaveNotes();
-    navigate(ROUTES.HOME);
-  };
+    await handleSaveNotes()
+    navigate(ROUTES.HOME)
+  }
+
+  // ---------- Loading ----------
 
   if (loading) {
     return (
@@ -487,7 +533,7 @@ export default function SalesBlockSessionPage() {
           <span className="font-mono text-sm tracking-widest uppercase">Loading Session...</span>
         </div>
       </div>
-    );
+    )
   }
 
   if (!salesblock) {
@@ -497,29 +543,36 @@ export default function SalesBlockSessionPage() {
           <p className="text-red-600 dark:text-red-alert text-sm font-semibold">SalesBlock not found</p>
         </div>
       </div>
-    );
+    )
   }
 
-  // Summary Screen (shown after completion)
-  if (isCompleted && sessionStats) {
-    const contactWorkedPercentage =
-      sessionStats.totalContacts > 0
-        ? Math.round((sessionStats.contactsWorked / sessionStats.totalContacts) * 100)
-        : 0;
+  // ---------- Completion screen ----------
 
+  if (isCompleted && completionStats) {
+    const contactWorkedPct =
+      completionStats.totalContacts > 0
+        ? Math.round((completionStats.contactsWorked / completionStats.totalContacts) * 100)
+        : 0
     const callsToConnects =
-      sessionStats.calls > 0 ? Math.round((sessionStats.connects / sessionStats.calls) * 100) : 0;
-
+      completionStats.calls > 0
+        ? Math.round((completionStats.connects / completionStats.calls) * 100)
+        : 0
     const connectsToMeetings =
-      sessionStats.connects > 0 ? Math.round((sessionStats.meetings / sessionStats.connects) * 100) : 0;
+      completionStats.connects > 0
+        ? Math.round((completionStats.meetings / completionStats.connects) * 100)
+        : 0
 
     return (
       <div className="flex flex-col h-full bg-gray-50 dark:bg-void-950 p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto w-full space-y-6">
           <div>
             <p className="vv-section-title mb-1">Session Complete</p>
-            <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-1">{salesblock.title}</h1>
-            <p className="text-sm text-gray-500 dark:text-white/50">Great work — here's your session summary</p>
+            <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-1">
+              {salesblock.title}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-white/50">
+              Great work — here's your session summary
+            </p>
           </div>
 
           {/* Summary Cards */}
@@ -527,33 +580,36 @@ export default function SalesBlockSessionPage() {
             <div className="glass-card p-6">
               <p className="vv-section-title mb-1">Contacts Worked</p>
               <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
-                {sessionStats.contactsWorked}
+                {completionStats.contactsWorked}
               </p>
               <p className="text-xs text-gray-400 dark:text-white/40 font-mono mt-1">
-                of {sessionStats.totalContacts} ({contactWorkedPercentage}%)
+                of {completionStats.totalContacts} ({contactWorkedPct}%)
               </p>
             </div>
-
             <div className="glass-card p-6">
               <p className="vv-section-title mb-1">Calls Made</p>
-              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">{sessionStats.calls}</p>
+              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
+                {completionStats.calls}
+              </p>
             </div>
-
             <div className="glass-card p-6">
               <p className="vv-section-title mb-1">Emails Sent</p>
-              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">{sessionStats.emails}</p>
+              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
+                {completionStats.emails}
+              </p>
             </div>
-
             <div className="glass-card p-6">
               <p className="vv-section-title mb-1">Social Touches</p>
-              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">{sessionStats.social}</p>
+              <p className="font-display text-3xl font-bold text-gray-900 dark:text-white">
+                {completionStats.social}
+              </p>
             </div>
-
             <div className="glass-card p-6">
               <p className="vv-section-title mb-1">Meetings Booked</p>
-              <p className="font-display text-3xl font-bold text-emerald-signal">{sessionStats.meetings}</p>
+              <p className="font-display text-3xl font-bold text-emerald-signal">
+                {completionStats.meetings}
+              </p>
             </div>
-
             <div className="glass-card p-6">
               <p className="vv-section-title mb-1">Duration</p>
               <p className="font-display text-3xl font-bold text-gray-900 dark:text-white font-mono">
@@ -564,7 +620,9 @@ export default function SalesBlockSessionPage() {
 
           {/* Conversion Ratios */}
           <div className="glass-card p-6">
-            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-4">Conversion Ratios</h3>
+            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-4">
+              Conversion Ratios
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Contacts Worked / Total</p>
@@ -572,13 +630,14 @@ export default function SalesBlockSessionPage() {
                   <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
                     <div
                       className="bg-indigo-electric h-2 rounded-full transition-all"
-                      style={{ width: `${contactWorkedPercentage}%` }}
+                      style={{ width: `${contactWorkedPct}%` }}
                     />
                   </div>
-                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{contactWorkedPercentage}%</span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                    {contactWorkedPct}%
+                  </span>
                 </div>
               </div>
-
               <div>
                 <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Calls to Connects</p>
                 <div className="flex items-center gap-3">
@@ -588,10 +647,11 @@ export default function SalesBlockSessionPage() {
                       style={{ width: `${callsToConnects}%` }}
                     />
                   </div>
-                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{callsToConnects}%</span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                    {callsToConnects}%
+                  </span>
                 </div>
               </div>
-
               <div>
                 <p className="text-sm text-gray-500 dark:text-white/50 mb-2">Connects to Meetings</p>
                 <div className="flex items-center gap-3">
@@ -601,7 +661,9 @@ export default function SalesBlockSessionPage() {
                       style={{ width: `${connectsToMeetings}%` }}
                     />
                   </div>
-                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{connectsToMeetings}%</span>
+                  <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                    {connectsToMeetings}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -609,9 +671,7 @@ export default function SalesBlockSessionPage() {
 
           {/* Session Notes */}
           <div className="glass-card p-6">
-            <label className="vv-section-title block mb-2">
-              Session Notes
-            </label>
+            <label className="vv-section-title block mb-2">Session Notes</label>
             <textarea
               value={sessionNotes}
               onChange={(e) => setSessionNotes(e.target.value)}
@@ -621,12 +681,11 @@ export default function SalesBlockSessionPage() {
             />
             {noteSaveError && (
               <div className="mt-3 p-3 bg-red-alert/10 border border-red-alert rounded-lg flex items-center gap-2">
-                <span className="text-red-alert text-sm">⚠ {noteSaveError}</span>
+                <span className="text-red-alert text-sm">{noteSaveError}</span>
               </div>
             )}
           </div>
 
-          {/* Back to Home */}
           <button
             onClick={handleBackToHome}
             className="flex items-center gap-2 px-6 py-3 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg font-semibold transition-all duration-200 ease-snappy"
@@ -636,15 +695,41 @@ export default function SalesBlockSessionPage() {
           </button>
         </div>
       </div>
-    );
+    )
   }
+
+  // ---------- Main Session Layout (3 columns) ----------
 
   return (
     <div className="flex flex-col h-full bg-gray-50 dark:bg-void-950">
-      {/* Timer Bar */}
-      <div className="bg-white dark:bg-white/5 border-b border-gray-200 dark:border-white/10 p-4">
+      {/* ── Header Bar: Title + Stats + Timer + End ── */}
+      <div className="bg-white dark:bg-white/5 border-b border-gray-200 dark:border-white/10 px-4 py-3">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-white">{salesblock.title}</h2>
+          <div className="flex items-center gap-6">
+            <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-white">
+              {salesblock.title}
+            </h2>
+            {/* Live session stats */}
+            <div className="hidden md:flex items-center gap-4 text-xs font-mono">
+              <span className="text-gray-500 dark:text-white/40">
+                Dials{' '}
+                <span className="text-gray-900 dark:text-white font-bold">{liveStats.totalDials}</span>
+              </span>
+              <span className="text-gray-500 dark:text-white/40">
+                Connects{' '}
+                <span className="text-emerald-600 dark:text-emerald-signal font-bold">
+                  {liveStats.connects}
+                </span>
+              </span>
+              <span className="text-gray-500 dark:text-white/40">
+                Meetings{' '}
+                <span className="text-purple-600 dark:text-purple-neon font-bold">
+                  {liveStats.meetings}
+                </span>
+              </span>
+            </div>
+          </div>
+
           <div className="flex items-center gap-4">
             <div className="text-sm text-gray-600 dark:text-white/50 font-mono">
               {formatTime(elapsedSeconds)} / {salesblock.duration_minutes} min
@@ -657,21 +742,21 @@ export default function SalesBlockSessionPage() {
             </button>
           </div>
         </div>
-        <div className="w-full bg-gray-200 dark:bg-white/10 rounded-full h-2">
+        <div className="w-full bg-gray-200 dark:bg-white/10 rounded-full h-1.5">
           <div
-            className="bg-indigo-electric h-2 rounded-full transition-all duration-300"
-            style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+            className="bg-indigo-electric h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${Math.min(progressPct, 100)}%` }}
           />
         </div>
       </div>
 
-      {/* Session Resume Banner */}
+      {/* Resume Banner */}
       {resumeBannerVisible && (
         <div className="bg-indigo-electric/10 border-b border-indigo-electric/30 px-4 py-3 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-indigo-electric">Resume where you left off?</p>
             <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
-              Saved progress found — contact {(savedState?.activeIndex ?? 0) + 1} of {contacts.length}
+              Saved progress — contact {(savedState?.activeIndex ?? 0) + 1} of {contacts.length}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -691,199 +776,170 @@ export default function SalesBlockSessionPage() {
         </div>
       )}
 
-      {/* Main Content: Queue + Active Contact */}
+      {/* ── 3-Column Body ── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Contact Queue (Left Sidebar) */}
-        <div className="w-80 border-r border-gray-200 dark:border-white/10 overflow-y-auto bg-gray-50 dark:bg-white/[0.02]">
-          <div className="p-4 border-b border-gray-200 dark:border-white/10">
-            <h3 className="vv-section-title">
-              Contact Queue ({contacts.length})
-            </h3>
+        {/* ─── LEFT: Contact Queue ─── */}
+        <div className="w-64 border-r border-gray-200 dark:border-white/10 overflow-y-auto bg-gray-50 dark:bg-white/[0.02] flex-shrink-0">
+          <div className="p-3 border-b border-gray-200 dark:border-white/10">
+            <h3 className="vv-section-title text-xs">Queue ({contacts.length})</h3>
+            <p className="text-[10px] text-gray-400 dark:text-white/30 font-mono mt-0.5">
+              {activeIndex + 1} of {contacts.length}
+            </p>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-white/10">
             {contacts.map((contact, index) => (
               <div
                 key={contact.id}
-                className={`p-4 cursor-pointer transition-all duration-150 ease-snappy ${
+                className={`px-3 py-2.5 cursor-pointer transition-all duration-150 ease-snappy ${
                   index === activeIndex
                     ? 'bg-indigo-electric/10 dark:bg-indigo-electric/10 border-l-4 border-indigo-electric'
                     : 'hover:bg-gray-50 dark:hover:bg-white/[0.08]'
                 }`}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => {
+                  setActiveIndex(index)
+                  setConnectedFlowOpen(false)
+                }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {contact.first_name} {contact.last_name}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-white/40 truncate">{contact.company || 'No company'}</p>
+                    <p className="text-[11px] text-gray-500 dark:text-white/40 truncate">
+                      {contact.company || 'No company'}
+                    </p>
                   </div>
                   {contact.hasActivity && (
-                    <Check className="w-5 h-5 text-emerald-signal flex-shrink-0 ml-2" />
+                    <Check className="w-4 h-4 text-emerald-signal flex-shrink-0 ml-1.5" />
                   )}
                 </div>
               </div>
             ))}
             {contacts.length === 0 && (
-              <div className="p-8 text-center">
+              <div className="p-6 text-center">
                 <p className="text-sm text-gray-500 dark:text-white/40">No contacts in this list</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Active Contact Detail (Right Panel) */}
-        <div className="flex-1 overflow-y-auto p-8">
+        {/* ─── CENTER: Active Contact + Dispositions ─── */}
+        <div className="flex-1 overflow-y-auto p-6">
           {activeContact ? (
-            <div>
-              <div className="mb-6">
-                <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <div className="max-w-2xl">
+              {/* Contact header */}
+              <div className="mb-4">
+                <h1 className="font-display text-2xl font-bold text-gray-900 dark:text-white mb-1">
                   {activeContact.first_name} {activeContact.last_name}
                 </h1>
-                <p className="text-lg text-gray-600 dark:text-white/50">
+                <p className="text-sm text-gray-600 dark:text-white/50">
                   {activeContact.title || 'No title'} at {activeContact.company || 'No company'}
                 </p>
               </div>
 
-              <div className="space-y-4 mb-6">
+              {/* Contact info */}
+              <div className="flex flex-wrap gap-4 mb-5">
                 {activeContact.phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-gray-500 dark:text-white/40" />
-                    <a
-                      href={`tel:${activeContact.phone}`}
-                      className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
-                    >
-                      {activeContact.phone}
-                    </a>
-                  </div>
-                )}
-                <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-gray-500 dark:text-white/40" />
                   <a
-                    href={`mailto:${activeContact.email}`}
-                    className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                    href={`tel:${activeContact.phone}`}
+                    className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
                   >
-                    {activeContact.email}
+                    <Phone className="w-4 h-4" />
+                    {activeContact.phone}
                   </a>
-                </div>
+                )}
+                <a
+                  href={`mailto:${activeContact.email}`}
+                  className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  {activeContact.email}
+                </a>
               </div>
 
+              {/* Contact notes */}
               {activeContact.notes && (
-                <div className="mb-6">
-                  <h3 className="vv-section-title mb-2">Notes</h3>
-                  <p className="text-sm text-gray-600 dark:text-white/40 whitespace-pre-wrap">{activeContact.notes}</p>
+                <div className="mb-5 p-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg">
+                  <p className="text-sm text-gray-600 dark:text-white/40 whitespace-pre-wrap">
+                    {activeContact.notes}
+                  </p>
                 </div>
               )}
 
-              {/* Quick Actions */}
-              <div className="mb-6">
-                <h3 className="vv-section-title mb-3">Quick Actions</h3>
-                <div className="grid grid-cols-2 gap-3">
+              {/* Call Script (call sessions only) */}
+              {sessionType === 'call' && (
+                <div className="mb-5">
                   <button
-                    onClick={() => setIsEmailModalOpen(true)}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 transition-all duration-200 ease-snappy"
+                    onClick={() => setScriptExpanded(!scriptExpanded)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-all duration-150 ease-snappy"
                   >
-                    <Mail className="w-5 h-5" />
-                    <span>Send Email</span>
+                    <span className="text-sm font-semibold text-gray-700 dark:text-white/70">
+                      Call Script
+                    </span>
+                    {scriptExpanded ? (
+                      <ChevronUp className="w-4 h-4 text-gray-500 dark:text-white/40" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-gray-500 dark:text-white/40" />
+                    )}
                   </button>
-                  <button
-                    onClick={() => setIsMeetingModalOpen(true)}
-                    className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-signal text-white rounded-lg hover:bg-emerald-signal/80 transition-all duration-200 ease-snappy"
-                  >
-                    <Calendar className="w-5 h-5" />
-                    <span>Book Meeting</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Activity Buttons */}
-              <div className="mb-6">
-                <h3 className="vv-section-title mb-3">Log Activity</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => openActivityModal('call')}
-                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
-                  >
-                    <PhoneCall className="w-5 h-5" />
-                    <span>Log Call</span>
-                  </button>
-                  <button
-                    onClick={() => openActivityModal('email')}
-                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
-                  >
-                    <Send className="w-5 h-5" />
-                    <span>Log Email</span>
-                  </button>
-                  <button
-                    onClick={openSocialModal}
-                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
-                  >
-                    <Share2 className="w-5 h-5" />
-                    <span>Log Social</span>
-                  </button>
-                  <button
-                    onClick={() => openActivityModal('note')}
-                    className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
-                  >
-                    <FileText className="w-5 h-5" />
-                    <span>Log Note</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Call Script Panel */}
-              <div className="mb-6">
-                <button
-                  onClick={() => setScriptExpanded(!scriptExpanded)}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-all duration-150 ease-snappy"
-                >
-                  <span className="text-sm font-semibold text-gray-700 dark:text-white/70">Call Script</span>
-                  {scriptExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-gray-500 dark:text-white/40" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-500 dark:text-white/40" />
+                  {scriptExpanded && (
+                    <div className="mt-2 p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg">
+                      <p className="text-sm text-gray-600 dark:text-white/50 whitespace-pre-wrap">
+                        {scriptContent
+                          ? scriptContent
+                          : `Hi, this is [Your Name] from [Company]. I'm reaching out because we help companies like ${activeContact.company || '[Company]'} with [Value Proposition].\n\nI wanted to see if you have a few minutes to discuss how we could help you with [Specific Pain Point]?\n\n[Listen for response and move to qualification questions...]`}
+                      </p>
+                    </div>
                   )}
-                </button>
-                {scriptExpanded && (
-                  <div className="mt-3 p-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-white/50 whitespace-pre-wrap">
-                      {scriptContent
-                        ? scriptContent
-                        : `Hi, this is [Your Name] from [Company]. I'm reaching out because we help companies like ${activeContact.company || '[Company]'} with [Value Proposition].\n\nI wanted to see if you have a few minutes to discuss how we could help you with [Specific Pain Point]?\n\n[Listen for response and move to qualification questions...]`}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Activity Timeline */}
-              <div className="mb-6">
-                <h3 className="vv-section-title mb-3">Activity Timeline</h3>
-                <div className="glass-card p-4">
-                  <ContactActivityTimeline
-                    contactId={activeContact.id}
-                    showAddNote={false}
-                    onActivityLogged={refreshActivityStatus}
-                  />
                 </div>
+              )}
+
+              {/* ── Disposition Buttons ── */}
+              <div className="mb-5">
+                <h3 className="vv-section-title mb-2">Disposition</h3>
+                <DispositionButtons
+                  sessionType={sessionType}
+                  onDisposition={handleDisposition}
+                  onConnectedFlow={handleConnectedFlowOpen}
+                  disabled={connectedFlowOpen}
+                />
               </div>
 
-              {/* Navigation Buttons */}
-              <div className="flex gap-3 mt-8">
+              {/* ── Connected Flow Panel (inline, shows when "Connected" clicked) ── */}
+              {connectedFlowOpen && (
+                <ConnectedFlowPanel
+                  onSaveAndNext={(flags) => handleConnectedFlowSave(flags, true)}
+                  onSaveAndStay={(flags) => handleConnectedFlowSave(flags, false)}
+                  onCancel={() => setConnectedFlowOpen(false)}
+                />
+              )}
+
+              {/* Quick actions — email compose + book meeting */}
+              <div className="flex gap-2 mt-5">
                 <button
-                  onClick={handleNext}
-                  disabled={activeIndex >= contacts.length - 1}
-                  className="flex items-center gap-2 px-6 py-3 bg-indigo-electric text-white rounded-lg hover:bg-indigo-electric/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-snappy"
+                  onClick={() => setIsEmailModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
                 >
-                  <span>Next Contact</span>
-                  <ChevronRight className="w-5 h-5" />
+                  <Mail className="w-4 h-4" />
+                  Compose Email
                 </button>
+                <button
+                  onClick={() => setIsMeetingModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Book Meeting
+                </button>
+              </div>
+
+              {/* Skip / Next navigation */}
+              <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
                 <button
                   onClick={handleSkip}
                   disabled={contacts.length <= 1}
-                  className="flex items-center gap-2 px-6 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 ease-snappy"
+                  className="px-4 py-2 text-sm border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 ease-snappy"
                 >
-                  <SkipForward className="w-5 h-5" />
-                  <span>Skip</span>
+                  Skip to End
                 </button>
               </div>
             </div>
@@ -893,49 +949,41 @@ export default function SalesBlockSessionPage() {
             </div>
           )}
         </div>
+
+        {/* ─── RIGHT: Activity Timeline ─── */}
+        <div className="w-80 border-l border-gray-200 dark:border-white/10 overflow-y-auto bg-gray-50 dark:bg-white/[0.02] flex-shrink-0">
+          <div className="p-3 border-b border-gray-200 dark:border-white/10">
+            <h3 className="vv-section-title text-xs">Activity</h3>
+          </div>
+          {activeContact ? (
+            <div className="p-3">
+              <ContactActivityTimeline
+                contactId={activeContact.id}
+                showAddNote={false}
+                onActivityLogged={refreshLiveStats}
+              />
+            </div>
+          ) : (
+            <div className="p-6 text-center">
+              <p className="text-xs text-gray-400 dark:text-white/30">Select a contact</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Activity Logging Modal */}
-      {activeContact && (
-        <LogActivityModal
-          isOpen={activityModalOpen}
-          onClose={() => setActivityModalOpen(false)}
-          contactId={activeContact.id}
-          salesblockId={salesblockId!}
-          userId={user!.id}
-          orgId={orgId}
-          activityType={activityType}
-          onSuccess={refreshActivityStatus}
-        />
-      )}
-
-      {/* Social Activity Modal */}
-      {activeContact && (
-        <LogSocialActivityModal
-          isOpen={isSocialModalOpen}
-          onClose={() => setIsSocialModalOpen(false)}
-          contactId={activeContact.id}
-          salesblockId={salesblockId}
-          userId={user!.id}
-          orgId={orgId}
-          onSuccess={refreshActivityStatus}
-        />
-      )}
-
-      {/* Compose Email Modal */}
+      {/* ── Modals ── */}
       {activeContact && (
         <ComposeEmailModal
           isOpen={isEmailModalOpen}
           onClose={() => setIsEmailModalOpen(false)}
           contact={activeContact}
           onSuccess={() => {
-            setIsEmailModalOpen(false);
-            refreshActivityStatus();
+            setIsEmailModalOpen(false)
+            refreshLiveStats()
           }}
         />
       )}
 
-      {/* Book Meeting Modal */}
       {activeContact && (
         <BookMeetingModal
           isOpen={isMeetingModalOpen}
@@ -943,11 +991,11 @@ export default function SalesBlockSessionPage() {
           contact={activeContact}
           salesblockId={salesblockId}
           onSuccess={() => {
-            setIsMeetingModalOpen(false);
-            refreshActivityStatus();
+            setIsMeetingModalOpen(false)
+            refreshLiveStats()
           }}
         />
       )}
     </div>
-  );
+  )
 }
