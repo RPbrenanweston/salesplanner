@@ -338,20 +338,20 @@ export default function Diagnostics() {
 
   const statusColor = (s: TestResult['status']) => {
     switch (s) {
-      case 'pass': return 'text-green-400';
-      case 'fail': return 'text-red-400';
-      case 'warn': return 'text-yellow-400';
-      case 'running': return 'text-blue-400';
-      default: return 'text-gray-500';
+      case 'pass': return 'text-green-600 dark:text-green-400';
+      case 'fail': return 'text-red-600 dark:text-red-400';
+      case 'warn': return 'text-yellow-600 dark:text-yellow-400';
+      case 'running': return 'text-blue-600 dark:text-blue-400';
+      default: return 'text-gray-500 dark:text-gray-400';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-8 font-mono">
+    <div className="min-h-screen bg-gray-50 dark:bg-void-950 text-gray-900 dark:text-white p-8 font-mono">
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">SalesBlock Diagnostics</h1>
-          <p className="text-gray-400 text-sm">
+          <h1 className="text-2xl font-bold mb-1 text-gray-900 dark:text-white">SalesBlock Diagnostics</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             Tests the full list creation pipeline: auth → user → org → RLS → INSERT → read-back
           </p>
         </div>
@@ -361,8 +361,8 @@ export default function Diagnostics() {
           disabled={running}
           className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all ${
             running
-              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-              : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+              ? 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              : 'bg-indigo-electric hover:bg-indigo-electric/80 text-white'
           }`}
         >
           {running ? 'Running diagnostics...' : 'Run Diagnostics'}
@@ -375,12 +375,12 @@ export default function Diagnostics() {
                 key={i}
                 className={`p-4 rounded-lg border ${
                   r.status === 'fail'
-                    ? 'border-red-500/40 bg-red-950/30'
+                    ? 'border-red-500/40 bg-red-50 dark:bg-red-950/30'
                     : r.status === 'pass'
-                    ? 'border-green-500/20 bg-green-950/20'
+                    ? 'border-green-500/20 bg-green-50 dark:bg-green-950/20'
                     : r.status === 'warn'
-                    ? 'border-yellow-500/30 bg-yellow-950/20'
-                    : 'border-gray-700 bg-gray-900/50'
+                    ? 'border-yellow-500/30 bg-yellow-50 dark:bg-yellow-950/20'
+                    : 'border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5'
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -389,15 +389,15 @@ export default function Diagnostics() {
                     <div className={`font-semibold text-sm ${statusColor(r.status)}`}>
                       {r.name}
                     </div>
-                    <div className="text-xs text-gray-300 mt-1 break-all whitespace-pre-wrap">
+                    <div className="text-xs text-gray-600 dark:text-gray-300 mt-1 break-all whitespace-pre-wrap">
                       {r.detail}
                     </div>
                     {r.data !== undefined && r.data !== null && (
                       <details className="mt-2">
-                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-300">
+                        <summary className="text-xs text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
                           Raw data
                         </summary>
-                        <pre className="mt-1 text-xs text-gray-400 bg-gray-900 p-2 rounded overflow-auto max-h-48">
+                        <pre className="mt-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/5 p-2 rounded overflow-auto max-h-48">
                           {JSON.stringify(r.data, null, 2)}
                         </pre>
                       </details>
@@ -409,7 +409,7 @@ export default function Diagnostics() {
           </div>
         )}
 
-        <div className="text-xs text-gray-600 mt-8 space-y-1">
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-8 space-y-1">
           <p>This page tests the exact same Supabase client and auth context as the ListBuilderModal.</p>
           <p>If Test 7 (INSERT) fails, the error message will reveal the exact RLS or schema violation.</p>
           <p>Test list is auto-cleaned in Test 9. If cleanup fails, look for lists named "__DIAG_TEST_*".</p>
