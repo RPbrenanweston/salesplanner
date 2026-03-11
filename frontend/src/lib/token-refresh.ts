@@ -1,17 +1,12 @@
-/**
- * @crumb
- * @id frontend-lib-token-refresh
- * @area INF/Auth/OAuth
- * @intent Centralized OAuth token validity checker with automatic refresh — ensures all API calls use non-expired access tokens
- * @responsibilities Check token expiry (with 5-min buffer), call appropriate refresh edge function when expired, return valid access_token, handle refresh failures gracefully
- * @contracts getValidToken(provider) → Promise<string | null>; checks oauth_connections.expires_at; calls refresh-google-token or refresh-microsoft-token edge function
- * @in Supabase oauth_connections table (access_token, refresh_token, expires_at), Supabase session (JWT), refresh edge functions
- * @out Valid (non-expired) access_token string; or null if no connection / refresh fails
- * @err No connection found (returns null); refresh edge function failure (returns null, logs error); missing refresh_token (returns null)
- * @hazard If the refresh edge function marks the connection as inactive (invalid_grant), this utility returns null — callers must handle the "reconnect" case
- * @shared-edges frontend/src/lib/calendar.ts→CALLS getValidToken for calendar API access; frontend/src/components/ComposeEmailModal.tsx→CALLS getValidToken for email send
- * @trail token-refresh#1 | Consumer calls getValidToken(provider) → check expires_at vs now-5min → if valid: return access_token → if expired: call refresh edge function → return new access_token
- */
+// @crumb frontend-lib-token-refresh
+// INF/Auth/OAuth | token_expiry_check | refresh_edge_function_call | valid_token_return | refresh_failure_handling
+// why: Centralized OAuth token validity checker with automatic refresh — ensures all API calls use non-expired access tokens
+// in:Supabase oauth_connections table (access_token,refresh_token,expires_at),Supabase session (JWT),refresh edge functions out:Valid access_token string or null err:No connection found (null);refresh edge function failure (null,logs error);missing refresh_token (null)
+// hazard: If refresh edge function marks connection as inactive (invalid_grant), returns null — callers must handle the reconnect case
+// hazard: No retry logic on transient refresh failures — single attempt then null
+// edge:frontend/src/lib/calendar.ts -> CALLS
+// edge:frontend/src/components/ComposeEmailModal.tsx -> CALLS
+// edge:token-refresh#1 -> STEP_IN
 
 import { supabase } from './supabase'
 

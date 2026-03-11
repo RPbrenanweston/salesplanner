@@ -1,0 +1,30 @@
+{
+  "project": "SalesBlock.io — Roadmap Features",
+  "branchName": "ralph/roadmap-features",
+  "description": "All UI roadmap features have been promoted to prd-prelaunch-fixes.json as P3/P4 stories. This file is retained as a reference index only.",
+  "mergedInto": "prd-prelaunch-fixes.json",
+  "storiesMerged": [
+    "FEAT-004",
+    "FEAT-006",
+    "FEAT-007",
+    "FEAT-008",
+    "FEAT-009",
+    "FEAT-010",
+    "FEAT-011",
+    "FEAT-012",
+    "FEAT-013",
+    "FEAT-014",
+    "FEAT-015",
+    "FEAT-016",
+    "FEAT-017",
+    "FEAT-018",
+    "FEAT-019",
+    "FEAT-020",
+    "FEAT-021",
+    "FEAT-022",
+    "FEAT-023",
+    "FEAT-024",
+    "FEAT-025"
+  ],
+  "note": "P3 = core UX (must ship). P4 = deferrable polish (ship if time allows, document for next sprint if not)."
+}

@@ -1,19 +1,12 @@
-/**
- * @crumb
- * @id frontend-component-deal-detail-modal
- * @area UI/Deals
- * @intent Deal detail modal — view and edit full deal information including linked contact, company, value, stage, close date, and notes
- * @responsibilities Fetch deal + linked contact + linked company on mount, render editable deal fields, update deal in Supabase on save, call onUpdated callback
- * @contracts DealDetailModal({ dealId, onClose, onUpdated }) → JSX; calls supabase.from('deals').select with join to contacts + companies; calls supabase.from('deals').update on save
- * @in dealId (string), supabase deals + contacts + companies tables, onClose callback, onUpdated callback
- * @out Updated deal row in deals table; onUpdated called with updated deal; modal displays current deal state
- * @err Supabase fetch failure (error state shown or empty modal); Supabase update failure (caught, error shown); dealId undefined (empty or broken modal)
- * @hazard Deal fetch joins contacts and companies — if the join columns (contact_id, company_id) are null for a deal, the joined data will be absent and dependent fields will be empty without visible error
- * @hazard Stage update in this modal and stage drag in the pipeline board are separate code paths — if one updates the deal and the other doesn't react to the change, the UI can show inconsistent stage state between views
- * @shared-edges supabase deals table→READS + UPDATES; supabase contacts table→JOINS; supabase companies table→JOINS; pipeline board or deal list→RENDERS modal; AddDealModal→CREATES deals that appear here
- * @trail deal-detail#1 | User clicks deal → DealDetailModal renders → useEffect fetches deal + contact + company → user edits fields → handleSave → supabase update → onUpdated(deal) → modal closes
- * @prompt Add optimistic update with rollback on save failure. Sync stage change events between modal and pipeline board via context or event. Guard null joins gracefully.
- */
+// @crumb frontend-component-deal-detail-modal
+// UI/Deals | fetch_deal_with_joins | editable_deal_fields | supabase_update | on_updated_callback
+// why: Deal detail modal — view and edit full deal information including linked contact, company, value, stage, close date, and notes
+// in:dealId,supabase deals + contacts + companies tables out:Updated deal row,onUpdated called,current deal state displayed err:Supabase fetch failure,Supabase update failure,dealId undefined
+// hazard: Null join columns (contact_id, company_id) cause absent joined data with no visible error
+// hazard: Stage update in modal and pipeline board are separate code paths — inconsistent stage state between views
+// edge:frontend/src/components/AddDealModal.tsx -> RELATES
+// edge:deal-detail#1 -> STEP_IN
+// prompt: Add optimistic update with rollback on save failure. Sync stage change events between modal and pipeline board. Guard null joins gracefully.
 import { useState, useEffect } from 'react'
 import { X, User, Building2, DollarSign, Calendar, FileText } from 'lucide-react'
 import { supabase } from '../lib/supabase'

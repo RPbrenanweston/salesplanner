@@ -1,19 +1,15 @@
-/**
- * @crumb
- * @id frontend-page-salesblocks
- * @area UI/Pages
- * @intent SalesBlock management index — create, list, and launch timed outreach sessions targeting contact lists
- * @responsibilities Display all org SalesBlocks with status/list/schedule info, open CreateSalesBlockModal, navigate to session on Play, show status badges (scheduled/in_progress/completed/cancelled)
- * @contracts SalesBlocks() → JSX; reads salesblocks+lists from Supabase; uses useNavigate for session entry; launches CreateSalesBlockModal
- * @in supabase (salesblocks joined to lists), useAuth (user/org_id), useNavigate, CreateSalesBlockModal
- * @out Grid of SalesBlock cards with play/edit/delete actions and status indicators
- * @err Supabase query failure (empty grid, no error state); delete without confirmation (currently no confirmation modal before delete)
- * @hazard Delete fires immediately on click with no confirmation dialog — accidental clicks destroy sessions with logged activities
- * @hazard salesblocks query may not be scoped to org_id — verify RLS policy or explicit org_id filter to prevent cross-org data leak
- * @shared-edges frontend/src/components/CreateSalesBlockModal.tsx→LAUNCHES; frontend/src/pages/SalesBlockSessionPage.tsx→NAVIGATES to /salesblocks/:id/session; frontend/src/lib/supabase.ts→QUERIES; frontend/src/App.tsx→ROUTES to /salesblocks
- * @trail salesblocks#1 | SalesBlocks mounts → load all org salesblocks with list names → render grid → Play navigates to session → CreateSalesBlockModal creates new block → grid refreshes
- * @prompt Add delete confirmation dialog. Audit salesblocks Supabase query for org_id scoping. Add empty state UI when no SalesBlocks exist. Consider status filter tabs (scheduled / completed). VV design applied: void-950 page bg, vv-section-title "Outreach" label, font-display headings, glass-card list cards, indigo-electric active display/view toggles + Create CTA + tab underlines, emerald-signal Start button, red-alert/10 Cancel button, VV spinner, VV status badges (indigo-electric/scheduled, emerald-signal/completed, cyan-neon/in_progress, red-alert/cancelled), CampaignViewGrid: glass-card wrappers, font-display titles, gray-100 dark:bg-white/10 step circles, vv-section-title Outreach Flow label, font-mono summary values, border-gray-200 dark:border-white/10 dividers.
- */
+// @crumb frontend-page-salesblocks
+// UI/PAGES | display_org_salesblocks | status_badges | create_modal | navigate_to_session | play_edit_delete
+// why: SalesBlock management index — create, list, and launch timed outreach sessions targeting contact lists
+// in:supabase(salesblocks joined to lists),useAuth(user/org_id),useNavigate,CreateSalesBlockModal out:grid of SalesBlock cards with play/edit/delete actions and status indicators err:Supabase query failure(empty grid),delete without confirmation
+// hazard: Delete fires immediately on click with no confirmation dialog — accidental clicks destroy sessions with logged activities
+// hazard: salesblocks query may not be scoped to org_id — verify RLS policy to prevent cross-org data leak
+// edge:frontend/src/components/CreateSalesBlockModal.tsx -> CALLS
+// edge:frontend/src/pages/SalesBlockSessionPage.tsx -> RELATES
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:salesblocks#1 -> STEP_IN
+// prompt: Add delete confirmation dialog. Audit salesblocks query for org_id scoping. Add empty state UI. Consider status filter tabs.
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Play, Edit, X, Users, User, Linkedin, Mail, Phone, CheckCircle, Grid, Zap } from 'lucide-react'
@@ -167,6 +163,7 @@ const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
 
 export default function SalesBlocks() {
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingSalesblock, setEditingSalesblock] = useState<SalesBlock | null>(null)
   const [salesblocks, setSalesblocks] = useState<SalesBlock[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('upcoming')
@@ -306,8 +303,10 @@ export default function SalesBlocks() {
   }
 
   const handleEdit = (salesblockId: string) => {
-    // TODO: Open edit modal when implemented
-    alert(`Edit salesblock: ${salesblockId}`)
+    const sb = salesblocks.find(s => s.id === salesblockId)
+    if (sb) {
+      setEditingSalesblock(sb)
+    }
   }
 
   const handleCancel = async (salesblockId: string) => {
@@ -631,6 +630,26 @@ export default function SalesBlocks() {
           loadSalesblocks()
         }}
       />
+
+      {/* Edit Modal — reuses CreateSalesBlockModal in edit mode */}
+      {editingSalesblock && (
+        <CreateSalesBlockModal
+          isOpen={!!editingSalesblock}
+          onClose={() => setEditingSalesblock(null)}
+          onSuccess={() => {
+            setEditingSalesblock(null)
+            loadSalesblocks()
+          }}
+          editData={{
+            id: editingSalesblock.id,
+            title: editingSalesblock.title,
+            list_id: editingSalesblock.list_id,
+            script_id: (editingSalesblock as any).script_id ?? null,
+            scheduled_start: editingSalesblock.scheduled_start,
+            duration_minutes: editingSalesblock.duration_minutes,
+          }}
+        />
+      )}
     </div>
   )
 }

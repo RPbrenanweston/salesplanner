@@ -1,21 +1,13 @@
-/**
- * @crumb
- * @id backend-email-reply-tracker
- * @area INF
- * @intent Asynchronously track when customers reply to outbound sales emails enabling reply rate intelligence and automated follow-up trigger signals
- * @responsibilities Batch-fetch pending email activities, query Gmail and Outlook for inbound replies from target contact, persist replied_at timestamp, update activity sync status
- * @contracts async handler(req: Request) → Response({checked: count, replied: count} | {error: string}); Polls activities where type='email' and replied_at IS NULL, queries Gmail threads and Outlook conversations, updates replied_at on match
- * @in OAuth connections (Gmail refresh_token, access_token, expires_at; Outlook refresh_token, access_token, expires_at), activities table (email type, thread_id or conversation_id), contact table (salesforce_id, email, first/last name)
- * @out Updated activities.replied_at (timestamp of first inbound reply), sync_status='reply_tracked' on success; error logged on token expiration or missing email field
- * @err OAuth token expired (line 67, 89); activity.thread_id null for Gmail (line 73); activity.conversation_id null for Outlook (line 91); contact.email missing (line 78, 94); Outlook search filter URL unencoded (line 95-potential injection); activity.created_at > 30 days skipped silently (line 52)
- * @hazard Token expiration not checked before API call—if access_token invalid, batch silently fails after 30sec timeout with no retry, delaying reply detection window by entire batch retry cycle
- * @fixed Gmail reply detection now verifies sender From header matches contact.email — eliminates false positives from shared threads or team conversations where messages.length > 1 but no reply from contact (2026-03-08)
- * @fixed Outlook OData search filter now URL-encodes conversationId and contact.email via encodeURIComponent — prevents OData injection via special characters in email addresses or conversation IDs (2026-03-08)
- * @hazard Thread_id/conversation_id extraction assumes always present—missing these causes activity silently skipped, losing reply tracking forever (no recovery mechanism); Email metadata (sender, reply timestamp, message preview) not persisted—losing ability to surface reply content in UI or correlate with other activities; No idempotency guard—same webhook fire twice creates duplicate replied_at updates if checked before first completes
- * @shared-edges supabase/functions/sync-activities-to-salesforce/index.ts→READS oauth_connections same table, accesses activities from same batch flow, references salesforce_task_id for correlation; frontend/src/lib/salesforce.ts→USES same Token refresh pattern (refreshAccessToken); supabase/functions/handle-stripe-webhook/index.ts→USES same OAuth token handling and batch database updates
- * @trail email-reply-tracking#1 | Outbound email activity created with thread_id (Gmail) or conversation_id (Outlook) → activity.replied_at IS NULL, created_at < 30 days → Job polls activities → Gmail: threadData.messages.length > 1 → Outlook: conversation search for from:contact.email → Inbound reply detected → activity.replied_at = reply.timestamp, sync_status='reply_tracked' → reply signal triggers automation (follow-up cancel, sales intelligence update)
- * @prompt When adding new email provider (e.g., SendGrid), ensure thread/conversation ID extraction matches provider's thread model (Gmail=thread_id, Outlook=conversation_id, SendGrid=?). Test with shared threads: Gmail thread with 3+ participants should only trigger replied_at if contact is actual reply sender, not just participant. Encode Outlook email filters via encodeURIComponent() to prevent OData injection if special chars appear in email.
- */
+// @crumb backend-email-reply-tracker
+// INF | batch_email_activity_fetch | gmail_thread_reply_detection | outlook_conversation_reply_detection | replied_at_persistence | sync_status_update
+// why: Asynchronously track when customers reply to outbound sales emails enabling reply rate intelligence and automated follow-up trigger signals
+// in:OAuth connections (Gmail/Outlook refresh_token,access_token,expires_at), activities table (email type,thread_id/conversation_id), contact table (email,first/last name) out:Updated activities.replied_at timestamp, sync_status='reply_tracked' err:OAuth token expired; thread_id/conversation_id null; contact.email missing; Outlook OData filter injection; activities > 30 days skipped silently
+// hazard: Token expiration not checked before API call — batch silently fails after 30sec timeout with no retry, delaying reply detection window
+// hazard: Thread_id/conversation_id extraction assumes always present — missing causes activity silently skipped with no recovery; No idempotency guard — duplicate webhook fires create duplicate replied_at updates
+// edge:supabase/functions/sync-activities-to-salesforce/index.ts -> READS
+// edge:supabase/functions/exchange-oauth-token/index.ts -> READS
+// edge:email-reply-tracking#1 -> STEP_IN
+// prompt: When adding new email provider, ensure thread/conversation ID extraction matches provider's thread model. Test with shared threads: Gmail thread with 3+ participants should only trigger replied_at if contact is actual reply sender. Encode Outlook email filters via encodeURIComponent().
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 

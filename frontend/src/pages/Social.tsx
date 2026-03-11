@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id frontend-page-social
- * @area UI/Pages
- * @intent Social outreach activity log — view and filter social touchpoints (LinkedIn, Twitter/X) logged against contacts
- * @responsibilities Load social-type activities with contact names, filter by platform type, display activity feed with timestamps and outcome notes
- * @contracts Social() → JSX; reads activities (type='social') joined to contacts from Supabase; uses useAuth for user/org_id scoping
- * @in supabase (activities joined to contacts, filtered by type='social'), useAuth (user/org_id)
- * @out Filtered social activity feed with platform icons, contact names, timestamps, outcome labels
- * @err Supabase join failure (contact name not returned — shows undefined or null in feed); empty state has no messaging if no social activities logged
- * @hazard activities.contact join depends on contact_id FK — if contact was deleted, join returns null and card renders with missing contact name (no null guard)
- * @hazard Platform filter assumes activity.platform field exists — if field not present in schema, filter silently shows all activities regardless of selection
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES activities+contacts; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/App.tsx→ROUTES to /social
- * @trail social#1 | Social mounts → load social activities with contact join → render activity feed → platform filter updates query → empty state if none
- * @prompt Add null guard for deleted contacts in activity join. Verify platform field exists on activities table schema. Add empty state with CTA to log first social activity. Add date range filter. VV design applied: void-950 page bg, VV spinner, vv-section-title "Engagement", font-display headings, glass-card filters + activity cards, indigo-electric focus rings, white/10 borders, indigo-electric/15 platform badge, white/10 type badge, font-mono timestamps, dark:text-white/50 body text.
- */
+// @crumb frontend-page-social
+// UI/PAGES | load_social_activities | filter_by_platform | display_activity_feed | timestamps_and_outcomes
+// why: Social outreach activity log — view and filter social touchpoints (LinkedIn, Twitter/X) logged against contacts
+// in:supabase(activities joined to contacts,type='social'),useAuth(user/org_id) out:filtered social activity feed with platform icons,contact names,timestamps,outcome labels err:Supabase join failure(contact name not returned),empty state has no messaging
+// hazard: activities.contact join depends on contact_id FK — if contact deleted, join returns null and card renders with missing contact name
+// hazard: Platform filter assumes activity.platform field exists — if field not present, filter silently shows all activities
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:social#1 -> STEP_IN
+// prompt: Add null guard for deleted contacts. Verify platform field exists on activities table. Add empty state with CTA. Add date range filter.
 import { useEffect, useState } from 'react';
 import { Share2, Linkedin, Twitter, Filter } from 'lucide-react';
 import { supabase } from '../lib/supabase';

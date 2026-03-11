@@ -1,20 +1,17 @@
-/**
- * @crumb
- * @id frontend-page-marketing
- * @area UI/Marketing
- * @intent Public marketing landing page — hero with canvas scroll animation (160-frame laptop explosion sequence), feature cards, philosophy section, and conversion CTAs
- * @responsibilities Render full-page marketing site (no auth); manage 160-frame canvas scroll animation; preload all JPEG frames on mount; map scrollProgress to frame index + rotation; show CTA links to /signup /signin /pricing
- * @contracts MarketingPage() → JSX; reads /frames/frame-XXXX.jpg (160 static assets); links to ROUTES.SIGNUP, ROUTES.SIGNIN, ROUTES.PRICING via React Router
- * @in /public/frames/frame-0001.jpg … frame-0160.jpg (160 JPEG frames), ROUTES constants from lib/routes, React Router Link
- * @out Full-page marketing site visible at "/" to all unauthenticated visitors; canvas animation at 16:9 aspect ratio inside hero; 400vh scroll section pinning canvas during animation
- * @err If frames fail to load, canvas stays blank (no fallback image or error state); if ROUTES is missing a key, Link href is undefined (silent broken link)
- * @hazard All 160 JPEG frames are loaded eagerly via new Image() on mount — spikes network on slow connections; no IntersectionObserver or lazy-load gating
- * @hazard Canvas resize uses window "resize" event listener — ResizeObserver on the canvas element would be more accurate for layout-shift edge cases
- * @hazard scrollProgress computed from window.scrollY — does not account for dynamic header heights; pinned section top must match fixed offset (currently 0)
- * @shared-edges frontend/src/lib/routes.ts→READS ROUTES; frontend/public/frames/→READS 160 static JPEGs; frontend/src/pages/PricingPage.tsx→LINKS TO; frontend/src/pages/SignUp.tsx→LINKS TO; frontend/src/pages/SignIn.tsx→LINKS TO
- * @trail marketing#1 | Visitor lands on "/" → frames preload → scroll animation activates → scroll section unpins → feature cards visible → CTA links to /signup or /pricing
- * @prompt VV tokens applied — void-950 (#04060f) root bg, dark glass nav (rgba(4,6,15,0.85)), dark glassCard panels (rgba(10,15,40,0.75)), white/65 body text, white headings, rgba(255,255,255,0.06) borders, indigo-electric (#6366f1) accents, cyan-neon (#0db9f2) accents, purple-neon (#8b5cf6) gradient preserved. Remaining: Add IntersectionObserver to gate frame preloading until hero section enters viewport; add <noscript> fallback image for SEO; consider extracting canvas animation into a reusable hook.
- */
+// @crumb frontend-page-marketing
+// UI/MARKETING | render_marketing_site | canvas_scroll_animation | preload_jpeg_frames | cta_links
+// why: Public marketing landing page — hero with canvas scroll animation (160-frame sequence), feature cards, and conversion CTAs
+// in:/public/frames/frame-0001.jpg...frame-0160.jpg,ROUTES constants,React Router Link out:full-page marketing site at "/" for unauthenticated visitors,canvas animation,400vh scroll section err:frames fail to load(canvas stays blank),ROUTES missing key(silent broken link)
+// hazard: All 160 JPEG frames loaded eagerly via new Image() on mount — spikes network on slow connections; no lazy-load gating
+// hazard: Canvas resize uses window "resize" event listener — ResizeObserver would be more accurate for layout-shift
+// hazard: scrollProgress computed from window.scrollY — does not account for dynamic header heights
+// edge:frontend/src/lib/routes.ts -> READS
+// edge:frontend/public/frames/ -> READS
+// edge:frontend/src/pages/PricingPage.tsx -> RELATES
+// edge:frontend/src/pages/SignUp.tsx -> RELATES
+// edge:frontend/src/pages/SignIn.tsx -> RELATES
+// edge:marketing#1 -> STEP_IN
+// prompt: Add IntersectionObserver to gate frame preloading. Add noscript fallback image for SEO. Extract canvas animation into reusable hook.
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '../lib/routes'

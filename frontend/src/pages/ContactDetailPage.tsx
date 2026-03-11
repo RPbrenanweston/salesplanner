@@ -1,19 +1,17 @@
-/**
- * @crumb
- * @id frontend-page-contact-detail
- * @area UI/Pages
- * @intent Full contact record view — display and edit contact fields, log activities, compose email, book meeting, view activity timeline, and manage deal associations
- * @responsibilities Load contact by id param, render editable fields (name/email/phone/company/title/notes), display activity timeline, open action modals (log/email/social/meeting/deal), navigate back with useLocation state
- * @contracts ContactDetailPage() → JSX; receives contactId via useParams; reads contacts+activities+deals from Supabase; writes on field save and activity log
- * @in useParams (contactId), useLocation (back navigation state), useAuth (user), supabase (contacts, activities, deals tables), 4 action modal components
- * @out Contact detail card with inline edit, activity timeline, action button row, deal association panel
- * @err Contact not found by id → notFound state renders 404 UI with back button; Supabase update failure on notes save → alert shown; Research save failure → alert shown
- * @hazard useLocation back navigation depends on location.state.from — if navigated directly (not from list), state is null and back button may navigate to wrong route
- * @hazard Inline field editing with no optimistic rollback — if save fails, input still shows new value but DB has old value (silent desync)
- * @shared-edges frontend/src/components/LogActivityModal.tsx→LAUNCHES; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/components/ContactActivityTimeline.tsx→RENDERS; frontend/src/lib/supabase.ts→QUERIES+UPDATES; frontend/src/App.tsx→ROUTES to /contacts/:id
- * @trail contact#1 | ContactDetailPage mounts with contactId → load contact record → render editable fields → user edits → save writes to Supabase → activity timeline loads in parallel → modal actions log to activities table
- * @prompt Add 404 state when contact not found. Fix back navigation null guard (location.state?.from ?? '/lists'). Add error toast on field save failure. Confirm contacts table has org_id scoping on all queries. VV design applied: void-950 page bg, VV spinner loading state, font-display name heading + vv-section-title, glass-card timeline + notes panels, indigo-electric email/phone links + Send Email CTA, emerald-signal Book Meeting CTA, secondary outlined Log Social button, back button transition-colors, Research Lab sidebar already VV-native.
- */
+// @crumb frontend-page-contact-detail
+// UI/PAGES | load_contact_by_id | render_editable_fields | activity_timeline | action_modals | deal_associations | back_navigation
+// why: Full contact record view — display and edit contact fields, log activities, compose email, book meeting, view timeline
+// in:useParams(contactId),useLocation(back state),useAuth(user),supabase(contacts,activities,deals),4 action modal components out:contact detail card with inline edit,activity timeline,action button row,deal association panel err:contact not found(404 UI),Supabase update failure(alert shown),research save failure(alert)
+// hazard: useLocation back navigation depends on location.state.from — if navigated directly, state is null and back button navigates wrong
+// hazard: Inline field editing with no optimistic rollback — if save fails, input shows new value but DB has old value
+// edge:frontend/src/components/LogActivityModal.tsx -> CALLS
+// edge:frontend/src/components/ComposeEmailModal.tsx -> CALLS
+// edge:frontend/src/components/BookMeetingModal.tsx -> CALLS
+// edge:frontend/src/components/ContactActivityTimeline.tsx -> RELATES
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:contact#1 -> STEP_IN
+// prompt: Fix back navigation null guard (location.state?.from ?? '/lists'). Add error toast on field save failure. Confirm contacts table has org_id scoping.
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, Building2, Briefcase, Share2, Calendar, Zap, X, Search, Pencil, Check, Globe, Linkedin, Twitter } from 'lucide-react';

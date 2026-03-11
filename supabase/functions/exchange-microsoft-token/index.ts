@@ -1,3 +1,14 @@
+// @crumb edge-exchange-microsoft-token
+// Auth/OAuth | authorization_code_exchange | token_storage | provider_dispatch
+// why: Exchange Microsoft OAuth authorization code for access and refresh tokens — handles both Outlook Mail and Outlook Calendar providers
+// in:POST body (code,redirect_uri,provider:'outlook'|'outlook_calendar'),env vars (OUTLOOK_CLIENT_ID,OUTLOOK_CLIENT_SECRET,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY) out:JSON {success:true,email_address} on success; JSON {error:string} on failure; upserts row in oauth_connections table err:Missing env vars -> 500; token exchange failure -> 502; DB upsert failure -> 500; unknown provider -> 400
+// hazard: Mail and Calendar share the same CLIENT_ID but require different scope sets — wrong scope causes 403 at send/read time
+// hazard: Microsoft tokens expire in 1 hour and require refresh_token to be stored — missing refresh_token causes permanent 401 after expiry
+// edge:frontend/src/pages/OutlookOAuthCallback.tsx -> SERVES
+// edge:frontend/src/pages/OutlookCalendarOAuthCallback.tsx -> SERVES
+// edge:supabase/functions/refresh-microsoft-token/index.ts -> RELATES
+// edge:microsoft-oauth-exchange#1 -> STEP_IN
+// prompt: When adding new Microsoft scopes, add them to the token request body scope parameter. Verify refresh_token is present in response (some grant types omit it). Test re-connect flow — upsert should overwrite existing tokens. Confirm email_address extracted from Microsoft /me endpoint.
 /**
  * Exchange Microsoft OAuth authorization code for access + refresh tokens.
  * Handles both Outlook Mail and Outlook Calendar providers.

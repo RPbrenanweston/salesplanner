@@ -1,20 +1,20 @@
-/**
- * @crumb
- * @id frontend-page-list-detail
- * @area UI/Pages
- * @intent Contact list detail view — browse, search, sort, bulk-select, and act on contacts in a specific list; single or bulk remove contacts with confirmation; launch email/social/meeting actions; start SalesBlock session
- * @responsibilities Load list metadata + contacts by listId param (with filter_criteria fallback for legacy lists), render sortable contact table with checkbox selection, search contacts, single remove with confirm dialog, bulk remove with confirmation modal, batch activity date loading, open action modals per contact, navigate to ContactDetailPage, start SalesBlock from list, edit list via ListBuilderModal
- * @contracts ListDetailPage() → JSX; receives listId via useParams; reads lists + list_contacts + contacts + activities from Supabase; writes on contact remove (single or bulk); uses useAuth
- * @in useParams (listId), useAuth (user), supabase (lists + list_contacts + contacts + activities), ComposeEmailModal + LogSocialActivityModal + BookMeetingModal + ListBuilderModal components
- * @out Searchable sortable contact table with checkbox selection + bulk actions bar, action buttons per row, list header with metadata + edit button, Run SalesBlock CTA, delete confirmation modal
- * @err listId not found in Supabase (shows loading spinner indefinitely — no 404); contact remove failure (alert displayed); load error (error state with retry button)
- * @hazard Single contact remove still uses browser confirm() — inconsistent UX with the new bulk delete modal
- * @hazard Sort state is client-side only — if contact list is paginated in future, sort breaks silently (sorts only the loaded page, not full list)
- * @hazard Chunked .in() queries (200 per chunk) for large lists — may be slow for lists with 10,000+ contacts
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES lists+list_contacts+contacts+activities; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/components/ComposeEmailModal.tsx→LAUNCHES; frontend/src/components/LogSocialActivityModal.tsx→LAUNCHES; frontend/src/components/BookMeetingModal.tsx→LAUNCHES; frontend/src/components/ListBuilderModal.tsx→LAUNCHES; frontend/src/pages/ContactDetailPage.tsx→NAVIGATES to; frontend/src/App.tsx→ROUTES to /lists/:id
- * @trail list-detail#1 | ListDetailPage mounts with listId → load list metadata → load contacts (junction table with filter_criteria fallback) → batch load activities → render table with checkboxes → user selects contacts → bulk actions bar appears → user clicks "Remove from list" → confirmation modal → chunked delete from list_contacts → reload contacts
- * @prompt Consider migrating single-contact remove to use modal confirmation (matching bulk pattern). Add 404 state when list not found. Move sort to server-side when list grows. VV design applied throughout.
- */
+// @crumb frontend-page-list-detail
+// UI/PAGES | load_list_metadata | render_sortable_contact_table | checkbox_selection | bulk_remove | single_remove | action_modals | salesblock_launch | list_edit
+// why: Contact list detail view — browse, search, sort, bulk-select, and act on contacts in a specific list
+// in:useParams(listId),useAuth(user),supabase(lists+list_contacts+contacts+activities),ComposeEmailModal+LogSocialActivityModal+BookMeetingModal+ListBuilderModal out:searchable sortable contact table with bulk actions,action buttons per row,list header,Run SalesBlock CTA err:listId not found(loading spinner indefinitely),contact remove failure(alert),load error(error state with retry)
+// hazard: Single contact remove still uses browser confirm() — inconsistent UX with the new bulk delete modal
+// hazard: Sort state is client-side only — if contact list is paginated in future, sort breaks silently
+// hazard: Chunked .in() queries (200 per chunk) for large lists — may be slow for 10,000+ contacts
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/components/ComposeEmailModal.tsx -> CALLS
+// edge:frontend/src/components/LogSocialActivityModal.tsx -> CALLS
+// edge:frontend/src/components/BookMeetingModal.tsx -> CALLS
+// edge:frontend/src/components/ListBuilderModal.tsx -> CALLS
+// edge:frontend/src/pages/ContactDetailPage.tsx -> RELATES
+// edge:frontend/src/App.tsx -> RELATES
+// edge:list-detail#1 -> STEP_IN
+// prompt: Consider migrating single-contact remove to use modal confirmation (matching bulk pattern). Add 404 state when list not found. Move sort to server-side when list grows. VV design applied throughout.
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil, Trash2, AlertTriangle } from 'lucide-react';
@@ -457,7 +457,7 @@ export default function ListDetailPage() {
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
             placeholder="Search contacts by name, email, or company..."
@@ -573,7 +573,7 @@ export default function ListDetailPage() {
               ) : filteredContacts.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
-                    <p className="text-gray-500 dark:text-white/40 mb-2">
+                    <p className="text-gray-500 dark:text-white/50 mb-2">
                       {searchQuery ? 'No contacts match your search' : 'No contacts in this list'}
                     </p>
                     <p className="text-sm text-gray-400 dark:text-white/30">
@@ -743,7 +743,7 @@ export default function ListDetailPage() {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+          <div className="bg-white dark:bg-void-900 rounded-lg shadow-xl w-full max-w-md p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-alert" />
@@ -764,7 +764,7 @@ export default function ListDetailPage() {
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
                 disabled={isDeleting}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-colors"
               >
                 Cancel
               </button>

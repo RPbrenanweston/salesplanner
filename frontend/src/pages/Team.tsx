@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id frontend-page-team
- * @area UI/Pages
- * @intent Team performance view — display all org members with their activity stats and navigate to individual rep detail
- * @responsibilities Load all users in same org, aggregate their activity counts (calls/emails/meetings), render team leaderboard, navigate to individual contact/rep view
- * @contracts Team() → JSX; reads users (by org_id) + activities aggregated per user from Supabase; uses useAuth for org scoping; uses useNavigate
- * @in supabase (users table filtered by org_id, activities aggregated by user_id), useAuth (user/org_id)
- * @out Team roster cards with activity stats, navigation to rep detail
- * @err org_id null on user (empty team, no error state); Supabase query failure (empty team list); no distinction between active and inactive users
- * @hazard Team query uses org_id from useAuth — if user's org_id is not set, query returns zero results silently (looks like solo account)
- * @hazard Activity aggregation is all-time — no period filter; as team grows, aggregate query may slow significantly
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES users+activities; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/App.tsx→ROUTES to /team
- * @trail team#1 | Team mounts → load org users → aggregate activity counts per user → render roster cards → navigate to rep detail
- * @prompt Add time-range filter for activity aggregation. Add period selector (week/month). Handle empty org_id gracefully. Confirm user query is RLS-scoped to same org. Add invite member flow. VV design applied: void-950 page bg, VV spinner, vv-section-title "Performance", font-display headings, glass-card leaderboard + chart panels, indigo-electric active tab + Assign CTA + View Details links, white/10 table dividers + dark hover rows, font-mono numeric cells, font-display member names, bar chart recolored to VV palette (indigo-electric/emerald-signal/cyan-neon/purple-neon).
- */
+// @crumb frontend-page-team
+// UI/PAGES | load_org_users | aggregate_activity_counts | render_team_leaderboard | navigate_rep_detail
+// why: Team performance view — display all org members with their activity stats and navigate to individual rep detail
+// in:supabase(users by org_id,activities aggregated per user),useAuth(user/org_id) out:team roster cards with activity stats,navigation to rep detail err:org_id null(empty team),Supabase query failure(empty list),no active/inactive distinction
+// hazard: Team query uses org_id from useAuth — if not set, query returns zero results silently
+// hazard: Activity aggregation is all-time — no period filter; aggregate query may slow as team grows
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:team#1 -> STEP_IN
+// prompt: Add time-range filter for activity aggregation. Handle empty org_id gracefully. Confirm user query is RLS-scoped. Add invite member flow.
 import { useState, useEffect } from 'react'
 import { Clock, Mail, Phone, Users, Calendar, Target, ArrowRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
