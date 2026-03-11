@@ -29,6 +29,7 @@ interface EditSalesBlockData {
   script_id?: string | null
   scheduled_start: string
   duration_minutes: number
+  session_type?: 'call' | 'email' | 'social'
 }
 
 interface CreateSalesBlockModalProps {
@@ -63,6 +64,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('')
   const [duration, setDuration] = useState(String(DURATION.DEFAULT_SALESBLOCK_MINUTES))
+  const [sessionType, setSessionType] = useState<'call' | 'email' | 'social'>('call')
   const [assignedToUserId, setAssignedToUserId] = useState('') // Empty = assign to self
 
   // Populate form when editing
@@ -72,6 +74,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
       setSelectedScriptId(editData.script_id || '')
       setTitle(editData.title)
       setDuration(String(editData.duration_minutes))
+      setSessionType(editData.session_type || 'call')
       const startDate = new Date(editData.scheduled_start)
       setScheduledDate(startDate.toISOString().split('T')[0])
       setScheduledTime(startDate.toTimeString().slice(0, 5))
@@ -114,6 +117,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
             scheduled_start: scheduledStart.toISOString(),
             scheduled_end: scheduledEnd.toISOString(),
             duration_minutes: parseInt(duration),
+            session_type: sessionType,
             script_id: selectedScriptId || null,
           })
           .eq('id', editData.id)
@@ -157,6 +161,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
           scheduled_end: scheduledEnd.toISOString(),
           duration_minutes: parseInt(duration),
           status: SALESBLOCK_STATUS.SCHEDULED,
+          session_type: sessionType,
           script_id: selectedScriptId || null
         })
         .select()
@@ -217,6 +222,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
     setScheduledDate('')
     setScheduledTime('')
     setDuration(String(DURATION.DEFAULT_SALESBLOCK_MINUTES))
+    setSessionType('call')
     setAssignedToUserId('')
     setSuccessMessage('')
     setErrorMessage('')
@@ -286,6 +292,33 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
             </select>
           </div>
 
+          {/* Session Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Session Type
+            </label>
+            <div className="flex gap-2">
+              {([
+                { value: 'call', label: 'Call Block', icon: '📞' },
+                { value: 'email', label: 'Email Block', icon: '📧' },
+                { value: 'social', label: 'Social Block', icon: '💬' },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setSessionType(opt.value)}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                    sessionType === opt.value
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {opt.icon} {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Title (auto-generated) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -349,22 +382,24 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
             </select>
           </div>
 
-          {/* Call Script (optional) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Call Script (optional)
-            </label>
-            <select
-              value={selectedScriptId}
-              onChange={(e) => setSelectedScriptId(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="">No script</option>
-              {scripts.map(script => (
-                <option key={script.id} value={script.id}>{script.name}</option>
-              ))}
-            </select>
-          </div>
+          {/* Call Script (optional, call sessions only) */}
+          {sessionType === 'call' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Call Script (optional)
+              </label>
+              <select
+                value={selectedScriptId}
+                onChange={(e) => setSelectedScriptId(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">No script</option>
+                {scripts.map(script => (
+                  <option key={script.id} value={script.id}>{script.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Assign To (manager only) */}
           {isManager && Array.isArray(teamMembers) && teamMembers.length > 0 && (

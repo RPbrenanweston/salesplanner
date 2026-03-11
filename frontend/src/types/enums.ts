@@ -15,6 +15,12 @@ export enum SalesBlockStatus {
   CANCELLED = 'cancelled',
 }
 
+export const SESSION_TYPE_LABELS: Record<string, string> = {
+  call: 'Call Block',
+  email: 'Email Block',
+  social: 'Social Block',
+}
+
 export enum ActivityType {
   CALL = 'call',
   EMAIL = 'email',
