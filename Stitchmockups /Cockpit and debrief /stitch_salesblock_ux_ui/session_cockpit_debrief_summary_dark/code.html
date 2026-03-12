@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Post-Session Summary | SalesBlock Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#635BFF",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#0a0a12",
+                        "glass": "rgba(255, 255, 255, 0.05)",
+                        "glass-border": "rgba(255, 255, 255, 0.1)",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "8px",
+                        "lg": "8px",
+                        "xl": "12px",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }</script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .funnel-gradient {
+            background: linear-gradient(180deg, #635BFF 0%, rgba(99, 91, 255, 0.3) 100%);
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Navigation -->
+<header class="flex items-center justify-between border-b border-white/10 bg-background-dark/80 px-6 py-4 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">bolt</span>
+</div>
+<div>
+<h2 class="text-lg font-bold leading-tight tracking-tight">Session Complete</h2>
+<p class="text-xs text-slate-400">Velocity Block #442 • Today, 2:45 PM</p>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="size-10 rounded-lg hover:bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
+<span class="material-symbols-outlined">dark_mode</span>
+</button><button class="flex h-10 items-center justify-center rounded-lg bg-white/5 px-4 text-sm font-medium hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined mr-2 text-sm">share</span>
+                        Share Report
+                    </button>
+<button class="flex h-10 items-center justify-center rounded-lg bg-primary px-6 text-sm font-bold text-white hover:brightness-110 transition-all shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined mr-2 text-sm">dashboard</span>
+                        Back to Dashboard
+                    </button>
+</div>
+</header>
+<main class="flex-1 flex flex-col max-w-[1200px] mx-auto w-full p-6 gap-6">
+<!-- Performance Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="glass p-6 rounded-xl flex flex-col gap-1 relative overflow-hidden group">
+<div class="absolute -right-2 -top-2 opacity-5 text-84px">
+<span class="material-symbols-outlined text-6xl">call</span>
+</div>
+<p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Total Dials</p>
+<p class="text-4xl font-bold">84</p>
+<div class="flex items-center gap-1 mt-2 text-emerald-400 text-sm">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+<span>+12% vs avg</span>
+</div>
+</div>
+<div class="glass p-6 rounded-xl flex flex-col gap-1 relative overflow-hidden group border-l-4 border-primary">
+<p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Connects</p>
+<p class="text-4xl font-bold text-primary">18</p>
+<div class="flex items-center gap-1 mt-2 text-emerald-400 text-sm">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+<span>+5% conversion</span>
+</div>
+</div>
+<div class="glass p-6 rounded-xl flex flex-col gap-1 relative overflow-hidden">
+<p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Meetings Set</p>
+<p class="text-4xl font-bold">3</p>
+<div class="flex items-center gap-1 mt-2 text-blue-400 text-sm">
+<span class="material-symbols-outlined text-xs">stars</span>
+<span>Top 10% daily</span>
+</div>
+</div>
+<div class="glass p-6 rounded-xl flex flex-col gap-1 relative overflow-hidden">
+<p class="text-slate-400 text-sm font-medium uppercase tracking-wider">Avg Handle Time</p>
+<p class="text-4xl font-bold">2:15</p>
+<div class="flex items-center gap-1 mt-2 text-rose-400 text-sm">
+<span class="material-symbols-outlined text-xs">trending_down</span>
+<span>-10% efficiency</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Funnel Visualization -->
+<div class="lg:col-span-2 glass p-8 rounded-xl">
+<div class="flex justify-between items-center mb-10">
+<h3 class="text-xl font-bold">Conversion Funnel</h3>
+<span class="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">LIVE VELOCITY</span>
+</div>
+<div class="flex flex-col gap-6 items-center">
+<!-- Dials Layer -->
+<div class="w-full flex items-center gap-6">
+<div class="w-24 text-right text-slate-400 text-sm font-medium">84 Dials</div>
+<div class="flex-1 h-14 bg-primary/20 rounded-xl relative overflow-hidden border border-primary/30">
+<div class="absolute inset-y-0 left-0 w-full bg-primary/40"></div>
+<div class="absolute inset-0 flex items-center px-4 font-bold">100% Reach Out</div>
+</div>
+</div>
+<!-- Connects Layer -->
+<div class="w-[85%] flex items-center gap-6">
+<div class="w-24 text-right text-slate-400 text-sm font-medium">18 Connects</div>
+<div class="flex-1 h-14 bg-primary/30 rounded-xl relative overflow-hidden border border-primary/40">
+<div class="absolute inset-y-0 left-0 w-[21%] bg-primary/60"></div>
+<div class="absolute inset-0 flex items-center px-4 font-bold">21% Engagement</div>
+</div>
+</div>
+<!-- Meetings Layer -->
+<div class="w-[70%] flex items-center gap-6">
+<div class="w-24 text-right text-slate-400 text-sm font-medium">3 Meetings</div>
+<div class="flex-1 h-14 bg-primary rounded-xl relative overflow-hidden border border-primary shadow-[0_0_20px_rgba(13,89,242,0.3)]">
+<div class="absolute inset-y-0 left-0 w-[16%] bg-white/20"></div>
+<div class="absolute inset-0 flex items-center px-4 font-bold">16.6% Booking Rate</div>
+</div>
+</div>
+</div>
+<div class="mt-12 grid grid-cols-3 gap-4 border-t border-white/5 pt-8 text-center">
+<div>
+<p class="text-xs text-slate-500 uppercase font-bold mb-1">Top Objection</p>
+<p class="text-sm font-medium">"Send me an email"</p>
+</div>
+<div>
+<p class="text-xs text-slate-500 uppercase font-bold mb-1">Avg Lead Score</p>
+<p class="text-sm font-medium">8.4 / 10</p>
+</div>
+<div>
+<p class="text-xs text-slate-500 uppercase font-bold mb-1">Session ROI</p>
+<p class="text-sm font-medium text-emerald-400">+$12,400 est.</p>
+</div>
+</div>
+</div>
+<!-- Session Notes -->
+<div class="flex flex-col gap-6">
+<div class="glass p-6 rounded-xl flex-1 flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">edit_note</span>
+                                    Session Notes
+                                </h3>
+<button class="text-xs text-primary font-bold hover:underline">SAVE</button>
+</div>
+<textarea class="flex-1 w-full bg-white/5 border border-white/10 rounded-lg p-4 text-sm text-slate-300 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none placeholder:text-slate-600" placeholder="Summarize key takeaways or follow-up actions...">Focused heavily on Mid-Market SaaS leads today. Encountered common pricing objections but managed to pivot 3 leads to demo stage.
+
+Need to follow up with Mark from TechFlow regarding their Q3 budget expansion. Mentioned he likes the automation features.</textarea>
+</div>
+<div class="glass p-6 rounded-xl flex flex-col gap-4">
+<h3 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-400">notification_important</span>
+                                Priority Follow-ups
+                            </h3>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5">
+<div class="flex items-center gap-3">
+<div class="size-2 rounded-full bg-primary"></div>
+<span class="text-xs font-medium">Mark Thompson (TechFlow)</span>
+</div>
+<span class="text-[10px] bg-white/10 px-2 py-0.5 rounded">Tomorrow</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/5 opacity-60">
+<div class="flex items-center gap-3">
+<div class="size-2 rounded-full bg-slate-500"></div>
+<span class="text-xs font-medium">Sarah Jenkins (Loomify)</span>
+</div>
+<span class="text-[10px] bg-white/10 px-2 py-0.5 rounded">Mon, 10 AM</span>
+</div>
+</div>
+<button class="w-full py-2 text-xs font-bold border border-white/10 rounded-lg hover:bg-white/5 transition-colors">
+                                View All Activity
+                            </button>
+</div>
+</div>
+</div>
+<!-- Session Recording / Transcript Preview -->
+<div class="glass p-6 rounded-xl mb-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-bold">Session Activity Log</h3>
+<div class="flex gap-2">
+<div class="flex items-center gap-1 text-xs text-slate-400 px-3 py-1 bg-white/5 rounded-full">
+<span class="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Recorded
+                            </div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-xs text-slate-500 uppercase border-b border-white/5">
+<th class="pb-3 font-semibold">Contact</th>
+<th class="pb-3 font-semibold">Duration</th>
+<th class="pb-3 font-semibold">Outcome</th>
+<th class="pb-3 font-semibold">Sentiment</th>
+<th class="pb-3 text-right font-semibold">Action</th>
+</tr>
+</thead>
+<tbody class="text-sm">
+<tr class="border-b border-white/5 group hover:bg-white/5 transition-colors">
+<td class="py-4 font-medium">Mark Thompson</td>
+<td class="py-4 text-slate-400">12m 45s</td>
+<td class="py-4">
+<span class="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold rounded">MEETING BOOKED</span>
+</td>
+<td class="py-4">
+<span class="material-symbols-outlined text-emerald-400 text-lg">sentiment_very_satisfied</span>
+</td>
+<td class="py-4 text-right">
+<button class="material-symbols-outlined text-slate-500 hover:text-white">play_circle</button>
+</td>
+</tr>
+<tr class="border-b border-white/5 group hover:bg-white/5 transition-colors">
+<td class="py-4 font-medium">Sarah Jenkins</td>
+<td class="py-4 text-slate-400">4m 12s</td>
+<td class="py-4">
+<span class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded">FOLLOW UP</span>
+</td>
+<td class="py-4">
+<span class="material-symbols-outlined text-blue-400 text-lg">sentiment_satisfied</span>
+</td>
+<td class="py-4 text-right">
+<button class="material-symbols-outlined text-slate-500 hover:text-white">play_circle</button>
+</td>
+</tr>
+<tr class="group hover:bg-white/5 transition-colors">
+<td class="py-4 font-medium">Unknown (VM)</td>
+<td class="py-4 text-slate-400">0m 45s</td>
+<td class="py-4">
+<span class="px-2 py-1 bg-white/10 text-slate-400 text-[10px] font-bold rounded">NO ANSWER</span>
+</td>
+<td class="py-4">
+<span class="material-symbols-outlined text-slate-600 text-lg">sentiment_neutral</span>
+</td>
+<td class="py-4 text-right">
+<button class="material-symbols-outlined text-slate-500 hover:text-white">play_circle</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- Footer Action Bar -->
+<footer class="p-6 mt-auto flex justify-center">
+<div class="glass px-8 py-4 rounded-full flex items-center gap-12 max-w-fit shadow-2xl shadow-primary/10">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">psychology</span>
+</div>
+<div>
+<p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">AI Suggestion</p>
+<p class="text-sm font-medium">Improve dial velocity by +15% using Power Mode</p>
+</div>
+</div>
+<div class="h-8 w-px bg-white/10"></div>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary/80 px-6 py-2 rounded-lg text-sm font-bold text-white transition-all">
+                        Next Session
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</footer>
+</div>
+</div>
+</body></html>
