@@ -1,13 +1,27 @@
-/**
- * SalesBlock Session Page — 3-Column Layout
- *
- * Left:   Contact queue with worked indicators
- * Center: Active contact card + disposition buttons + connected flow panel
- * Right:  Activity timeline / notes
- *
- * Dispositions replace modal-based activity logging. One click = log + auto-advance.
- * Connected disposition opens inline ConnectedFlowPanel with progress checkboxes.
- */
+// @crumb salesblock-session-orchestrator
+// UI/Core | session_orchestration | contact_queueing | activity_logging | modal_coordination | state_persistence
+// why: Live session orchestrator — manages 3-column contact queue, disposition log-and-advance workflow, activity tracking, and session lifecycle (start/resume/complete)
+// in:salesblockId:string,user:User out:Session UI with contact queue, active card, activity timeline, modals err:Contact queue load fails,activity log fails,session state corrupt,localStorage malformed
+// hazard: Race condition when list_contacts empty — concurrent loadData calls trigger duplicate fallback-resolution inserts to list_contacts junction table
+// hazard: Async activity logging (handleDisposition, handleConnectedFlowSave) doesn't retry on failure — network error silently advances queue without recording activity
+// hazard: Multi-tab session override — localStorage used for resume state, but no cross-tab sync; last tab to modify state wins, earlier work lost
+// hazard: Timer doesn't stop on handleEndSession failure — elapsed time keeps incrementing while session state becomes inconsistent
+// hazard: N+1 query problem — per-contact activity status check (line 264) makes 100+ separate queries for 100 contacts instead of single batched query
+// hazard: Session completed state not persisted — reload after completion loses isCompleted flag, displays stale debrief funnel with null completionStats
+// hazard: Script content fallback opaque — null scriptContent shows hardcoded template, no indicator whether template is from DB or placeholder
+// hazard: localStorage parse doesn't validate activeIndex — malformed JSON removes key, but resumed state may have activeIndex >= contacts.length (guarded by Math.min line 508, but still reactive)
+// edge:frontend/src/components/session/RightPanelTabs.tsx -> RELATES
+// edge:frontend/src/components/session/DispositionButtons.tsx -> CALLS
+// edge:frontend/src/components/session/ConnectedFlowPanel.tsx -> CALLS
+// edge:frontend/src/components/ComposeEmailModal.tsx -> RELATES
+// edge:frontend/src/components/BookMeetingModal.tsx -> RELATES
+// edge:frontend/src/components/session/DebriefFunnel.tsx -> RELATES
+// edge:frontend/src/lib/queries/activityQueries.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> READS
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// prompt: Add mutex/debounce to fallback contact resolution to prevent duplicate inserts. Implement retry logic for logActivity with user toast on failure. Persist isCompleted to DB/sessionStorage so reload doesn't lose completion state. Batch activity check with single query + group by. Use script loading state indicator and null safety. Add cross-tab storage events for session state sync on resume.
+
+/** @crumbfn SalesBlockSessionPage | 3-column session orchestrator with queue, disposition logging, modals | Race condition on contact load, async log failures, multi-tab override +L139-L504 */
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
