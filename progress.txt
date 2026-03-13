@@ -1070,3 +1070,44 @@ Started: Sun Feb 22 23:45:27 GMT 2026
 5. Documentation: Create breadcrumb search index and architectural overview map
 
 ---
+
+---
+## 2026-03-13 03:45 - Breadcrumb Architecture Phase 2/Phase 5 Validation & Remediation
+
+### Validation Completion
+- **Status:** ✅ PASSED - All 77 Schema C breadcrumbs validated
+- **Coverage:** 166 total hazards (avg 2.2 per file), 276 edges (avg 3.6 per file)
+- **Zero Format Violations:** All breadcrumbs conform to Schema C specification
+
+### Issues Found & Fixed
+1. **Edge Type Correction (1 issue)**
+   - ErrorBoundary.tsx: Changed invalid edge type 'WRAPS' → 'SERVES'
+   
+2. **Missing Hazards (7 files)**
+   - OAuthCallbackLayout.tsx: Added 2 hazards (auto-close missing, errorMessage XSS exposure)
+   - SalesforceOAuthCallback.tsx: Added 2 hazards (redirect URI mismatch, missing instance_url handling)
+   - GoogleCalendarOAuthCallback.tsx: Added 1 hazard (redirect URI mismatch)
+   - OutlookOAuthCallback.tsx: Added 1 hazard (redirect URI mismatch)
+   - OutlookCalendarOAuthCallback.tsx: Added 1 hazard (redirect URI mismatch)
+   - GmailOAuthCallback.tsx: Added 1 hazard (redirect URI mismatch)
+   - Arena.tsx: Added 1 hazard (N+1 query pattern in client aggregation)
+
+3. **Edge Target Corrections (2 issues)**
+   - activity-feed-section.tsx: Fixed file extension (formatters.ts → formatters.tsx)
+   - PageLoader.tsx: Fixed wildcard pattern (pages/*.tsx → pages/ directory reference)
+
+### Critical Patterns Identified
+- **OAuth Redirect URI Risk:** All OAuth callback pages have fallback mechanism that could mismatch with provider config in staging/prod
+- **N+1 Query Pattern:** Arena.tsx fetches all activities client-side instead of aggregating server-side
+- **Error Message Sanitization:** OAuthCallbackLayout displays raw error messages without escaping
+
+### Validation Artifacts
+- `validate-breadcrumbs.sh`: Grep-based breadcrumb validator (replaces broken sed-based approach)
+- `breadcrumb-summary.txt`: Validation metrics and overview
+- `breadcrumb-issues.txt`: Empty (all issues resolved)
+
+### Next Steps
+- Phase 4: UI components (subdirectories - already 39/39 complete from Phase 3)
+- Phase 6: Custom hooks (frontend/src/hooks/)
+- Phase 7: Lib utilities (frontend/src/lib/)
+
