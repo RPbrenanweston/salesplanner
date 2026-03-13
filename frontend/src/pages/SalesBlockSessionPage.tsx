@@ -19,7 +19,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ROUTES } from '../lib/routes';
 import { useAuth } from '../hooks/useAuth';
-import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home, Calendar } from 'lucide-react';
+import { Phone, Mail, ChevronRight, SkipForward, Check, PhoneCall, Send, Share2, FileText, ChevronDown, ChevronUp, Home, Calendar, Linkedin } from 'lucide-react';
 import LogActivityModal from '../components/LogActivityModal';
 import LogSocialActivityModal from '../components/LogSocialActivityModal';
 import ComposeEmailModal from '../components/ComposeEmailModal';
@@ -35,6 +35,7 @@ interface Contact {
   company: string | null;
   title: string | null;
   notes: string | null;
+  linkedin_url: string | null;
   hasActivity?: boolean;
 }
 
@@ -206,7 +207,7 @@ export default function SalesBlockSessionPage() {
           chunkArray(contactIds, BATCH_SIZE).map((chunk) =>
             supabase
               .from('contacts')
-              .select('id, first_name, last_name, email, phone, company, title, notes')
+              .select('id, first_name, last_name, email, phone, company, title, notes, linkedin_url')
               .in('id', chunk)
           )
         );
@@ -766,6 +767,19 @@ export default function SalesBlockSessionPage() {
                     {activeContact.email}
                   </a>
                 </div>
+                {activeContact.linkedin_url && (
+                  <div className="flex items-center gap-3">
+                    <Linkedin className="w-5 h-5 text-gray-500 dark:text-white/40" />
+                    <a
+                      href={activeContact.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                    >
+                      LinkedIn Profile
+                    </a>
+                  </div>
+                )}
               </div>
 
               {activeContact.notes && (
