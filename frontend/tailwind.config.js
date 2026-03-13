@@ -23,6 +23,14 @@ export default {
         'purple-neon': '#8b5cf6',
         'red-alert': '#f43f5e',
         'emerald-signal': '#10b981',
+        muted: {
+          DEFAULT: '#e2e8f0',   // slate-200
+          foreground: '#64748b', // slate-500
+        },
+        card: {
+          DEFAULT: '#ffffff',
+          foreground: '#0f172a',
+        },
       },
       transitionTimingFunction: {
         snappy: 'cubic-bezier(0.16, 1, 0.3, 1)',

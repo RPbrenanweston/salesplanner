@@ -160,6 +160,29 @@
     @apply dark:shadow-[0_0_20px_rgba(139,92,246,0.4)];
   }
 
+  /* Glass panel variants (frosted glass surfaces) */
+  .glass-panel {
+    @apply backdrop-blur-xl
+      bg-white/65 border border-black/[0.08] rounded-xl
+      dark:bg-white/10 dark:border-white/10;
+  }
+
+  .glass-panel-darker {
+    @apply backdrop-blur-xl
+      bg-white/75 border border-black/[0.08] rounded-xl
+      dark:bg-white/15 dark:border-white/10;
+  }
+
+  /* Dotted leader separator (label...value rows) */
+  .dotted-leader {
+    @apply flex-1 mx-2;
+    border-bottom: 2px dotted rgba(0, 0, 0, 0.12);
+  }
+
+  :is(.dark) .dotted-leader {
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+  }
+
   /* Velocity Void page wrapper */
   .vv-page {
     @apply min-h-screen font-sans
