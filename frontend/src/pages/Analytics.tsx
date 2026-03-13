@@ -311,10 +311,18 @@ export default function Analytics() {
       // Build daily activity data
       const dailyMap: Record<string, DailyActivity> = {};
 
-      // Initialize all dates in range
+      // Initialize all dates in range using local dates so the chart
+      // groups activities by the user's local day, not UTC day.
+      const toLocalDateKey = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+
       const current = new Date(start);
       while (current <= end) {
-        const dateKey = current.toISOString().split('T')[0];
+        const dateKey = toLocalDateKey(current);
         dailyMap[dateKey] = {
           date: dateKey,
           calls: 0,
@@ -325,9 +333,10 @@ export default function Analytics() {
         current.setDate(current.getDate() + 1);
       }
 
-      // Populate with activity data
+      // Populate with activity data — use local date so a 11pm activity
+      // appears on the user's local day, not the UTC next-day.
       activities?.forEach((activity) => {
-        const dateKey = activity.created_at.split('T')[0];
+        const dateKey = toLocalDateKey(new Date(activity.created_at));
         if (dailyMap[dateKey]) {
           if (activity.type === 'call') dailyMap[dateKey].calls += 1;
           if (activity.type === 'email') dailyMap[dateKey].emails += 1;
@@ -404,7 +413,10 @@ export default function Analytics() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse YYYY-MM-DD keys as local midnight to avoid UTC-to-local shift
+    // that would show the previous day for users in negative-offset timezones.
+    const [year, month, day] = (dateString as string).split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',

@@ -93,6 +93,11 @@ export default function Pipeline() {
           )
         `)
         .eq('org_id', userData.org_id)
+        .limit(500)
+
+      if ((deals?.length ?? 0) >= 500) {
+        console.warn('loadPipeline: hit 500-record limit — pagination needed')
+      }
 
       if (!deals) return
 

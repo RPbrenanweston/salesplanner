@@ -53,6 +53,7 @@ export default function SignUp() {
             .select('org_id, team_id, role, organizations(name)')
             .eq('id', inviteId)
             .eq('status', 'pending')
+            .gt('expires_at', new Date().toISOString())
             .single()
 
           if (invite) {

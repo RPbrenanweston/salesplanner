@@ -84,11 +84,16 @@ export default function Lists() {
           created_at,
           updated_at
         `)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(200);
 
       if (error) {
         console.error('Error fetching lists from Supabase:', error);
         throw error;
+      }
+
+      if ((listsData?.length ?? 0) >= 200) {
+        console.warn('loadLists: hit 200-record limit — pagination needed')
       }
 
       console.log(`loadLists: Fetched ${listsData?.length ?? 0} lists from Supabase`);
