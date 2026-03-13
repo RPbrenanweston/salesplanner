@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2, Share2, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { TemplateModal } from '../components/TemplateModal'
+import DOMPurify from 'dompurify'
 
 interface EmailTemplate {
   id: string
@@ -79,7 +80,7 @@ export default function EmailTemplates() {
 
   const stripHTML = (html: string) => {
     const div = document.createElement('DIV')
-    div.innerHTML = html
+    div.innerHTML = DOMPurify.sanitize(html)
     return div.textContent || div.innerText || ''
   }
 

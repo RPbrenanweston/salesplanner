@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Share2, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ScriptModal } from '../components/ScriptModal';
+import DOMPurify from 'dompurify';
 
 interface CallScript {
   id: string;
@@ -93,7 +94,7 @@ export default function Scripts() {
   // Strip HTML tags for preview
   function stripHtml(html: string): string {
     const tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
+    tmp.innerHTML = DOMPurify.sanitize(html);
     return tmp.textContent || tmp.innerText || '';
   }
 

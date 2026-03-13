@@ -15,6 +15,9 @@ type OAuthProvider = 'gmail' | 'outlook' | 'google_calendar' | 'outlook_calendar
 /** Buffer time (ms) before actual expiry to trigger a refresh — prevents mid-request expiration */
 const EXPIRY_BUFFER_MS = 5 * 60 * 1000 // 5 minutes
 
+/** In-flight refresh promises — prevents concurrent refresh for same provider */
+const refreshInFlight = new Map<OAuthProvider, Promise<string | null>>()
+
 /**
  * Get a valid (non-expired) access token for the given OAuth provider.
  * Automatically refreshes the token if it's within 5 minutes of expiry.
@@ -48,7 +51,15 @@ export async function getValidToken(provider: OAuthProvider): Promise<string | n
   }
 
   // Token expired or expiring soon — refresh it
-  return refreshToken(provider, connection.refresh_token)
+  // If a refresh is already in progress for this provider, await it
+  const existing = refreshInFlight.get(provider)
+  if (existing) return existing
+
+  // Start refresh and register in-flight promise
+  const refreshPromise = refreshToken(provider, connection.refresh_token)
+    .finally(() => refreshInFlight.delete(provider))
+  refreshInFlight.set(provider, refreshPromise)
+  return refreshPromise
 }
 
 /**

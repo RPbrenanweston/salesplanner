@@ -15,6 +15,7 @@ import { Plus, Edit2, Trash2, Share2, Lock, Mail, FileText } from 'lucide-react'
 import { supabase } from '../lib/supabase';
 import { TemplateModal } from '../components/TemplateModal';
 import { ScriptModal } from '../components/ScriptModal';
+import DOMPurify from 'dompurify';
 
 interface EmailTemplate {
   id: string;
@@ -141,7 +142,7 @@ export default function ContentLibrary() {
   // ─── Utilities ───
   function stripHtml(html: string): string {
     const tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
+    tmp.innerHTML = DOMPurify.sanitize(html);
     return tmp.textContent || tmp.innerText || '';
   }
 
