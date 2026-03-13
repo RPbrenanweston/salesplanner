@@ -1,3 +1,13 @@
+// @crumb frontend-component-disposition-buttons
+// UI/Session/Activity | disposition_selection | activity_outcome_mapping | keyboard_shortcuts | session_state_update
+// why: Call disposition buttons — capture call outcome (no answer, voicemail, connected, etc) with keyboard shortcuts and save to session activity
+// in:SessionType(call,email,social),ActivityOutcome enum,keyboard shortcut press events out:Disposition selected via onSelectDisposition callback,activity saved with outcome err:Invalid disposition for session type,keyboard shortcut conflict
+// hazard: Keyboard shortcut (1-6) conflicts with browser/OS shortcuts on some systems — user expects shortcut to work but OS intercepts it
+// hazard: Email dispositions use generic 'other' outcome for Sent/Opened — loses granularity in reporting and search filters
+// edge:frontend/src/pages/SalesBlockSessionPage.tsx -> RELATES
+// edge:frontend/src/types/enums.ts -> READS
+// prompt: Add fallback disposition hints when keyboard shortcuts conflict. Consider dedicated email disposition enum (email_sent, email_opened, email_replied). Test shortcuts on Mac (Cmd+1) vs Windows (Ctrl+1).
+
 import { useCallback, useEffect, useState } from 'react'
 import type { SessionType } from '../../types/domain'
 import type { ActivityOutcome } from '../../types/enums'

@@ -1,3 +1,13 @@
+// @crumb frontend-component-debrief-funnel
+// UI/Session/Analytics | sales_funnel_visualization | conversion_metrics | stage_progression | elapsed_time_display
+// why: Session debrief funnel — visualize call session progression through sales pipeline stages (Dials > Connects > Intros > Conversations > Asks > Meetings)
+// in:totalDials,connects,intros,conversations,asks,meetings,elapsedSeconds numbers out:Animated horizontal bar funnel with stage labels,conversion rates,elapsed time display err:Missing/invalid metric (render as 0),NaN in calculations
+// hazard: Conversion rate assumes linear progression Dials → Connects → Intros — skips to higher stage without intermediate step shows negative rates visually
+// hazard: elapsedSeconds formatted as MM:SS — values >59 minutes format ambiguously (e.g., 3661s → 61:01 instead of 1:01:01)
+// edge:frontend/src/pages/SalesBlockSessionPage.tsx -> RELATES
+// edge:frontend/src/components/session/ConnectedFlowPanel.tsx -> RELATES
+// prompt: Add stage-progression validation (ensures Connects ≤ Dials). Format elapsed time as H:MM:SS for clarity. Display funnel drop-off percentages between stages.
+
 /**
  * DebriefFunnel — 7-Rate Session Debrief Visualization
  *

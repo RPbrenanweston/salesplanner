@@ -1,3 +1,14 @@
+// @crumb frontend-component-right-panel-tabs
+// UI/Session/Dashboard | activity_timeline_display | research_entry_management | note_creation | cadence_tracking
+// why: Right panel tabbed interface for session cockpit — display contact history, manage research entries, create quick notes, show outreach cadence
+// in:contactId,contactCompany,orgId,userId,Supabase data(activities,research_entries,notes),query functions out:Three tabs (History/Research/Notes) with full CRUD for research and notes,cadence badge display err:Query failures hide silently,note creation race condition on double-submit
+// hazard: No debounce on note/research creation — rapid clicks create duplicates without user feedback
+// hazard: Activity timeline fetch has no pagination — large activity histories (100+ records) may cause UI lag or memory bloat
+// edge:frontend/src/components/ContactActivityTimeline.tsx -> CALLS
+// edge:frontend/src/lib/queries/activityQueries.ts -> CALLS
+// edge:frontend/src/lib/queries/researchQueries.ts -> CALLS
+// prompt: Add debounce/disable-on-submit for creation buttons. Implement pagination with lazy loading for activity timeline (fetch first 20, load more on scroll).
+
 /**
  * RightPanelTabs — Tabbed right panel for the session cockpit.
  *

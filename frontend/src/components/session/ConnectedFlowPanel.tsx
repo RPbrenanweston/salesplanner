@@ -1,3 +1,13 @@
+// @crumb frontend-component-connected-flow-panel
+// UI/Session/Forms | progress_flag_tracking | objection_capture | flow_state_management
+// why: Capture call progress after successful connection — track conversation milestones and meeting booking status before advancing session
+// in:ProgressFlags(intro_given,conversation_held,asked_for_meeting,meeting_booked,objection_details) out:Updated flags via onSaveAndNext/onSaveAndStay callbacks err:Unsaved changes on cancel
+// hazard: No validation that meeting_booked requires meeting data — user can mark booked without scheduling details
+// hazard: Objection notes are free-form text with no max length — can cause UI overflow or database constraint issues
+// edge:frontend/src/pages/SalesBlockSessionPage.tsx -> RELATES
+// edge:frontend/src/types/domain.ts -> READS
+// prompt: Add required-field validation linking meeting_booked to meeting scheduling. Add character limit for objection_details field (500 chars recommended).
+
 import { useState } from 'react'
 import type { ProgressFlags } from '../../types/domain'
 
