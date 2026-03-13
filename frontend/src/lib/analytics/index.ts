@@ -4,7 +4,7 @@
  * Pure TypeScript functions for computing sales analytics metrics.
  * No React, no Supabase, no side effects — just data in, data out.
  *
- * Ported from JobTrackr analytics and reworked for the SalesBlock domain.
+ * Ported from JobTrackr, adapted for SalesBlock.
  */
 
 export { computeDistribution } from './distribution'

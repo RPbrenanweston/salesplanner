@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-use-toast
+ * @id salesblock-ui-use-toast
  * @intent Manage toast notification lifecycle — state, dispatch, listener pattern for single active toast with persistence queue
  * @responsibilities toast queue management (TOAST_LIMIT=1, memoryState global, toastTimeouts Map), reducer dispatch pattern (ADD/UPDATE/DISMISS/REMOVE), listener registry for state syncing, useToast() hook and toast() function exports, timeout scheduling for delayed removal
  * @contracts Exports useToast() hook {toasts, toast(), dismiss()} and toast(props) function returning {id, dismiss(), update()}; reducer(state, action) handles State mutations; ToasterToast type extends ToastProps with id/title/description/action

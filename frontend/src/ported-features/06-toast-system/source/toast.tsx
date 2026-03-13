@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-toast
+ * @id salesblock-ui-toast
  * @intent Render accessible toast/notification system with swipe dismissal and semantic variant styling for status-based feedback
  * @responsibilities Toast composition (Provider, Viewport, Root, Action, Close), variant styling (default/destructive/success), swipe gesture handling, accessibility (Close button with sr-only, focus management)
  * @contracts Exports 8 components: ToastProvider, ToastViewport, Toast, ToastAction, ToastClose, ToastTitle, ToastDescription; ToastProps and ToastActionElement types; Toast takes variant prop (default/destructive/success)

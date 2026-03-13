@@ -2,8 +2,8 @@
  * Generic distribution computation.
  *
  * Groups items by an arbitrary key extractor, returns counts and percentages.
- * Ported from JobTrackr computeStatusDistribution and generalized to work
- * with any SalesBlock entity (contacts by status, deals by stage, activities by type).
+ * Ported from JobTrackr, adapted for SalesBlock.
+ * Generalized to work with any SalesBlock entity (contacts by status, deals by stage, activities by type).
  */
 
 export interface DistributionEntry {

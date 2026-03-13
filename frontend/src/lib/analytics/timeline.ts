@@ -2,8 +2,8 @@
  * Generic timeline computation.
  *
  * Groups items by date, returns chronologically sorted daily counts.
- * Ported from JobTrackr computeApplicationTimeline and generalized
- * to accept any date extractor.
+ * Ported from JobTrackr, adapted for SalesBlock.
+ * Generalized to accept any date extractor.
  */
 
 export interface TimelineEntry {

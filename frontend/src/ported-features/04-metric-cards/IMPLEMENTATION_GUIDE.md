@@ -1,7 +1,7 @@
 # 04 — Metric Cards (MetricTile + StatCard)
 
 ## Source
-**From:** JobTrackr `packages/ui/src/metric-tile.tsx` + `packages/admin/src/StatCard.tsx`
+**From:** JobTrackr (ported to SalesBlock) `packages/ui/src/metric-tile.tsx` + `packages/admin/src/StatCard.tsx`
 
 ## What You Get
 

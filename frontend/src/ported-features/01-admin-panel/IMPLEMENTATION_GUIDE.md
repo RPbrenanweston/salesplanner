@@ -1,7 +1,7 @@
 # 01 — Admin Panel + RBAC
 
 ## Source
-**From:** JobTrackr `packages/admin/` + `supabase/migrations/018_*`, `019_*` + `src/lib/auth/require-admin.ts`
+**From:** JobTrackr (ported to SalesBlock) `packages/admin/` + `supabase/migrations/018_*`, `019_*` + `src/lib/auth/require-admin.ts`
 
 ## What You Get
 
@@ -38,14 +38,14 @@ A complete admin portal system with:
 Rename roles to match SalesBlock's domain:
 
 ```
-JobTrackr roles:  admin | moderator | analyst | support
+Original roles:   admin | moderator | analyst | support
 SalesBlock roles: admin | manager | rep | viewer
 ```
 
-Rework permission flags from JobTrackr's user-management focus to SalesBlock's sales focus:
+Rework permission flags from the original user-management focus (ported from JobTrackr) to SalesBlock's sales focus:
 
 ```
-JobTrackr flags:                  SalesBlock equivalents:
+Original flags:                   SalesBlock equivalents:
 canViewUsers    → canViewTeam     (view team members)
 canEditUsers    → canEditTeam     (edit team member settings)
 canDeleteUsers  → canDeleteTeam   (remove team members)
@@ -85,7 +85,7 @@ canManageStaff  → canManageRoles  (assign roles)
 All components use the same Tailwind + cn() pattern SalesBlock already uses. Key changes:
 
 **AdminLayout.tsx:**
-- Change brand from "JobTrackr" to SalesBlock's branding
+- Change brand to SalesBlock's branding (originally "JobTrackr")
 - SalesBlock uses React Router (not Next.js `<a>` tags) — replace `<a href>` with `<Link to>` in AdminNav
 - Add responsive sidebar collapse (flagged as missing in @crumb hazards)
 

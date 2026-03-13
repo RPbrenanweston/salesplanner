@@ -1,6 +1,6 @@
 /**
  * @crumb auth-rate-limiter
- * @id jobtrackr.lib.auth.rate-limiter
+ * @id salesblock.lib.auth.rate-limiter
  * @intent In-memory sliding window rate limiter for API endpoints — tracks request timestamps per key (IP)
  * @responsibilities
  *   isRateLimited(key, config?): Checks if key exceeds maxRequests within windowMs, records request if allowed

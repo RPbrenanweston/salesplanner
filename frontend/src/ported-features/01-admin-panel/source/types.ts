@@ -1,15 +1,15 @@
 /**
  * @crumb admin-types-definitions
- * @intent Shared type definitions for admin package with zero @jobtrackr/* dependencies
+ * @intent Shared type definitions for admin package with zero external dependencies
  * @responsibilities Define StaffRole union, StaffPermissions interface (8 boolean flags), NavItem, AdminUser, and TableColumn<T> generic
- * @contracts Exports: 5 types | Usage: import type { StaffPermissions, NavItem } from "@jobtrackr/admin/types"
+ * @contracts Exports: 5 types | Usage: import type { StaffPermissions, NavItem } from "@/components/admin/types"
  * @hazards StaffPermissions flags are all boolean—no role inheritance or permission hierarchy; NavItem.icon expects Material Symbols name strings without validation
  * @area admin-ui/types
  * @refs All admin components (use StaffPermissions), AdminLayout (uses NavItem, AdminUser), DataTable (uses TableColumn generic)
  * @prompt Maintain 1:1 correspondence between StaffPermissions boolean flags and UI features in AdminLayout/AdminNav. Document icon naming convention (Material Symbols Outlined CSS class names).
  */
 
-// Admin package shared types — zero @jobtrackr/* dependencies
+// Admin package shared types — zero external dependencies
 
 export type StaffRole = "admin" | "moderator" | "analyst" | "support"
 

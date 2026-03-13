@@ -1,7 +1,7 @@
 # 07 — UI Components (GlassPanel, StatusPill, DottedLeaderRow, SkeletonTable)
 
 ## Source
-**From:** JobTrackr `packages/ui/src/` — 4 standalone components + utils
+**From:** JobTrackr (ported to SalesBlock) `packages/ui/src/` — 4 standalone components + utils
 
 ## What You Get
 
@@ -73,7 +73,7 @@ If SalesBlock already has this (likely), skip — just update import paths in th
 
 ### Step 3: StatusPill — Rework Status Types
 
-JobTrackr statuses (job application lifecycle):
+Original statuses from JobTrackr (job application lifecycle):
 ```
 applied | screening | interview | offer | rejected | wishlist | ghosted | withdrawn
 ```
@@ -181,7 +181,7 @@ npm install clsx tailwind-merge class-variance-authority
 - **GlassPanel:** Requires glass-panel CSS classes in globals — missing = no background/blur
 - **GlassPanel:** `backdrop-blur` has limited support on older browsers
 - **StatusPill:** `statusColorMap` is hardcoded — adding new status types requires manual entry
-- **StatusPill:** `#10b77f` color is tightly coupled to JobTrackr brand — verify it matches SalesBlock
+- **StatusPill:** `#10b77f` color is from the original JobTrackr brand — verify it matches SalesBlock's brand color
 - **StatusPill:** `showPulse` changes pill height (pulse child adds vertical space)
 - **DottedLeaderRow:** Requires `dotted-leader` CSS class in globals
 - **SkeletonTable:** Width variance hardcoded for 3 columns max — breaks for wider tables

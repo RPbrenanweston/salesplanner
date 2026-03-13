@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-status-pill
+ * @id salesblock-ui-status-pill
  * @intent Render candidate application status badges with semantic coloring and optional animated pulse indicator
  * @responsibilities status-to-color mapping (8 StatusTypes → {text, bg, border, pulse} Tailwind classes), pill layout (inline-flex, gap-1.5, rounded-full), optional pulse animation, label capitalization
  * @contracts StatusPillProps {status: StatusType (union of 8 values), showPulse?: boolean (default false), className?: string}; exports StatusPill function component; renders <span> with semantic color classes

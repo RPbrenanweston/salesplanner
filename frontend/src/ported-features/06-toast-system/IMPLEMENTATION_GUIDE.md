@@ -1,7 +1,7 @@
 # 06 — Toast Notification System
 
 ## Source
-**From:** JobTrackr `packages/ui/src/toast.tsx` + `toaster.tsx` + `hooks/use-toast.ts`
+**From:** JobTrackr (ported to SalesBlock) `packages/ui/src/toast.tsx` + `toaster.tsx` + `hooks/use-toast.ts`
 
 ## What You Get
 
@@ -123,7 +123,7 @@ npm install @radix-ui/react-toast class-variance-authority
 - `"use client"` directives — remove for Vite (SalesBlock doesn't use Next.js Server Components)
 - `toast.tsx` imports from `./utils` — update path to match SalesBlock's cn() location
 - `ToastProvider` must wrap the entire toasts.map output or React context breaks
-- `TOAST_REMOVE_DELAY = 1000000` (277 hours) — effectively never auto-removes. Intentional in JobTrackr, but SalesBlock likely wants 5-second auto-dismiss
+- `TOAST_REMOVE_DELAY = 1000000` (277 hours) — effectively never auto-removes. Intentional in the original JobTrackr implementation, but SalesBlock likely wants 5-second auto-dismiss
 - Circular dependency risk: if `./toast` imports from `Toaster`, context breaks
 
 ## Estimated Effort

@@ -1,6 +1,6 @@
 /**
  * @crumb csv-export
- * @id jobtrackr.lib.csv.export
+ * @id salesblock.lib.csv.export
  * @intent Generate CSV strings from job data and trigger browser file downloads for job export
  * @responsibilities
  *   formatJobForCsv(job): Converts a single Job to an array of escaped CSV field strings
@@ -17,13 +17,13 @@
  *   No BOM prefix for UTF-8 CSV — Excel on Windows may misinterpret special characters
  *   URL.createObjectURL memory not guaranteed to release if revokeObjectURL fails
  * @area Lib/CSV
- * @refs @jobtrackr/types (Job, STATUS_LABELS)
+ * @refs @/types (Job, STATUS_LABELS)
  * @prompt
  *   Add UTF-8 BOM prefix (\uFEFF) for Excel compatibility
  *   Guard downloadCsv with typeof document check for SSR safety
  */
-import type { Job } from "@jobtrackr/types";
-import { STATUS_LABELS } from "@jobtrackr/types";
+import type { Job } from "@/types";
+import { STATUS_LABELS } from "@/types";
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ export function downloadCsv(jobs: Job[], filename?: string): void {
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = filename ?? `jobtrackr-export-${new Date().toISOString().split("T")[0]}.csv`;
+  link.download = filename ?? `salesblock-export-${new Date().toISOString().split("T")[0]}.csv`;
   link.style.display = "none";
 
   document.body.appendChild(link);

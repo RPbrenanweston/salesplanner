@@ -1,7 +1,7 @@
 # 05 — CSV Export
 
 ## Source
-**From:** JobTrackr `src/lib/csv/export.ts`
+**From:** JobTrackr (ported to SalesBlock) `src/lib/csv/export.ts`
 
 ## What You Get
 
@@ -21,7 +21,7 @@ Client-side CSV export utility with:
 
 ### Step 1: Rework the Row Formatter
 
-JobTrackr's `formatJobForCsv` maps Job objects to CSV columns. Replace with SalesBlock domain objects.
+The original `formatJobForCsv` (ported from JobTrackr) maps Job objects to CSV columns. Replace with SalesBlock domain objects.
 
 **Contacts export:**
 ```typescript
@@ -73,7 +73,7 @@ function formatActivityForCsv(activity: Activity): Record<string, string> {
 
 `toCsvString` and `downloadCsv` are generic — they work with any `Record<string, string>[]` array. Only changes needed:
 
-1. Remove `@jobtrackr/types` import
+1. Use SalesBlock's `@/types` for type imports
 2. Rename functions to be generic:
    - `jobsToCsvString` → `toCsvString`
    - `downloadCsv` — keep name, change default filename

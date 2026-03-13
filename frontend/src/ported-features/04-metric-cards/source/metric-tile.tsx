@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-metric-tile
+ * @id salesblock-ui-metric-tile
  * @intent Render analytics dashboard metric card with label, large value, optional delta indicator, and icon badge
  * @responsibilities layout composition (glass-panel wrapper, flex row for value+delta, optional icon overlay), delta color-coding logic (positive/negative/neutral branching), icon opacity hover effect (group-hover:opacity-40)
  * @contracts MetricTileProps {label: string, value: string, delta?: string, icon?: string, className?: string}; exports MetricTile function component; renders <div> with glass-panel class + group hover state + slot icon (Material Symbols Outlined)

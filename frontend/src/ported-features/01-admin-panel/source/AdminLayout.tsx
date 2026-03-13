@@ -41,7 +41,7 @@ export function AdminLayout({
             </span>
           </div>
           <div className="mt-1 font-display text-slate-800 font-bold text-sm leading-tight">
-            JobTrackr
+            SalesBlock
           </div>
         </div>
 

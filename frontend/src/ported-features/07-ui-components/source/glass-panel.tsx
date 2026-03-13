@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-glass-panel
+ * @id salesblock-ui-glass-panel
  * @intent Render frosted glass surface using Frosted HUD design system CSS classes (glass-morphic aesthetic)
  * @responsibilities variant-to-class mapping (default/darker/card → glass-panel/glass-panel-darker/glass-card), className composition with cn(), children render
  * @contracts GlassPanelProps extends HTMLAttributes<HTMLDivElement> + variant? ("default" | "darker" | "card") + children (ReactNode); exports GlassPanel function component; renders <div> with className={cn(variantClasses[variant], "rounded-xl", className)}

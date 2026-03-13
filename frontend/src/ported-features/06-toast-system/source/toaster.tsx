@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-toaster
+ * @id salesblock-ui-toaster
  * @intent Orchestrate toast notification rendering from state — map notifications from hook into composed Toast + slot elements + ToastProvider wrapper
  * @responsibilities toast provider composition (ToastProvider → [Toast.map] → ToastViewport), state consumption (useToast), title/description conditional rendering, action slot composition
  * @contracts Exports Toaster function component (no props); consumes Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport from ./toast; consumes useToast() hook return {toasts, dismiss}

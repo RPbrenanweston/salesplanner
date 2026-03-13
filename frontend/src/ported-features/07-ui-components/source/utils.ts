@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-utils
+ * @id salesblock-ui-utils
  * @intent Compose Tailwind CSS class names with conflict resolution — merge Tailwind utilities, remove duplicates, apply class variance authority patterns
  * @responsibilities cn() function uses clsx to concatenate class names + twMerge to resolve Tailwind specificity conflicts (e.g., w-1/3 overrides w-1/2)
  * @contracts Exports cn() function signature: (...inputs: ClassValue[]) => string; accepts clsx-compatible inputs (strings, objects, arrays); returns merged class string

@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-dotted-leader-row
+ * @id salesblock-ui-dotted-leader-row
  * @intent Render label-value pair with visual dotted leader separator for compact data display in metrics, analytics, and detail panels
  * @responsibilities layout composition (flex justify-between), dotted-leader CSS class application, label/value typography pairing
  * @contracts DottedLeaderRowProps requires label (string) + value (string) + optional className; exports DottedLeaderRow function component

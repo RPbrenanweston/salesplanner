@@ -1,6 +1,6 @@
 /**
  * @crumb
- * @id jobtrackr-ui-skeleton-table
+ * @id salesblock-ui-skeleton-table
  * @intent Render animated pulse placeholders for table/list loading states — visual feedback while data fetches
  * @responsibilities skeleton grid composition (space-y-4 wrapper, optional header, rows/columns), width variance by column index (w-1/3, w-1/4, w-1/6), animate-pulse class application to all skeletons
  * @contracts SkeletonTableProps {rows?: number (default 3), columns?: number (default 3), showHeader?: boolean (default false), className?: string}; exports SkeletonTable function component; renders <div> grid of h-4 skeleton elements with animate-pulse

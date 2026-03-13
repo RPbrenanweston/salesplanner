@@ -1,7 +1,7 @@
 # 08 — Analytics Computation
 
 ## Source
-**From:** JobTrackr `src/lib/analytics.ts`
+**From:** JobTrackr (ported to SalesBlock) `src/lib/analytics.ts`
 
 ## What You Get
 
@@ -21,10 +21,10 @@ Pure computation functions for analytics dashboards:
 
 ### Step 1: Rework Types
 
-JobTrackr types → SalesBlock equivalents:
+Original types (from JobTrackr) → SalesBlock equivalents:
 
 ```typescript
-// JobTrackr
+// Original (from JobTrackr)
 type AnalyticsJob = { status: JobStatus; created_at: string; updated_at: string }
 type StatusDistributionEntry = { status: string; count: number; percentage: number; label: string }
 type TimelineEntry = { date: string; count: number }
@@ -110,7 +110,7 @@ const dealTimeline = computeTimeline(
 
 ### Step 4: Rework computeMetrics
 
-JobTrackr computes job-search metrics. Rework for sales metrics:
+The original implementation (ported from JobTrackr) computes job-search metrics. Rework for SalesBlock sales metrics:
 
 ```typescript
 interface SalesMetrics {
@@ -188,7 +188,7 @@ Feed results into Recharts charts (SalesBlock already uses Recharts).
 
 ## Hazards (from @crumb metadata)
 
-- `STATUS_LABELS` mapping is imported from `@jobtrackr/types` — replace with SalesBlock's status labels or use inline mapping
+- `STATUS_LABELS` mapping should use SalesBlock's status labels from `@/types` or an inline mapping
 - Timeline function sorts by string comparison (`localeCompare`) — works for ISO dates but not for other date formats
 - `computeMetrics` calculates `avgDaysToResponse` using `updated_at - created_at` — this is a proxy, not actual response tracking. SalesBlock should use actual activity timestamps for accuracy.
 

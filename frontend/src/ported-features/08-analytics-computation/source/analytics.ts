@@ -1,6 +1,6 @@
 /**
  * @crumb analytics
- * @id jobtrackr.lib.analytics
+ * @id salesblock.lib.analytics
  * @intent Pure computation functions for candidate job analytics — status distribution, application timeline, and funnel metrics
  * @responsibilities
  *   computeStatusDistribution(jobs): Groups jobs by status, returns counts with chart colors and labels
@@ -16,12 +16,12 @@
  *   applied_date parsed with new Date() without timezone normalization — may shift months at day boundaries
  *   toLocaleDateString("en-US") depends on runtime locale support — edge runtimes may differ
  * @area Lib/Analytics
- * @refs @jobtrackr/types (JobStatus, STATUS_LABELS)
+ * @refs @/types (JobStatus, STATUS_LABELS)
  * @prompt
  *   Add explicit timezone handling for date parsing to prevent month-boundary drift
  *   Export STATUS_CHART_COLORS for reuse by chart components
  */
-import { JobStatus, STATUS_LABELS } from "@jobtrackr/types";
+import { JobStatus, STATUS_LABELS } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

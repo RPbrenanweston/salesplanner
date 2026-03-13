@@ -1,7 +1,7 @@
 # 02 — Rate Limiter
 
 ## Source
-**From:** JobTrackr `src/lib/auth/rate-limiter.ts`
+**From:** JobTrackr (ported to SalesBlock) `src/lib/auth/rate-limiter.ts`
 
 ## What You Get
 
@@ -69,7 +69,7 @@ Minimal changes needed:
 
 1. **Move file** from `source/` to `frontend/src/lib/rate-limiter.ts`
 2. **Remove @crumb comment** or update to SalesBlock format
-3. **Adjust defaults** if needed — SalesBlock may want different limits than JobTrackr's 10/60s
+3. **Adjust defaults** if needed — SalesBlock may want different limits than the original 10/60s default (ported from JobTrackr)
 4. **Consider user-based keys** instead of IP-only. SalesBlock has authenticated users — use `user_id` as key for authenticated routes, IP for public routes:
    ```typescript
    const key = user?.id ? `api:${user.id}` : `api:${getClientIP(req)}`

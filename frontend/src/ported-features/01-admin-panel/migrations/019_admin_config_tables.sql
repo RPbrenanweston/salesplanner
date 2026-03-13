@@ -13,8 +13,8 @@ create table if not exists public.platform_settings (
   "enablePublicProfiles"  boolean not null default false,
   "maintenanceMode"       boolean not null default false,
   -- Global config
-  "platformName"          text    not null default 'JobTrackr',
-  "supportEmail"          text    not null default 'support@jobtrackr.io',
+  "platformName"          text    not null default 'SalesBlock',
+  "supportEmail"          text    not null default 'support@salesblock.io',
   "maxJobsPerEmployer"    integer not null default 10,
   "maxAppsPerCandidate"   integer not null default 50,
   -- Billing config

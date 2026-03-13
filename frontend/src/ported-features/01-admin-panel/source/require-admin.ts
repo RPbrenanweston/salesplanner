@@ -1,6 +1,6 @@
 /**
  * @crumb auth-require-admin
- * @id jobtrackr.lib.auth.require-admin
+ * @id salesblock.lib.auth.require-admin
  * @intent Shared admin authorization guard with dual verification — JWT claim + database role check
  * @responsibilities
  *   requireAdmin(): Creates Supabase client, checks app_metadata.role JWT claim,
@@ -13,12 +13,12 @@
  *   Extra DB query per admin request (profiles table) — acceptable for admin traffic volume
  *   Stale profile role (e.g., role removed in DB but JWT not refreshed) correctly blocked by DB check
  * @area Lib/Auth
- * @refs createServerSupabaseClient from @jobtrackr/database/client.server
+ * @refs createServerSupabaseClient from @/lib/supabase
  * @prompt Consider caching DB role check result per session with short TTL
  * @fix SEC-6 — extracted from inline requireAdmin across 4 admin routes; added DB role verification
  */
 
-import { createServerSupabaseClient } from "@jobtrackr/database/client.server"
+import { createServerSupabaseClient } from "@/lib/supabase"
 
 /**
  * Shared admin authorization guard.

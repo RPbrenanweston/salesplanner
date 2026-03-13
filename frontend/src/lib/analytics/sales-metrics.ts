@@ -2,8 +2,8 @@
  * SalesBlock-specific aggregate metrics.
  *
  * Computes sales performance metrics from contacts, deals, and activities.
- * Ported from JobTrackr computeMetrics and reworked for the SalesBlock
- * sales domain (contacts, deals, activities) instead of job applications.
+ * Ported from JobTrackr, adapted for SalesBlock.
+ * Reworked for the sales domain (contacts, deals, activities) instead of job applications.
  */
 
 // Minimal shapes needed for analytics computation — keeps this module

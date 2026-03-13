@@ -1,6 +1,6 @@
 /**
  * @crumb dashboard-loading-shared
- * @id jobtrackr.components.shared.DashboardLoading
+ * @id salesblock.components.shared.DashboardLoading
  * @intent Shared skeleton loading components for all /dashboard route segments.
  *   Reduces the 5 near-identical loading.tsx files to thin wrappers that delegate here.
  * @responsibilities
@@ -16,10 +16,10 @@
  *   - Skeleton layouts are purposely approximate — exact fidelity is a deferred task
  *   - bg-muted and bg-card depend on CSS variable theming being active
  * @area Components/Shared
- * @refs SkeletonTable (@jobtrackr/ui)
+ * @refs SkeletonTable (@/components/ui)
  */
 
-import { SkeletonTable } from "@jobtrackr/ui";
+import { SkeletonTable } from "@/components/ui";
 
 export function DashboardPageLoading() {
   return (

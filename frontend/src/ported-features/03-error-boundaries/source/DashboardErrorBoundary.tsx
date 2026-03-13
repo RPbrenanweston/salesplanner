@@ -2,7 +2,7 @@
 
 /**
  * @crumb shared-dashboard-error-boundary
- * @id jobtrackr.components.shared.dashboard-error-boundary
+ * @id salesblock.components.shared.dashboard-error-boundary
  * @intent Reusable error boundary UI for all dashboard route segments
  * @responsibilities
  *   DashboardErrorBoundary: logs error via logError with route context on mount,
@@ -14,13 +14,13 @@
  * @hazards
  *   - logError is fire-and-forget — if it throws, error is silently lost
  * @area Components/Shared
- * @refs @jobtrackr/ui (Button), @/lib/utils/error-handler (logError)
+ * @refs @/components/ui (Button), @/lib/utils/error-handler (logError)
  * @prompt
  *   - @fix DX-1 — extracted from 9 identical error.tsx files into single shared component
  */
 
 import { useEffect } from "react";
-import { Button } from "@jobtrackr/ui";
+import { Button } from "@/components/ui";
 import { logError } from "@/lib/utils/error-handler";
 
 interface DashboardErrorBoundaryProps {
