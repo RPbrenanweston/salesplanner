@@ -1,3 +1,4 @@
+/** @id salesblock.pages.app.app */
 // @crumb frontend-app-orchestrator
 // DOM | route_declaration | query_client_initialization | protected_route_enforcement | app_layout_composition
 // why: Root component — orchestrates complete React Router routing architecture, lazy-loaded page splits, and QueryClient initialization for the full SalesBlock.io app

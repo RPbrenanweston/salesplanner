@@ -1,3 +1,4 @@
+/** @id salesblock.pages.app.main */
 // @crumb frontend-entry-main
 // UI/Entry | react_dom_root_creation | strict_mode_wrapping | global_css_injection
 // why: Application entry point — mount React root, wrap App in StrictMode, inject global CSS
