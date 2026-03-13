@@ -1,12 +1,12 @@
-Validating       77 files (Schema C format)...
+Validating       84 files (Schema C format)...
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 VALIDATION RESULTS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total files with breadcrumbs:       77
-Total hazards found:      166
-Total edges found:      276
+Total files with breadcrumbs:       84
+Total hazards found:      180
+Total edges found:      304
 
 Average hazards per file: 2
 Average edges per file: 3

@@ -1,4 +1,16 @@
 /** @id salesblock.hooks.dashboard.use-dashboard-data */
+// @crumb frontend-hook-use-dashboard-data
+// UI | dashboard_aggregation | parallel_data_loading | activity_feed_enrichment | contact_count_fetching
+// why: Aggregate hook loading 3 independent data streams (user profile, salesblocks, activities) for dashboard render — consolidates load logic and manages mixed refresh timing
+// in:user from useAuth out:userDisplayName,todaysSalesblocks[],upcomingSalesblocks[],recentActivities[],loading bool,refreshData callback err:Supabase query failure (network or permission),missing salesblocks/lists relations
+// hazard: Lines 68-76 and 98-106: N+1 query pattern — enrich salesblocks by fetching list_contacts count for EACH block sequentially instead of batching; 20 blocks = 20 round trips
+// hazard: No error boundary — Supabase failure on any single query silences error, sets loading=false, leaves stale data on screen with no visual indication
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:supabase:salesblocks -> READS
+// edge:supabase:activities -> READS
+// edge:frontend/src/pages/DashboardPage.tsx -> CALLS
+// edge:dashboard-flow#1 -> STEP_IN
+// prompt: Batch contact count queries using Promise.all with single aggregate query. Add try-catch with error toast on Supabase failure. Consider React Query for caching instead of local state.
 /**
  * Hook for loading dashboard data (user, salesblocks, activities)
  */

@@ -1,3 +1,17 @@
+/** @id salesblock.hooks.notifications.use-toast */
+// @crumb frontend-hook-use-toast
+// UI | notification_management | toast_lifecycle | pub_sub_pattern
+// why: Centralized toast notification state with global pub-sub pattern, 3-notification limit, and 5-second auto-removal for user feedback
+// in:toast props (title, description, action) out:Toast id/dismiss/update API,ToastState (toasts[]) err:listener deregistration (no subscribers),dispatch failure (listener throws)
+// hazard: Lines 169-176: useEffect re-registers listener on every state change (dependency: [state]) — listener removed/re-added on each render, brief gaps where component unsubscribed, rapid updates miss transitions
+// hazard: Lines 129-131: No error boundary during listener dispatch — if one listener throws during forEach, stops iteration and remaining listeners miss state update, causing component desyncs
+// edge:frontend/src/components/ui/toast -> USES
+// edge:frontend/src/components/ToastContainer.tsx -> CALLS
+// edge:notification-flow#1 -> STEP_IN
+// prompt: Fix useEffect dependency to empty array [] — listener should subscribe once on mount, not re-register per state change. Add try-catch in forEach to prevent single listener error breaking others. Test rapid toast() calls don't exceed TOAST_LIMIT.
+/**
+ * Toast notification state management with global pub-sub pattern
+ */
 import * as React from "react";
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 

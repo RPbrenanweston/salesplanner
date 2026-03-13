@@ -1,5 +1,19 @@
+❌ frontend/src/hooks/useDashboardData.ts: Edge target not found: supabase:salesblocks
+❌ frontend/src/hooks/useDashboardData.ts: Edge target not found: supabase:activities
+❌ frontend/src/hooks/useDashboardData.ts: Edge target not found: frontend/src/pages/DashboardPage.tsx
 ❌ frontend/src/hooks/useOAuthCallback.ts: Edge target not found: supabase/functions/exchange-oauth-token
+❌ frontend/src/hooks/useGoalProgress.ts: Edge target not found: supabase:goals
+❌ frontend/src/hooks/useGoalProgress.ts: Edge target not found: supabase:activities
+❌ frontend/src/hooks/useGoalProgress.ts: Edge target not found: frontend/src/components/GoalProgressCard.tsx
+⚠️  frontend/src/hooks/use-toast.ts: Invalid edge type 'USES'
+❌ frontend/src/hooks/use-toast.ts: Edge target not found: frontend/src/components/ui/toast
+❌ frontend/src/hooks/use-toast.ts: Edge target not found: frontend/src/components/ToastContainer.tsx
+❌ frontend/src/hooks/useUserQuery.ts: Edge target not found: frontend/src/pages/TeamManagementPage.tsx
+❌ frontend/src/hooks/useUserQuery.ts: Edge target not found: frontend/src/components/TeamMemberSelector.tsx
+❌ frontend/src/hooks/useScriptQuery.ts: Edge target not found: frontend/src/pages/CallPrepPage.tsx
+❌ frontend/src/hooks/useScriptQuery.ts: Edge target not found: frontend/src/components/ScriptSelector.tsx
 ❌ frontend/src/hooks/useTheme.ts: Edge target not found: supabase:user_preferences
+❌ frontend/src/hooks/useOrganizationQuery.ts: Edge target not found: frontend/src/components/OrganizationCard.tsx
 ❌ frontend/src/lib/salesforce.ts: Edge target not found: supabase/functions/sync-activities-to-salesforce
 ❌ frontend/src/pages/OutlookCalendarOAuthCallback.tsx: Edge target not found: supabase/functions/exchange-microsoft-token
 ❌ frontend/src/pages/GoogleCalendarOAuthCallback.tsx: Edge target not found: supabase/functions/exchange-google-token
