@@ -1,3 +1,4 @@
+/** @id salesblock.lib.queries.user-queries */
 /**
  * User-related data fetching functions
  *

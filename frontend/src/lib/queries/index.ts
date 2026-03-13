@@ -1,3 +1,4 @@
+/** @id salesblock.lib.queries.index */
 /**
  * Centralized data fetching queries
  *

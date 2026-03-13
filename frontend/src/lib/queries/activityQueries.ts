@@ -1,3 +1,4 @@
+/** @id salesblock.lib.queries.activity-queries */
 import { supabase } from '../supabase'
 import type { Activity, ProgressFlags } from '../../types/domain'
 import type { ActivityOutcome } from '../../types/enums'

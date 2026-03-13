@@ -1,3 +1,4 @@
+/** @id salesblock.lib.queries.list-queries */
 /**
  * Contact list data fetching functions
  */

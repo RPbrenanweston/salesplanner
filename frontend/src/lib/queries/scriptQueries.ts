@@ -1,3 +1,4 @@
+/** @id salesblock.lib.queries.script-queries */
 /**
  * Call script and email template data fetching functions
  */

@@ -1,3 +1,4 @@
+/** @id salesblock.lib.queries.research-queries */
 import { supabase } from '../supabase'
 import type { ResearchEntry, ResearchCategory, ResearchLevel } from '../../types/domain'
 
