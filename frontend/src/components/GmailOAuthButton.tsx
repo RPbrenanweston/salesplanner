@@ -58,8 +58,7 @@ export default function GmailOAuthButton() {
     }
 
     // Generate CSRF nonce and store in sessionStorage for callback validation
-    const nonce = crypto.randomUUID()
-    sessionStorage.setItem('oauth_csrf_nonce', nonce)
+    const nonce = generateOAuthNonce('gmail')
 
     // Build OAuth URL
     const params = new URLSearchParams({

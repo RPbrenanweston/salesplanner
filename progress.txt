@@ -1189,3 +1189,63 @@ Errors: 0 (All breadcrumbs Schema C compliant)
 - Minimum hazard threshold met across all files
 - Schema C format compliance: 100%
 
+---
+
+## 2026-03-13 03:48 - BETA READINESS AUDIT - PAI Iteration (Audit)
+- **Scope:** All 84 breadcrumbed files, 180 hazards, 304 edges
+- **Verdict:** 🔴 NOT READY FOR BETA
+
+### P0 — Security Blockers (7 issues, must fix before ANY beta user)
+1. **XSS via unsanitized HTML** — RichTextEditor + ScriptModal render raw HTML without DOMPurify
+2. **OAuth CSRF missing nonce** — 5 OAuth providers lack state/nonce validation on callback
+3. **Unguarded diagnostics page** — /diagnostics exposes system internals without auth guard
+4. **SOQL injection** — salesforce.ts builds SOQL from unvalidated input
+5. **Error info disclosure** — ErrorBoundary + OAuthCallbackLayout leak stack traces to UI
+6. **Cross-org RLS gaps** — call_scripts, email_templates, salesblocks may lack org-scoped RLS
+7. **Signup partial failure** — no transaction/rollback on multi-step signup flow
+
+### P1 — Critical Data Integrity (6 issues, fix before first real user session)
+1. **N+1 query pattern** — 7 files (useListQuery, useDashboardData, useGoalProgress, useContactDetail, contact-detail, salesblock-detail, useEnrichment) fetch in loops
+2. **Silent activity logging** — fire-and-forget with no retry or failure notification
+3. **No pagination** — 5 list views fetch unbounded result sets
+4. **Timezone mismatches** — activity timestamps stored/displayed inconsistently
+5. **Broken token refresh** — OAuth interceptor doesn't retry failed refreshes
+6. **Date overflow** — February 30/31 in goal period calculations
+
+### P2 — High Priority UX (7 issues)
+1. Missing loading skeletons on dashboard
+2. Stale cache on org logo (10min window)
+3. No optimistic updates on activity logging
+4. Filter state lost on navigation
+5. No empty states for new users
+6. Toast listener gaps during rapid updates
+7. No bulk action confirmation
+
+### P3 — Monitor (remaining ~160 hazards)
+- Individual file-level risks documented in breadcrumbs
+- Most are low-severity edge cases or defensive coding opportunities
+
+### Root Cause Analysis — 8 Systemic Fixes Resolve 31% of Hazards
+| Fix | Hazards Resolved | Files Affected |
+|-----|-----------------|----------------|
+| Add DOMPurify sanitization layer | 4 | 2 |
+| Unify OAuth CSRF with nonce | 10 | 6 |
+| Add RLS audit + org_id policies | 6 | 3 |
+| Batch/join N+1 queries | 14 | 7 |
+| Add cursor-based pagination util | 10 | 5 |
+| Centralize error boundary (no stack traces) | 6 | 4 |
+| UTC storage + timezone-aware display | 4 | 3 |
+| Add transaction wrapper for multi-step flows | 2 | 1 |
+| **TOTAL** | **56/180 (31%)** | — |
+
+### Sprint Plan
+- **Sprint 1 (P0):** 7 security fixes — all must pass before beta gate
+- **Sprint 2 (P1):** 6 data integrity fixes — before first user session
+- **Sprint 3 (P2):** 7 UX polish items — during beta period
+
+### Learnings
+- Breadcrumb hazard annotations proved highly effective for systematic risk identification
+- N+1 pattern is the single most pervasive performance issue (7 files)
+- OAuth integration has consistent CSRF gap across all 5 providers — single fix pattern
+- XSS risk concentrated in 2 files that render user-provided HTML
+

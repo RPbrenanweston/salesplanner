@@ -81,8 +81,11 @@ export default function SignUp() {
     setLoading(true)
     setError('')
 
+    // Track org created so we can delete it if the user-record step fails
+    let createdOrgId: string | null = null
+
     try {
-      // Create auth user
+      // Step 1: Create auth user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -99,6 +102,7 @@ export default function SignUp() {
       if (authData.user) {
         if (isInvitation && invitationData) {
           // Invitation flow: join existing organization
+          // Step 2a: Create user record in the invited org
           const { error: userError } = await supabase
             .from('users')
             .insert([
@@ -113,9 +117,14 @@ export default function SignUp() {
               },
             ])
 
-          if (userError) throw userError
+          if (userError) {
+            // Compensate: sign out the auth user we just created so they
+            // are not left in an authenticated-but-profileless state
+            await supabase.auth.signOut()
+            throw new Error('Failed to set up your account. Please try again.')
+          }
 
-          // Mark invitation as accepted
+          // Step 2b: Mark invitation as accepted (best-effort — non-fatal)
           if (invitationId) {
             await supabase
               .from('team_invitations')
@@ -123,7 +132,9 @@ export default function SignUp() {
               .eq('id', invitationId)
           }
         } else {
-          // New org flow: create organization and manager user
+          // New org flow: create organization then manager user
+
+          // Step 2: Create organization
           const { data: orgData, error: orgError } = await supabase
             .from('organizations')
             .insert([
@@ -135,9 +146,15 @@ export default function SignUp() {
             .select()
             .single()
 
-          if (orgError) throw orgError
+          if (orgError) {
+            // Compensate: sign out the orphaned auth user
+            await supabase.auth.signOut()
+            throw new Error('Failed to create your organization. Please try again.')
+          }
 
-          // Create user record with manager role
+          createdOrgId = orgData.id
+
+          // Step 3: Create user record with manager role
           const { error: userError } = await supabase
             .from('users')
             .insert([
@@ -151,14 +168,27 @@ export default function SignUp() {
               },
             ])
 
-          if (userError) throw userError
+          if (userError) {
+            // Compensate: delete the org we just created, then sign out.
+            // org deletion cascades to dependent rows via ON DELETE CASCADE.
+            if (createdOrgId) {
+              await supabase.from('organizations').delete().eq('id', createdOrgId)
+            }
+            await supabase.auth.signOut()
+            throw new Error('Failed to set up your account. Please try again.')
+          }
         }
 
-        // Navigate to home after successful signup
+        // All steps succeeded — navigate to home
         navigate(ROUTES.HOME)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign up')
+      // Show a human-readable message; preserve specific messages we threw above
+      const message =
+        err instanceof Error && err.message !== 'Failed to sign up'
+          ? err.message
+          : 'Sign up failed. Please check your details and try again.'
+      setError(message)
     } finally {
       setLoading(false)
     }

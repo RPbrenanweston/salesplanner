@@ -58,8 +58,7 @@ export default function OutlookOAuthButton() {
     }
 
     // Generate CSRF nonce and store in sessionStorage for callback validation
-    const nonce = crypto.randomUUID()
-    sessionStorage.setItem('oauth_csrf_nonce', nonce)
+    const nonce = generateOAuthNonce('outlook')
 
     // Build OAuth URL for Microsoft Graph API
     const params = new URLSearchParams({

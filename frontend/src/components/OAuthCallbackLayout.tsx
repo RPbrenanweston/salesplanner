@@ -20,7 +20,7 @@ interface OAuthCallbackLayoutProps {
 
 export default function OAuthCallbackLayout({
   status,
-  errorMessage,
+  errorMessage: _errorMessage,
   providerName,
 }: OAuthCallbackLayoutProps) {
   return (
@@ -85,8 +85,7 @@ export default function OAuthCallbackLayout({
               Connection Failed
             </h2>
             <p className="text-white/60 mb-4">
-              {errorMessage ||
-                `An error occurred while connecting to ${providerName}.`}
+              {'Connection failed. Please try again.'}
             </p>
             <button
               onClick={() => window.close()}

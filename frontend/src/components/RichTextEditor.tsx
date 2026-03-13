@@ -8,6 +8,7 @@
 // edge:frontend/src/components/ScriptModal.tsx -> RELATES
 // edge:rich-text#1 -> STEP_IN
 // prompt: Sanitize HTML output before storing (DOMPurify or server-side). Add image paste support. Consider output format: HTML vs markdown vs Tiptap JSON for storage.
+import DOMPurify from 'dompurify';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -29,7 +30,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Start typing 
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      onChange(DOMPurify.sanitize(editor.getHTML()));
     },
   });
 

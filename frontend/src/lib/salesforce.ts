@@ -44,6 +44,12 @@ export async function querySalesforceRecords(
 ): Promise<{ records: SalesforceRecord[]; totalSize: number }> {
   const { objectType, ownerId, startDate, endDate } = options;
 
+  // Runtime whitelist guard — TypeScript types don't protect against invalid values at runtime
+  const ALLOWED_OBJECT_TYPES = ['Lead', 'Contact', 'Account'] as const;
+  if (!ALLOWED_OBJECT_TYPES.includes(objectType as typeof ALLOWED_OBJECT_TYPES[number])) {
+    throw new Error(`Invalid Salesforce object type: ${objectType}`);
+  }
+
   // Build SOQL query based on object type
   let fields: string;
   let whereClause = '';

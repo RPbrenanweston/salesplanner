@@ -11,6 +11,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { validateOAuthNonce } from '../lib/oauth-csrf'
 
 export default function GmailOAuthCallback() {
   const navigate = useNavigate()
@@ -47,11 +48,9 @@ export default function GmailOAuthCallback() {
       }
 
       // Validate CSRF nonce against sessionStorage
-      const storedNonce = sessionStorage.getItem('oauth_csrf_nonce')
-      if (!storedNonce || storedNonce !== stateData.nonce) {
+      if (!validateOAuthNonce('gmail', stateData.nonce)) {
         throw new Error('CSRF validation failed. Please try connecting again.')
       }
-      sessionStorage.removeItem('oauth_csrf_nonce') // Clean up — single use
 
       // Build redirect_uri to match what was sent in the authorization request
       const redirectUri = import.meta.env.VITE_GMAIL_REDIRECT_URI || `${window.location.origin}/oauth/gmail/callback`

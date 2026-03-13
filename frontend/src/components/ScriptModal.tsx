@@ -8,6 +8,7 @@
 // edge:frontend/src/pages/Scripts.tsx -> RELATES
 // edge:script-edit#1 -> STEP_IN
 // prompt: Sanitize HTML before storing (DOMPurify). Add title uniqueness validation. Add script tagging/categorization.
+import DOMPurify from 'dompurify';
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -57,7 +58,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
 
       const script = data as CallScript;
       setName(script.name);
-      setContent(script.content);
+      setContent(DOMPurify.sanitize(script.content));
       setIsShared(script.is_shared);
     } catch (error) {
       console.error('Error loading script:', error);
@@ -166,7 +167,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
             </label>
             <RichTextEditor
               content={content}
-              onChange={setContent}
+              onChange={(html) => setContent(DOMPurify.sanitize(html))}
               placeholder="Write your call script here. Use formatting to organize your talking points..."
             />
           </div>
