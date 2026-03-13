@@ -15,6 +15,7 @@ import { useAuth } from '../hooks/useAuth';
 import { createCalendarEvent } from '../lib/calendar';
 import { markActivityForSync } from '../lib/salesforce';
 import { DURATION, ACTIVITY_OUTCOME } from '../lib/constants';
+import { logError } from '../lib/error-logger';
 
 interface BookMeetingModalProps {
   isOpen: boolean;
@@ -113,7 +114,7 @@ export default function BookMeetingModal({
       onSuccess?.();
       resetAndClose();
     } catch (err: any) {
-      console.error('Error booking meeting:', err);
+      logError(err, 'BookMeetingModal.handleSave');
       setError(err.message || 'Failed to book meeting');
     } finally {
       setIsSaving(false);

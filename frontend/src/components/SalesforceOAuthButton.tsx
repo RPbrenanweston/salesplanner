@@ -15,6 +15,7 @@ import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { generateOAuthNonce } from '../lib/oauth-csrf'
+import { logError } from '../lib/error-logger'
 
 const SALESFORCE_CLIENT_ID = import.meta.env.VITE_SALESFORCE_CLIENT_ID
 const SALESFORCE_REDIRECT_URI = import.meta.env.VITE_SALESFORCE_REDIRECT_URI || `${window.location.origin}/oauth/salesforce/callback`
@@ -44,7 +45,7 @@ export default function SalesforceOAuthButton() {
 
       setConnection(data)
     } catch (err) {
-      console.error('Failed to load Salesforce connection:', err)
+      logError(err, 'SalesforceOAuthButton.loadConnection')
       setError('Failed to load connection status')
     } finally {
       setLoading(false)
@@ -107,7 +108,7 @@ export default function SalesforceOAuthButton() {
       setConnection(null)
       setError(null)
     } catch (err) {
-      console.error('Failed to disconnect Salesforce:', err)
+      logError(err, 'SalesforceOAuthButton.handleDisconnect')
       setError('Failed to disconnect. Please try again.')
     } finally {
       setLoading(false)

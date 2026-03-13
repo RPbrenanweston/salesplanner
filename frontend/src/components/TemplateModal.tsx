@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { logError } from '../lib/error-logger'
 
 interface TemplateModalProps {
   isOpen: boolean
@@ -113,7 +114,7 @@ export function TemplateModal({ isOpen, onClose, onSuccess, template }: Template
       onSuccess()
       resetAndClose()
     } catch (err) {
-      console.error('Error saving template:', err)
+      logError(err, 'TemplateModal.handleSave')
       setError(err instanceof Error ? err.message : 'Failed to save template')
     } finally {
       setLoading(false)

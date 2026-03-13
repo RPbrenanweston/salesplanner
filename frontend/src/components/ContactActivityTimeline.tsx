@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { Phone, Mail, Share2, Calendar, FileText, MessageCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logError } from '../lib/error-logger';
 
 interface Activity {
   id: string;
@@ -61,7 +62,7 @@ export default function ContactActivityTimeline({
       if (error) throw error;
       setActivities(data || []);
     } catch (err) {
-      console.error('Error loading activities:', err);
+      logError(err, 'ContactActivityTimeline.loadActivities');
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export default function ContactActivityTimeline({
       loadActivities();
       onActivityLogged?.();
     } catch (err) {
-      console.error('Error adding note:', err);
+      logError(err, 'ContactActivityTimeline.handleAddNote');
       alert('Failed to add note');
     }
   };

@@ -15,6 +15,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useUserLists, useCallScripts, useUserTeamInfo, useTeamMembers, useUserProfile } from '../hooks'
 import { createCalendarEvent } from '../lib/calendar'
 import { DURATION, SALESBLOCK_STATUS, USER_ROLE } from '../lib/constants'
+import { logError } from '../lib/error-logger'
 
 interface EditSalesBlockData {
   id: string
@@ -185,7 +186,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
           calendarSuccess = true
         }
       } catch (calendarError) {
-        console.error('Calendar event creation failed:', calendarError)
+        logError(calendarError, 'CreateSalesBlockModal.handleSubmit.calendarEvent')
         // SalesBlock was created successfully, but calendar failed
         calendarSuccess = false
       }
@@ -202,7 +203,7 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
         if (onSuccess) onSuccess()
       }, 2000)
     } catch (error) {
-      console.error(`Error ${isEditMode ? 'updating' : 'creating'} salesblock:`, error)
+      logError(error, `CreateSalesBlockModal.handleSubmit.${isEditMode ? 'update' : 'create'}`)
       setErrorMessage(`Failed to ${isEditMode ? 'update' : 'create'} SalesBlock. Please try again.`)
     } finally {
       setLoading(false)

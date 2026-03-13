@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { logError } from '../lib/error-logger';
 
 interface CustomKPIModalProps {
   isOpen: boolean;
@@ -91,7 +92,7 @@ export default function CustomKPIModal({ isOpen, onClose, onSuccess }: CustomKPI
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Error creating custom KPI:', err);
+      logError(err, 'CustomKPIModal.handleSubmit');
       alert('Failed to create custom KPI. Please try again.');
     } finally {
       setLoading(false);

@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { RichTextEditor } from './RichTextEditor';
+import { logError } from '../lib/error-logger';
 
 interface ScriptModalProps {
   isOpen: boolean;
@@ -61,7 +62,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
       setContent(DOMPurify.sanitize(script.content));
       setIsShared(script.is_shared);
     } catch (error) {
-      console.error('Error loading script:', error);
+      logError(error, 'ScriptModal.loadScript');
       alert('Failed to load script');
     }
   }
@@ -112,7 +113,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
       onSuccess();
       resetAndClose();
     } catch (error) {
-      console.error('Error saving script:', error);
+      logError(error, 'ScriptModal.handleSubmit');
       alert('Failed to save script');
     } finally {
       setLoading(false);

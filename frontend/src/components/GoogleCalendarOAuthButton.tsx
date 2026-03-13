@@ -14,6 +14,7 @@ import { Calendar, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { generateOAuthNonce } from '../lib/oauth-csrf'
+import { logError } from '../lib/error-logger'
 
 const GOOGLE_CALENDAR_CLIENT_ID = import.meta.env.VITE_GOOGLE_CALENDAR_CLIENT_ID
 const GOOGLE_CALENDAR_REDIRECT_URI = import.meta.env.VITE_GOOGLE_CALENDAR_REDIRECT_URI || `${window.location.origin}/oauth/google-calendar/callback`
@@ -44,7 +45,7 @@ export default function GoogleCalendarOAuthButton() {
 
       setConnection(data)
     } catch (err) {
-      console.error('Failed to load Google Calendar connection:', err)
+      logError(err, 'GoogleCalendarOAuthButton.loadConnection')
       setError('Failed to load connection status')
     } finally {
       setLoading(false)
@@ -109,7 +110,7 @@ export default function GoogleCalendarOAuthButton() {
       setConnection(null)
       setError(null)
     } catch (err) {
-      console.error('Failed to disconnect Google Calendar:', err)
+      logError(err, 'GoogleCalendarOAuthButton.handleDisconnect')
       setError('Failed to disconnect. Please try again.')
     } finally {
       setLoading(false)

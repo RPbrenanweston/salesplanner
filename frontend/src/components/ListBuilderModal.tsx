@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logError } from '../lib/error-logger';
 
 type FilterField = 'company' | 'title' | 'source' | 'created_at' | 'custom_field' | 'domain' | 'linkedin_url' | 'company_linkedin_url' | 'twitter_handle' | 'company_twitter';
 type FilterOperator = 'equals' | 'contains' | 'starts_with' | 'greater_than' | 'less_than';
@@ -176,7 +177,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
       const { count } = await query;
       setMatchingCount(count || 0);
     } catch (err) {
-      console.error('Error counting contacts:', err);
+      logError(err, 'ListBuilderModal.updatePreviewCount');
       setMatchingCount(null);
     }
   };
@@ -202,7 +203,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
         .single();
 
       if (userError) {
-        console.error('Error fetching user data:', userError);
+        logError(userError, 'ListBuilderModal.handleSave.userData');
         throw new Error(`Could not load user data: ${userError.message}`);
       }
       if (!userData) throw new Error('User data not found');
@@ -232,7 +233,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
           .eq('id', existingList.id);
 
         if (updateError) {
-          console.error('Error updating list:', updateError);
+          logError(updateError, 'ListBuilderModal.handleSave.updateList');
           throw updateError;
         }
         listId = existingList.id;
@@ -242,7 +243,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
           .from('list_contacts')
           .delete()
           .eq('list_id', listId);
-        if (deleteError) console.error('Error clearing list_contacts:', deleteError);
+        if (deleteError) logError(deleteError, 'ListBuilderModal.handleSave.clearContacts');
       } else {
         // INSERT new list
         const { data: newList, error: listError } = await supabase
@@ -259,7 +260,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
           .single();
 
         if (listError) {
-          console.error('Error inserting list:', listError);
+          logError(listError, 'ListBuilderModal.handleSave.insertList');
           throw listError;
         }
         if (!newList) throw new Error('List was not created — no data returned');
@@ -299,7 +300,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
       });
 
       const { data: matchingContacts, error: contactError } = await contactQuery;
-      if (contactError) console.error('Error fetching matching contacts:', contactError);
+      if (contactError) logError(contactError, 'ListBuilderModal.handleSave.matchingContacts');
 
       // Insert into junction table
       if (matchingContacts && matchingContacts.length > 0) {
@@ -312,13 +313,13 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
         const { error: junctionError } = await supabase
           .from('list_contacts')
           .insert(junctionRecords);
-        if (junctionError) console.error('Error populating list_contacts:', junctionError);
+        if (junctionError) logError(junctionError, 'ListBuilderModal.handleSave.junctionTable');
       }
 
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      console.error('Error saving list:', err);
+      logError(err, 'ListBuilderModal.handleSave');
       const message = err instanceof Error ? err.message :
         (typeof err === 'object' && err !== null && 'message' in err)
           ? String((err as { message: string }).message)
