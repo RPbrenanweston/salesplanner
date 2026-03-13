@@ -75,7 +75,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { role, billingPeriod } = await req.json();
+    const { role, billingPeriod, priceId: directPriceId } = await req.json();
 
     if (!role || !billingPeriod) {
       throw new Error('Missing required fields: role, billingPeriod');
@@ -129,8 +129,10 @@ serve(async (req) => {
         .eq('id', userData.org_id);
     }
 
-    // Get price ID for selected plan
-    const priceId = PRICE_IDS[role as 'sdr' | 'ae' | 'manager'][billingPeriod as 'weekly' | 'monthly' | 'annual'];
+    // Get price ID — prefer direct priceId from frontend (DB-driven), fall back to hardcoded mapping
+    const priceId = directPriceId
+      ? directPriceId
+      : PRICE_IDS[role as 'sdr' | 'ae' | 'manager'][billingPeriod as 'weekly' | 'monthly' | 'annual'];
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
