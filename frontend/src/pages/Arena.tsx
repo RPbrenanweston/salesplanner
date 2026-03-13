@@ -30,6 +30,7 @@ export default function Arena() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<BattleStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -81,6 +82,8 @@ export default function Arena() {
       setStats(sortedStats);
     } catch (error) {
       console.error('Failed to load leaderboard:', error);
+      setLoadError('Failed to load leaderboard. Please refresh the page.');
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -123,6 +126,12 @@ export default function Arena() {
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-8">
+        {loadError && (
+          <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 mb-6">
+            <p className="text-sm text-red-alert">{loadError}</p>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="flex items-center gap-3 text-white/60">

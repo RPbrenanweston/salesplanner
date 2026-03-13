@@ -27,6 +27,7 @@ interface CallScript {
 export default function Scripts() {
   const [scripts, setScripts] = useState<CallScript[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingScriptId, setEditingScriptId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -52,6 +53,8 @@ export default function Scripts() {
       setScripts(data || []);
     } catch (error) {
       console.error('Error loading scripts:', error);
+      setLoadError('Failed to load scripts. Please refresh the page.');
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -125,6 +128,12 @@ export default function Scripts() {
           Create Script
         </button>
       </div>
+
+      {loadError && (
+        <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
+          <p className="text-sm text-red-alert">{loadError}</p>
+        </div>
+      )}
 
       {/* Scripts List */}
       {scripts.length === 0 ? (

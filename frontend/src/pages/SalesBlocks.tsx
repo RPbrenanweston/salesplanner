@@ -166,6 +166,7 @@ export default function SalesBlocks() {
   const [editingSalesblock, setEditingSalesblock] = useState<SalesBlock | null>(null)
   const [salesblocks, setSalesblocks] = useState<SalesBlock[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>('upcoming')
   const [viewType, setViewType] = useState<ViewType>('my')
   const [displayMode, setDisplayMode] = useState<DisplayMode>('list')
@@ -293,6 +294,8 @@ export default function SalesBlocks() {
       setSalesblocks(enrichedData)
     } catch (error) {
       console.error('Error loading salesblocks:', error)
+      setLoadError('Failed to load SalesBlocks. Please refresh the page.')
+      setLoading(false)
     } finally {
       setLoading(false)
     }
@@ -480,6 +483,12 @@ export default function SalesBlocks() {
           </button>
         ))}
       </div>
+
+      {loadError && (
+        <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
+          <p className="text-sm text-red-alert">{loadError}</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-16">

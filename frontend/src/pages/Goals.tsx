@@ -33,6 +33,7 @@ interface GoalWithProgress extends Goal {
 export default function Goals() {
   const [goals, setGoals] = useState<GoalWithProgress[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isAddGoalModalOpen, setIsAddGoalModalOpen] = useState(false)
 
   // Add goal form state
@@ -91,6 +92,8 @@ export default function Goals() {
       setGoals(goalsWithProgress)
     } catch (error) {
       console.error('Error loading goals:', error)
+      setLoadError('Failed to load goals. Please refresh the page.')
+      setLoading(false)
     } finally {
       setLoading(false)
     }
@@ -280,6 +283,12 @@ export default function Goals() {
 
   return (
     <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      {loadError && (
+        <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
+          <p className="text-sm text-red-alert">{loadError}</p>
+        </div>
+      )}
+
       <div className="flex items-end justify-between">
         <div>
           <p className="vv-section-title mb-1">Performance</p>

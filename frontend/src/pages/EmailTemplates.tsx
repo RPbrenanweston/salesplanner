@@ -30,6 +30,7 @@ interface EmailTemplate {
 export default function EmailTemplates() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
@@ -57,6 +58,8 @@ export default function EmailTemplates() {
       setTemplates(data || [])
     } catch (err) {
       console.error('Error loading templates:', err)
+      setLoadError('Failed to load templates. Please refresh the page.')
+      setLoading(false)
     } finally {
       setLoading(false)
     }
@@ -125,6 +128,12 @@ export default function EmailTemplates() {
           Create Template
         </button>
       </div>
+
+      {loadError && (
+        <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
+          <p className="text-sm text-red-alert">{loadError}</p>
+        </div>
+      )}
 
       {/* Templates List */}
       {templates.length === 0 ? (
