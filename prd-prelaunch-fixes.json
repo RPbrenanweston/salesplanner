@@ -1,5 +1,5 @@
 {
-  "project": "SalesBlock.io — Pre-Launch Fixes",
+  "project": "SalesBlock.io \u2014 Pre-Launch Fixes",
   "branchName": "ralph/prelaunch-fixes",
   "description": "Comprehensive pre-launch PRD: security fixes, data-integrity, functionality, launch-critical features, and core UX improvements. P1=security/data-loss, P2=functionality-breaks, P3=core UX features, P4=deferrable polish.",
   "userStories": [
@@ -15,8 +15,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/components/RichTextEditor.tsx — onChange outputs raw HTML, dangerouslySetInnerHTML enables XSS. Also affects ScriptModal.tsx and TemplateModal.tsx."
+      "passes": true,
+      "notes": "Breadcrumb hazard: frontend/src/components/RichTextEditor.tsx \u2014 onChange outputs raw HTML, dangerouslySetInnerHTML enables XSS. Also affects ScriptModal.tsx and TemplateModal.tsx."
     },
     {
       "id": "FIX-002",
@@ -32,8 +32,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb hazard: GmailOAuthButton.tsx — state param contains user_id without CSRF nonce; GoogleCalendarOAuthButton.tsx, SalesforceOAuthButton.tsx, OutlookOAuthButton.tsx, OutlookCalendarOAuthButton.tsx — same pattern."
+      "passes": true,
+      "notes": "Breadcrumb hazard: GmailOAuthButton.tsx \u2014 state param contains user_id without CSRF nonce; GoogleCalendarOAuthButton.tsx, SalesforceOAuthButton.tsx, OutlookOAuthButton.tsx, OutlookCalendarOAuthButton.tsx \u2014 same pattern."
     },
     {
       "id": "FIX-003",
@@ -47,8 +47,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/pages/Diagnostics.tsx — no auth guard, direct URL exposes internal DB state; each test fires real Supabase writes in production."
+      "passes": true,
+      "notes": "Breadcrumb hazard: frontend/src/pages/Diagnostics.tsx \u2014 no auth guard, direct URL exposes internal DB state; each test fires real Supabase writes in production."
     },
     {
       "id": "FIX-004",
@@ -62,8 +62,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/pages/SignUp.tsx — if signUp succeeds but org/user insert fails, user lands in authenticated-but-broken state with no recovery path."
+      "passes": true,
+      "notes": "Breadcrumb hazard: frontend/src/pages/SignUp.tsx \u2014 if signUp succeeds but org/user insert fails, user lands in authenticated-but-broken state with no recovery path."
     },
     {
       "id": "FIX-005",
@@ -77,8 +77,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/App.tsx — Add routes for /arena and /content-library; these pages exist as .tsx files but have no Route entries."
+      "passes": true,
+      "notes": "Breadcrumb hazard: frontend/src/App.tsx \u2014 Add routes for /arena and /content-library; these pages exist as .tsx files but have no Route entries."
     },
     {
       "id": "FIX-006",
@@ -94,8 +94,8 @@
         "Unhandled errors captured in Sentry with user context"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/main.tsx — no root ErrorBoundary causes blank white screen; frontend/src/pages/SettingsPage.tsx — single OAuth throw crashes entire integrations tab. | FEAT-002 merged here — install @sentry/react in main.tsx alongside ErrorBoundary"
+      "passes": true,
+      "notes": "Breadcrumb hazard: frontend/src/main.tsx \u2014 no root ErrorBoundary causes blank white screen; frontend/src/pages/SettingsPage.tsx \u2014 single OAuth throw crashes entire integrations tab. | FEAT-002 merged here \u2014 install @sentry/react in main.tsx alongside ErrorBoundary"
     },
     {
       "id": "FIX-007",
@@ -109,8 +109,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/components/AddContactModal.tsx — contact insert does not link to org_id from session; contacts may be created without org association."
+      "passes": true,
+      "notes": "Breadcrumb hazard: frontend/src/components/AddContactModal.tsx \u2014 contact insert does not link to org_id from session; contacts may be created without org association."
     },
     {
       "id": "FIX-008",
@@ -125,7 +125,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/components/ImportCSVModal.tsx — list_contacts batch insert lacks ON CONFLICT; per-row duplicate check is N queries for N rows."
+      "notes": "Breadcrumb hazard: frontend/src/components/ImportCSVModal.tsx \u2014 list_contacts batch insert lacks ON CONFLICT; per-row duplicate check is N queries for N rows."
     },
     {
       "id": "FIX-009",
@@ -140,7 +140,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/pages/Pipeline.tsx — @hello-pangea/dnd StrictMode double-invocation; no optimistic rollback on failed stage update."
+      "notes": "Breadcrumb hazard: frontend/src/pages/Pipeline.tsx \u2014 @hello-pangea/dnd StrictMode double-invocation; no optimistic rollback on failed stage update."
     },
     {
       "id": "FIX-010",
@@ -155,7 +155,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/components/BookMeetingModal.tsx — createCalendarEvent silently fails if no calendar connected; user thinks meeting booked but no event exists."
+      "notes": "Breadcrumb hazard: frontend/src/components/BookMeetingModal.tsx \u2014 createCalendarEvent silently fails if no calendar connected; user thinks meeting booked but no event exists."
     },
     {
       "id": "FIX-011",
@@ -169,7 +169,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/pages/ContactDetailPage.tsx — useLocation back navigation depends on location.state.from; if navigated directly, state is null."
+      "notes": "Breadcrumb hazard: frontend/src/pages/ContactDetailPage.tsx \u2014 useLocation back navigation depends on location.state.from; if navigated directly, state is null."
     },
     {
       "id": "FIX-012",
@@ -183,7 +183,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazard: supabase/functions/handle-stripe-webhook/index.ts — no idempotency guard; duplicate webhook fires create duplicate state updates; missing org_id silently breaks."
+      "notes": "Breadcrumb hazard: supabase/functions/handle-stripe-webhook/index.ts \u2014 no idempotency guard; duplicate webhook fires create duplicate state updates; missing org_id silently breaks."
     },
     {
       "id": "FIX-013",
@@ -198,7 +198,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazards: sync-activities-to-salesforce — no idempotency, no partial failure recovery, token not checked; track-email-replies — same patterns."
+      "notes": "Breadcrumb hazards: sync-activities-to-salesforce \u2014 no idempotency, no partial failure recovery, token not checked; track-email-replies \u2014 same patterns."
     },
     {
       "id": "FIX-014",
@@ -212,7 +212,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazard: supabase/functions/send-team-invitation/index.ts — email failure leaves invitation row in pending state with no email sent; stale links remain valid indefinitely."
+      "notes": "Breadcrumb hazard: supabase/functions/send-team-invitation/index.ts \u2014 email failure leaves invitation row in pending state with no email sent; stale links remain valid indefinitely."
     },
     {
       "id": "FIX-015",
@@ -227,7 +227,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazards: refresh-google-token — no lock on concurrent refresh calls; refresh-microsoft-token — same; token-refresh.ts — no retry on transient failures."
+      "notes": "Breadcrumb hazards: refresh-google-token \u2014 no lock on concurrent refresh calls; refresh-microsoft-token \u2014 same; token-refresh.ts \u2014 no retry on transient failures."
     },
     {
       "id": "FIX-016",
@@ -241,7 +241,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazards: LogActivityModal, LogSocialActivityModal — markActivityForSync without connection check; salesforce.ts — SOQL injection on unguarded objectType."
+      "notes": "Breadcrumb hazards: LogActivityModal, LogSocialActivityModal \u2014 markActivityForSync without connection check; salesforce.ts \u2014 SOQL injection on unguarded objectType."
     },
     {
       "id": "FIX-017",
@@ -257,7 +257,7 @@
       ],
       "priority": 2,
       "passes": false,
-      "notes": "Breadcrumb hazards: SalesBlocks.tsx — delete fires immediately; Scripts.tsx — no confirmation; Goals.tsx — single click permanently removes goal; ListDetailPage.tsx — uses browser confirm()."
+      "notes": "Breadcrumb hazards: SalesBlocks.tsx \u2014 delete fires immediately; Scripts.tsx \u2014 no confirmation; Goals.tsx \u2014 single click permanently removes goal; ListDetailPage.tsx \u2014 uses browser confirm()."
     },
     {
       "id": "FIX-018",
@@ -271,7 +271,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb hazards: frontend/src/hooks/useTheme.ts — system theme listener not cleaned up on unmount; write fails silently while UI shows new theme."
+      "notes": "Breadcrumb hazards: frontend/src/hooks/useTheme.ts \u2014 system theme listener not cleaned up on unmount; write fails silently while UI shows new theme."
     },
     {
       "id": "FIX-019",
@@ -285,7 +285,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/pages/Arena.tsx — void-700 missing from tailwind.config.js; rank colour fallback uses undefined colour class."
+      "notes": "Breadcrumb hazard: frontend/src/pages/Arena.tsx \u2014 void-700 missing from tailwind.config.js; rank colour fallback uses undefined colour class."
     },
     {
       "id": "FIX-020",
@@ -299,7 +299,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb hazards: ProtectedRoute.tsx — synchronous redirect causes loop on concurrent logout; useAuth.ts — loading=false but user still null race condition."
+      "notes": "Breadcrumb hazards: ProtectedRoute.tsx \u2014 synchronous redirect causes loop on concurrent logout; useAuth.ts \u2014 loading=false but user still null race condition."
     },
     {
       "id": "FIX-021",
@@ -313,7 +313,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/components/TrialExpiryBanner.tsx — dismissal in React local state only; reappears on navigation."
+      "notes": "Breadcrumb hazard: frontend/src/components/TrialExpiryBanner.tsx \u2014 dismissal in React local state only; reappears on navigation."
     },
     {
       "id": "FIX-022",
@@ -327,7 +327,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/pages/Analytics.tsx — no time-range filter on activity aggregation; loads all-time counts growing unbounded."
+      "notes": "Breadcrumb hazard: frontend/src/pages/Analytics.tsx \u2014 no time-range filter on activity aggregation; loads all-time counts growing unbounded."
     },
     {
       "id": "FIX-023",
@@ -341,7 +341,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb hazards: ContactActivityTimeline.tsx — 100+ activities cause unbounded query; Email.tsx — no pagination, large volumes cause slow query."
+      "notes": "Breadcrumb hazards: ContactActivityTimeline.tsx \u2014 100+ activities cause unbounded query; Email.tsx \u2014 no pagination, large volumes cause slow query."
     },
     {
       "id": "FIX-024",
@@ -355,7 +355,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/pages/Home.tsx — CreateSalesBlockModal launched from Home must re-fetch salesblocks after close; if callback not wired, new block won't appear."
+      "notes": "Breadcrumb hazard: frontend/src/pages/Home.tsx \u2014 CreateSalesBlockModal launched from Home must re-fetch salesblocks after close; if callback not wired, new block won't appear."
     },
     {
       "id": "FIX-025",
@@ -369,7 +369,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb hazard: frontend/src/pages/ForgotPassword.tsx — window.location.origin used for redirectTo; in dev points to localhost; reset links expire if opened in different environment."
+      "notes": "Breadcrumb hazard: frontend/src/pages/ForgotPassword.tsx \u2014 window.location.origin used for redirectTo; in dev points to localhost; reset links expire if opened in different environment."
     },
     {
       "id": "FEAT-001",
@@ -383,8 +383,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/SignIn.tsx — Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback for rate limit errors. [MOVED from roadmap — pre-launch blocker]"
+      "passes": true,
+      "notes": "Breadcrumb prompt: frontend/src/pages/SignIn.tsx \u2014 Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback for rate limit errors. [MOVED from roadmap \u2014 pre-launch blocker]"
     },
     {
       "id": "FEAT-003",
@@ -398,8 +398,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/PricingPage.tsx — Pull pricing from Supabase table to avoid price drift. Add error toast instead of alert. [MOVED from roadmap — pre-launch blocker]"
+      "passes": true,
+      "notes": "Breadcrumb prompt: frontend/src/pages/PricingPage.tsx \u2014 Pull pricing from Supabase table to avoid price drift. Add error toast instead of alert. [MOVED from roadmap \u2014 pre-launch blocker]"
     },
     {
       "id": "FEAT-005",
@@ -414,8 +414,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Team.tsx — Add time-range filter for activity aggregation. Handle empty org_id gracefully. Add invite member flow. [MOVED from roadmap — pre-launch blocker]"
+      "passes": true,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Team.tsx \u2014 Add time-range filter for activity aggregation. Handle empty org_id gracefully. Add invite member flow. [MOVED from roadmap \u2014 pre-launch blocker]"
     },
     {
       "id": "FEAT-004",
@@ -431,7 +431,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Analytics.tsx — Add time-range filter. Add loading skeleton per KPI card. Validate custom KPI bounds. Consider Recharts for trend visualisation. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/Analytics.tsx \u2014 Add time-range filter. Add loading skeleton per KPI card. Validate custom KPI bounds. Consider Recharts for trend visualisation. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -447,7 +447,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Arena.tsx — Consider real-time subscription for live leaderboard. Add time-range filter. Enforce org-scoped leaderboard. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/Arena.tsx \u2014 Consider real-time subscription for live leaderboard. Add time-range filter. Enforce org-scoped leaderboard. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -462,7 +462,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Pipeline.tsx — Add deal value total in column header. Add optimistic rollback for failed stage updates. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/Pipeline.tsx \u2014 Add deal value total in column header. Add optimistic rollback for failed stage updates. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -477,7 +477,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Goals.tsx — Fix time-zone boundary for daily/weekly aggregation. Add empty state. Add delete confirmation. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/Goals.tsx \u2014 Fix time-zone boundary for daily/weekly aggregation. Add empty state. Add delete confirmation. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -493,7 +493,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/SalesBlocks.tsx — Add delete confirmation dialog. Audit salesblocks query for org_id scoping. Add empty state. Consider status filter tabs. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/SalesBlocks.tsx \u2014 Add delete confirmation dialog. Audit salesblocks query for org_id scoping. Add empty state. Consider status filter tabs. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -510,7 +510,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Scripts.tsx — Add script categories/tags. Add search. Link scripts to SalesBlock session. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/Scripts.tsx \u2014 Add script categories/tags. Add search. Link scripts to SalesBlock session. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -526,7 +526,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/EmailTemplates.tsx — Add error toast on delete failure. Verify RLS. Add template preview and search/filter. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/EmailTemplates.tsx \u2014 Add error toast on delete failure. Verify RLS. Add template preview and search/filter. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -542,7 +542,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/components/ComposeEmailModal.tsx — Add template insertion from EmailTemplates. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/components/ComposeEmailModal.tsx \u2014 Add template insertion from EmailTemplates. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -559,7 +559,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/components/OutlookOAuthButton.tsx — Consolidate OutlookOAuthButton and OutlookCalendarOAuthButton into a single MicrosoftOAuthButton parameterized by integration type. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/components/OutlookOAuthButton.tsx \u2014 Consolidate OutlookOAuthButton and OutlookCalendarOAuthButton into a single MicrosoftOAuthButton parameterized by integration type. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -575,7 +575,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/components/GoogleCalendarOAuthButton.tsx — Consolidate OAuth button logic with GmailOAuthButton into a shared hook with provider param. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/components/GoogleCalendarOAuthButton.tsx \u2014 Consolidate OAuth button logic with GmailOAuthButton into a shared hook with provider param. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -591,7 +591,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/SettingsPage.tsx — Wrap each OAuth button in ErrorBoundary. Add success/error toasts for all save actions. Extract each tab into a sub-component. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/SettingsPage.tsx \u2014 Wrap each OAuth button in ErrorBoundary. Add success/error toasts for all save actions. Extract each tab into a sub-component. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -607,7 +607,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/components/LogActivityModal.tsx — Make activity types configurable via org settings. Add outcome field for calls. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/components/LogActivityModal.tsx \u2014 Make activity types configurable via org settings. Add outcome field for calls. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -623,7 +623,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Lists.tsx — Batch list_contacts count into single query. Add error catch around getSalesforceConnection. Add list sorting and search. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/Lists.tsx \u2014 Batch list_contacts count into single query. Add error catch around getSalesforceConnection. Add list sorting and search. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -639,7 +639,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/components/ContactActivityTimeline.tsx — Add pagination or cursor-based infinite scroll. Expand activity type icon map with fallback icon. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/components/ContactActivityTimeline.tsx \u2014 Add pagination or cursor-based infinite scroll. Expand activity type icon map with fallback icon. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -654,7 +654,7 @@
       ],
       "priority": 3,
       "passes": false,
-      "notes": "Breadcrumb prompts: ContactDetailPage — Add 404 state when contact not found. ListDetailPage — Move sort to server-side when list grows. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompts: ContactDetailPage \u2014 Add 404 state when contact not found. ListDetailPage \u2014 Move sort to server-side when list grows. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
     {
@@ -670,7 +670,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Social.tsx — Add null guard for deleted contacts. Add empty state with CTA. Add date range filter. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/Social.tsx \u2014 Add null guard for deleted contacts. Add empty state with CTA. Add date range filter. [UI feature \u2014 core UX work]",
       "deferrable": true
     },
     {
@@ -686,7 +686,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/components/TemplateModal.tsx — Validate merge tags at save time. Add send-time preview with variable substitution. Enforce limits. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/components/TemplateModal.tsx \u2014 Validate merge tags at save time. Add send-time preview with variable substitution. Enforce limits. [UI feature \u2014 core UX work]",
       "deferrable": true
     },
     {
@@ -702,7 +702,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/Home.tsx — Add empty-state messaging when goals have no activities. Consider skeleton loaders per data section independently. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/Home.tsx \u2014 Add empty-state messaging when goals have no activities. Consider skeleton loaders per data section independently. [UI feature \u2014 core UX work]",
       "deferrable": true
     },
     {
@@ -718,7 +718,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/components/ImportCSVModal.tsx — Add batch insert for contacts (chunk 500). Consider streaming progress updates during import. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/components/ImportCSVModal.tsx \u2014 Add batch insert for contacts (chunk 500). Consider streaming progress updates during import. [UI feature \u2014 core UX work]",
       "deferrable": true
     },
     {
@@ -734,7 +734,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "Breadcrumb prompt: frontend/src/pages/ContentLibrary.tsx — Merge with EmailTemplates and Scripts pages or remove redundancy. Verify org-scoped RLS. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: frontend/src/pages/ContentLibrary.tsx \u2014 Merge with EmailTemplates and Scripts pages or remove redundancy. Verify org-scoped RLS. [UI feature \u2014 core UX work]",
       "deferrable": true
     },
     {
@@ -749,7 +749,7 @@
       ],
       "priority": 4,
       "passes": false,
-      "notes": "Breadcrumb prompt: supabase/functions/send-team-invitation/index.ts — Add transactional rollback if email send fails. Add resend endpoint. Enforce invitation expiry at acceptance time. [UI feature — core UX work]",
+      "notes": "Breadcrumb prompt: supabase/functions/send-team-invitation/index.ts \u2014 Add transactional rollback if email send fails. Add resend endpoint. Enforce invitation expiry at acceptance time. [UI feature \u2014 core UX work]",
       "deferrable": true
     }
   ]
