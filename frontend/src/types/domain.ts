@@ -1,3 +1,4 @@
+/** @id salesblock.types.domain.domain */
 /**
  * Domain types - Core business entities
  */

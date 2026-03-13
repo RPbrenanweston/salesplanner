@@ -1,3 +1,4 @@
+/** @id salesblock.types.domain.index */
 /**
  * Centralized type definitions
  *

@@ -1,3 +1,4 @@
+/** @id salesblock.types.domain.enums */
 /**
  * Enum types and constants
  */
