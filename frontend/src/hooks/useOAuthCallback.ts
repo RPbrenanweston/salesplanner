@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.oauth.use-oauth-callback */
 // @crumb frontend-hook-use-oauth-callback
 // Auth/OAuth | url_param_parsing | csrf_nonce_validation | token_exchange | success_error_handling
 // why: Shared OAuth callback hook — consolidates token exchange logic for all 5 providers into a single reusable hook

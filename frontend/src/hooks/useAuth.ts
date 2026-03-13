@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.auth.use-auth */
 // @crumb frontend-auth-state-manager
 // SEC | session_state_retrieval | auth_state_subscription | user_context_provision | sign_out | loading_state_management
 // why: React hook managing authentication state lifecycle and session subscription for persistent user context across app

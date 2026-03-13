@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.goals.use-goal-progress */
 /**
  * Hook for calculating goal progress
  */

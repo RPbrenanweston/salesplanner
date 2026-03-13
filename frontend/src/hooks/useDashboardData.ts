@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.dashboard.use-dashboard-data */
 /**
  * Hook for loading dashboard data (user, salesblocks, activities)
  */

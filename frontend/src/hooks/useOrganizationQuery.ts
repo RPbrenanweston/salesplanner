@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.org.use-organization-query */
 /**
  * React Query hooks for organization data fetching
  */

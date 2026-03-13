@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.core.index */
 /**
  * Centralized hooks for data fetching with React Query caching
  *

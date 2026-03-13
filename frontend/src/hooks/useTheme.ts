@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.ui.use-theme */
 // @crumb frontend-hook-use-theme
 // UI/Theming | theme_loading | dark_class_application | system_preference_listening | theme_persistence
 // why: useTheme hook — read and persist the current user's theme preference (light/dark/system), apply the theme class to the document root, sync to Supabase user_preferences

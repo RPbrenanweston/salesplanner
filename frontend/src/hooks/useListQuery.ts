@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.lists.use-list-query */
 /**
  * React Query hooks for list data fetching
  */

@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.scripts.use-script-query */
 /**
  * React Query hooks for script and template data fetching
  */

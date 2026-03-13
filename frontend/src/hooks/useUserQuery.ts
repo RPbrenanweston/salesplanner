@@ -1,3 +1,4 @@
+/** @id salesblock.hooks.users.use-user-query */
 /**
  * React Query hooks for user data fetching
  */
