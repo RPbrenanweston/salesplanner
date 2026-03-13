@@ -14,6 +14,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ROUTES } from '../lib/routes'
+import { isRateLimited } from '../lib/rate-limiter'
+import { validateEmail } from '../lib/form-utils'
 
 export default function SignIn() {
   const navigate = useNavigate()
@@ -24,6 +26,21 @@ export default function SignIn() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (!password || password.length < 1) {
+      setError('Password is required.')
+      return
+    }
+
+    if (isRateLimited(`sign-in:${email.toLowerCase()}`, { windowMs: 60_000, maxRequests: 5 })) {
+      setError('Too many attempts. Please wait a minute and try again.')
+      return
+    }
+
     setLoading(true)
     setError('')
 

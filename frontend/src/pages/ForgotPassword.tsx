@@ -12,6 +12,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { isRateLimited } from '../lib/rate-limiter'
+import { validateEmail } from '../lib/form-utils'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -21,6 +23,17 @@ export default function ForgotPassword() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+
+    if (isRateLimited(`forgot-password:${email.toLowerCase()}`, { windowMs: 60_000, maxRequests: 3 })) {
+      setError('Too many attempts. Please wait a minute and try again.')
+      return
+    }
+
     setLoading(true)
     setError('')
     setMessage('')

@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ROUTES } from '../lib/routes'
+import { isRateLimited } from '../lib/rate-limiter'
 
 export default function SignUp() {
   const navigate = useNavigate()
@@ -79,6 +80,12 @@ export default function SignUp() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (isRateLimited(`sign-up:${email.toLowerCase()}`, { windowMs: 60_000, maxRequests: 3 })) {
+      setError('Too many attempts. Please wait a minute and try again.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
