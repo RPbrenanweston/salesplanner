@@ -20,6 +20,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import PageLoader from './components/PageLoader'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
+import { Toaster } from './components/ui/toaster'
 
 // Lazy load all page components for code splitting
 const Home = lazy(() => import('./pages/Home'))
@@ -234,6 +235,7 @@ function App() {
             />
           </Routes>
         </Suspense>
+        <Toaster />
       </BrowserRouter>
     </QueryClientProvider>
   )
