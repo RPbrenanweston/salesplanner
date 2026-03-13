@@ -1,15 +1,16 @@
 // @crumb frontend-component-add-contact-modal
 // UI/Contacts | contact_creation_form | field_validation | supabase_insert | on_contact_added_callback
 // why: Add contact modal — form to create a new contact with multi-value email/phone fields, linked to a salesblock and org
-// in:salesBlockId,supabase contacts table out:New contact row,onContactAdded called err:Supabase insert failure,missing required fields (validation prevents submit)
-// hazard: Contact insert does not link to org_id from session — contacts may be created without org association
+// in:salesBlockId,supabase contacts table,useAuth(user+org_id) out:New contact row,onContactAdded called err:Supabase insert failure,missing required fields (validation prevents submit)
 // hazard: Multi-value email/phone stored as arrays — single primary email column type may silently truncate
 // edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
 // edge:add-contact#1 -> STEP_IN
-// prompt: Pass org_id from auth context to ensure contacts are correctly org-scoped. Validate email format before submit. Confirm array column type.
-import { useState } from 'react';
+// prompt: Validate email format before submit. Confirm array column type. Consider real-time duplicate check.
+import { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 interface AddContactModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ interface CustomField {
 }
 
 export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalProps) {
+  const { user } = useAuth();
+  const [orgId, setOrgId] = useState<string | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -43,6 +46,19 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdContactId, setCreatedContactId] = useState<string | null>(null);
 
+  // Fetch org_id once when modal opens — avoids redundant DB round-trips in checkDuplicate/loadLists/handleSubmit
+  useEffect(() => {
+    if (!isOpen || !user) return;
+    supabase
+      .from('users')
+      .select('org_id')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setOrgId(data.org_id);
+      });
+  }, [isOpen, user]);
+
   if (!isOpen) return null;
 
   const validateEmail = (email: string): boolean => {
@@ -51,25 +67,14 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
   };
 
   const checkDuplicate = async () => {
-    if (!email || !validateEmail(email)) {
+    if (!email || !validateEmail(email) || !orgId) {
       return;
     }
-
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return;
-
-    const { data: userData } = await supabase
-      .from('users')
-      .select('org_id')
-      .eq('id', user.user.id)
-      .single();
-
-    if (!userData) return;
 
     const { data: existing } = await supabase
       .from('contacts')
       .select('id, first_name, last_name, company')
-      .eq('org_id', userData.org_id)
+      .eq('org_id', orgId)
       .eq('email', email.toLowerCase())
       .maybeSingle();
 
@@ -101,22 +106,13 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
   };
 
   const loadLists = async () => {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) return;
-
-    const { data: userData } = await supabase
-      .from('users')
-      .select('org_id')
-      .eq('id', user.user.id)
-      .single();
-
-    if (!userData) return;
+    if (!user || !orgId) return;
 
     const { data: listsData } = await supabase
       .from('lists')
       .select('id, name')
-      .eq('org_id', userData.org_id)
-      .or(`owner_id.eq.${user.user.id},and(is_shared.eq.true,org_id.eq.${userData.org_id})`)
+      .eq('org_id', orgId)
+      .or(`owner_id.eq.${user.id},and(is_shared.eq.true,org_id.eq.${orgId})`)
       .order('name');
 
     if (listsData) {
@@ -135,28 +131,14 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
       return;
     }
 
+    if (!user || !orgId) {
+      alert('Not authenticated');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        alert('Not authenticated');
-        setIsSubmitting(false);
-        return;
-      }
-
-      const { data: userData } = await supabase
-        .from('users')
-        .select('org_id')
-        .eq('id', user.user.id)
-        .single();
-
-      if (!userData) {
-        alert('User data not found');
-        setIsSubmitting(false);
-        return;
-      }
-
       // Build custom_fields object from key-value pairs
       const customFieldsObj: Record<string, string> = {};
       customFields.forEach((cf) => {
@@ -168,7 +150,7 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
       const { data: newContact, error } = await supabase
         .from('contacts')
         .insert({
-          org_id: userData.org_id,
+          org_id: orgId,
           first_name: firstName,
           last_name: lastName,
           email: email.toLowerCase(),
@@ -182,7 +164,7 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
           company_twitter: companyTwitter || null,
           source: 'manual',
           custom_fields: Object.keys(customFieldsObj).length > 0 ? customFieldsObj : null,
-          created_by: user.user.id,
+          created_by: user.id,
         })
         .select('id')
         .single();
@@ -254,6 +236,7 @@ export function AddContactModal({ isOpen, onClose, onSuccess }: AddContactModalP
     setLists([]);
     setIsSubmitting(false);
     setCreatedContactId(null);
+    setOrgId(null);
     onClose();
   };
 

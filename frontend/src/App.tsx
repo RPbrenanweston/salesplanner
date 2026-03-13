@@ -2,7 +2,7 @@
 // @crumb frontend-app-orchestrator
 // DOM | route_declaration | query_client_initialization | protected_route_enforcement | app_layout_composition
 // why: Root component — orchestrates complete React Router routing architecture, lazy-loaded page splits, and QueryClient initialization for the full SalesBlock.io app
-// in:React Router v6,TanStack QueryClient,ProtectedRoute,AppLayout,PageLoader,24 lazy-loaded page modules out:Fully routed SPA,public routes,protected routes behind AppLayout,OAuth callback routes err:Missing route for Arena.tsx and ContentLibrary.tsx — pages exist but not yet routed
+// in:React Router v6,TanStack QueryClient,ProtectedRoute,AppLayout,PageLoader,26 lazy-loaded page modules out:Fully routed SPA,public routes,protected routes behind AppLayout,OAuth callback routes
 // hazard: 24 routes hardcoded — no dynamic route registry; adding a new page requires both a lazy import AND a new Route entry here
 // hazard: React Query cache not persisted — QueryClient resets on full page reload; no localStorage or sessionStorage persistence configured
 // edge:frontend/src/components/ProtectedRoute.tsx -> RELATES
@@ -46,6 +46,8 @@ const SalesforceOAuthCallback = lazy(() => import('./pages/SalesforceOAuthCallba
 const PricingPage = lazy(() => import('./pages/PricingPage'))
 const MarketingPage = lazy(() => import('./pages/MarketingPage'))
 const Diagnostics = lazy(() => import('./pages/Diagnostics'))
+const Arena = lazy(() => import('./pages/Arena'))
+const ContentLibrary = lazy(() => import('./pages/ContentLibrary'))
 
 const queryClient = new QueryClient()
 
@@ -237,6 +239,26 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <EmailTemplates />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/arena"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Arena />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/content-library"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ContentLibrary />
                   </AppLayout>
                 </ProtectedRoute>
               }
