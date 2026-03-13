@@ -3,6 +3,7 @@
 // why: Outlook Calendar OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, close popup
 // in:window.location.search(code,state,error,error_description),Supabase session(JWT),exchange-microsoft-token edge function out:Outlook Calendar access/refresh tokens stored via edge function,popup closes on success err:OAuth error from Microsoft,missing code,CSRF nonce mismatch,edge function failure
 // hazard: StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+// hazard: Redirect URI mismatch — if VITE_OUTLOOK_CALENDAR_REDIRECT_URI not set, falls back to window.location.origin/oauth/outlook-calendar/callback, but Microsoft Azure app may be configured with different redirect URL
 // edge:frontend/src/components/OutlookCalendarOAuthButton.tsx -> RELATES
 // edge:supabase/functions/exchange-microsoft-token -> CALLS
 // edge:outlook-calendar-oauth#1 -> STEP_IN

@@ -2,6 +2,8 @@
 // UI/Auth/OAuth | processing_spinner | success_checkmark | error_display | close_button
 // why: Shared OAuth callback layout — renders processing/success/error states with VV design tokens
 // in:status,errorMessage,providerName out:JSX rendering processing/success/error states err:none
+// hazard: Auto-close not implemented (line says "close automatically" but no setTimeout) — users stuck in success state if this component used standalone
+// hazard: errorMessage displayed unescaped (line 86) — if error from API contains HTML/JS, could execute arbitrary code in popup
 // edge:frontend/src/pages/GmailOAuthCallback.tsx -> SERVES
 // edge:frontend/src/pages/GoogleCalendarOAuthCallback.tsx -> SERVES
 // edge:frontend/src/pages/OutlookOAuthCallback.tsx -> SERVES

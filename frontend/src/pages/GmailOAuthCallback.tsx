@@ -3,6 +3,7 @@
 // why: Gmail OAuth callback — receive authorization code from Google, exchange for tokens via edge function, close popup
 // in:window.location.search(code,state,error),Supabase session(JWT),exchange-google-token edge function out:Gmail access/refresh tokens stored via edge function,popup closes on success err:OAuth error from Google,missing code,CSRF nonce mismatch,edge function failure
 // hazard: StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+// hazard: Redirect URI mismatch — if VITE_GMAIL_REDIRECT_URI not set, falls back to window.location.origin/oauth/gmail/callback, but Google OAuth app may be configured with different redirect URL
 // edge:frontend/src/components/GmailOAuthButton.tsx -> RELATES
 // edge:supabase/functions/exchange-google-token -> CALLS
 // edge:gmail-oauth#1 -> STEP_IN

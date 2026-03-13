@@ -3,6 +3,7 @@
 // why: Outlook OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, close popup
 // in:window.location.search(code,state,error,error_description),Supabase session(JWT),exchange-microsoft-token edge function out:Outlook access/refresh tokens stored via edge function,popup closes on success err:OAuth error from Microsoft,missing code,CSRF nonce mismatch,edge function failure
 // hazard: StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+// hazard: Redirect URI mismatch — if VITE_OUTLOOK_REDIRECT_URI not set, falls back to window.location.origin/oauth/outlook/callback, but Microsoft Azure app config may expect different domain
 // edge:frontend/src/components/OutlookOAuthButton.tsx -> RELATES
 // edge:supabase/functions/exchange-microsoft-token -> CALLS
 // edge:outlook-oauth#1 -> STEP_IN

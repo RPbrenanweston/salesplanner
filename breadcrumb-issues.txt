@@ -1,0 +1,7 @@
+❌ frontend/src/hooks/useOAuthCallback.ts: Edge target not found: supabase/functions/exchange-oauth-token
+❌ frontend/src/hooks/useTheme.ts: Edge target not found: supabase:user_preferences
+❌ frontend/src/lib/salesforce.ts: Edge target not found: supabase/functions/sync-activities-to-salesforce
+❌ frontend/src/pages/OutlookCalendarOAuthCallback.tsx: Edge target not found: supabase/functions/exchange-microsoft-token
+❌ frontend/src/pages/GoogleCalendarOAuthCallback.tsx: Edge target not found: supabase/functions/exchange-google-token
+❌ frontend/src/pages/OutlookOAuthCallback.tsx: Edge target not found: supabase/functions/exchange-microsoft-token
+❌ frontend/src/pages/GmailOAuthCallback.tsx: Edge target not found: supabase/functions/exchange-google-token

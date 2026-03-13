@@ -3,6 +3,7 @@
 // why: Display competitive sales leaderboard ranking reps by calls, emails, deals moved, and total activity score
 // in:Supabase activities table(aggregated per user),useAuth,useNavigate out:leaderboard table sorted by total_activity,current user highlighted,loading skeleton err:Supabase query failure(network/auth),no stats returned(empty org activity)
 // hazard: void-700 missing from tailwind.config.js — rank colour fallback uses undefined colour class
+// hazard: N+1 query pattern (line 41-50) — fetches ALL activities client-side then aggregates with forEach instead of using SQL GROUP_BY; on 100k+ activities, timeouts and slow to load
 // edge:frontend/src/hooks/useAuth.ts -> CALLS
 // edge:frontend/src/lib/supabase.ts -> CALLS
 // edge:frontend/src/App.tsx -> RELATES

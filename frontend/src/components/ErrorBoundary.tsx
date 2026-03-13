@@ -5,7 +5,7 @@
 // hazard: Errors caught but only logged to console — no server-side error tracking or alerts, critical errors go unnoticed in production
 // hazard: Reload button causes full page reload, losing all unsaved state — users must rework recent changes after error
 // hazard: Error message displayed as-is from error.message — internal implementation details or stack traces leak to end users if error not sanitized
-// edge:frontend/src/App.tsx -> WRAPS
+// edge:frontend/src/App.tsx -> SERVES
 // prompt: Add Sentry or error tracking service to send caught errors to backend. Store error timestamp and user session ID for debugging. Sanitize error messages before display.
 import React from 'react'
 
