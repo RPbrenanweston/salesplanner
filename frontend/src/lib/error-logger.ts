@@ -1,12 +1,13 @@
 /** @id salesblock.lib.core.error-logger */
 
 /**
- * Centralized error logging with Sentry-ready hooks.
+ * Centralized error logging — routes to Sentry when initialized, console otherwise.
  *
- * All errors flow through here. To add Sentry/LogRocket:
- *   1. Install the SDK
- *   2. Call Sentry.captureException(err) in the TODO block below
+ * Sentry init lives in main.tsx (gated on VITE_SENTRY_DSN).
+ * getClient() returns undefined when Sentry is not initialized, so no-ops cleanly without a DSN.
  */
+
+import * as Sentry from '@sentry/react'
 
 export function logError(error: unknown, context: string): void {
   const message = error instanceof Error ? error.message : String(error)
@@ -14,12 +15,12 @@ export function logError(error: unknown, context: string): void {
 
   console.error(`[${context}]`, message, stack ?? '')
 
-  // TODO: Integrate Sentry/LogRocket when configured
-  // if (typeof window !== 'undefined' && window.__SENTRY__) {
-  //   Sentry.captureException(error instanceof Error ? error : new Error(message), {
-  //     tags: { context },
-  //   })
-  // }
+  // Forward to Sentry when initialized — no-ops without VITE_SENTRY_DSN
+  if (Sentry.getClient()) {
+    Sentry.captureException(error instanceof Error ? error : new Error(message), {
+      tags: { context },
+    })
+  }
 }
 
 export function logWarning(message: string, context: string, data?: unknown): void {
