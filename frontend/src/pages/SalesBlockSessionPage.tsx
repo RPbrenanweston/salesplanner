@@ -21,6 +21,7 @@ import {
   ChevronUp,
   Home,
   Calendar,
+  Linkedin,
 } from 'lucide-react'
 import ComposeEmailModal from '../components/ComposeEmailModal'
 import BookMeetingModal from '../components/BookMeetingModal'
@@ -43,6 +44,7 @@ interface SessionContact {
   company: string | null
   title: string | null
   notes: string | null
+  linkedin_url: string | null
   hasActivity?: boolean
 }
 
@@ -251,7 +253,7 @@ export default function SalesBlockSessionPage() {
         // Fetch contact details
         const { data: contactsData, error: contactsError } = await supabase
           .from('contacts')
-          .select('id, first_name, last_name, email, phone, company, title, notes')
+          .select('id, first_name, last_name, email, phone, company, title, notes, linkedin_url')
           .in('id', contactIds)
 
         if (contactsError) throw contactsError
@@ -772,6 +774,17 @@ export default function SalesBlockSessionPage() {
                   <Mail className="w-4 h-4" />
                   {activeContact.email}
                 </a>
+                {activeContact.linkedin_url && (
+                  <a
+                    href={activeContact.linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
+                  >
+                    <Linkedin className="w-4 h-4" />
+                    LinkedIn
+                  </a>
+                )}
               </div>
 
               {/* Contact notes */}
