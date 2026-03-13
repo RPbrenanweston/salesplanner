@@ -1,3 +1,21 @@
+// @crumb frontend-component-app-layout
+// CORE | layout | navigation | authentication | theming | user_profile | org_branding
+// why: Main application layout container providing authenticated user interface with persistent navigation state, theme management, user profile display, and organization branding across all features
+// in:children:ReactNode out:authenticated app shell with sidebar nav and main content area err:useAuth null user,userProfile fetch failed,orgLogoUrl fetch failed,updateUserPreferences failed
+// hazard: Theme state persists via setTheme/localStorage but lacks cross-tab sync — user changes theme in tab A, tab B still shows old theme until refresh
+// hazard: useAuth returns null user during initial hydration, component renders user.email without guard, may briefly show "undefined" in user section
+// hazard: Sidebar collapse state update fires updateUserPreferences async but doesn't wait/handle failure — network error silently reverts state on next session
+// hazard: Organization logo missing case renders fallback "SalesBlock.io" text but doesn't signal whether org lacks logo or fetch failed — UI ambiguous
+// hazard: navItems static array is not role-aware — admin users see identical nav as basic users, no role-based feature gating
+// edge:frontend/src/hooks/useAuth.ts -> READS
+// edge:frontend/src/hooks/useTheme.ts -> READS
+// edge:frontend/src/hooks/index.ts -> READS useUserProfile,useOrganizationLogo
+// edge:frontend/src/lib/queries/userQueries.ts -> CALLS updateUserPreferences
+// edge:frontend/src/lib/routes.ts -> READS ROUTES
+// edge:frontend/src/components/TrialExpiryBanner.tsx -> RELATES
+// prompt: Add loading skeleton for profile before rendering. Guard all user property access with optional chaining (user?.email). Toast error on updateUserPreferences failure. Consider role-based nav filtering — fetch user role from profile, filter navItems per role. Add visual indicator (tooltip) when org logo fails to load vs. deliberately omitted.
+
+/** @crumbfn AppLayout | Main authenticated app shell with theme and nav | Cross-tab theme sync, profile null guard, role-based nav +L54-L211 */
 import { useState, useEffect, ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
