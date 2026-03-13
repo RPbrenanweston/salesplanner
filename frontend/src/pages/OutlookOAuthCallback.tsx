@@ -1,17 +1,12 @@
-/**
- * @crumb
- * @id frontend-page-outlook-oauth-callback
- * @area UI/Auth/OAuth
- * @intent Outlook OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, close popup
- * @responsibilities Parse code/state/error/error_description from URL params on mount, validate CSRF nonce, exchange code for tokens via Supabase edge function, close popup
- * @contracts OutlookOAuthCallback() → JSX; reads window.location.search for OAuth params; calls exchange-microsoft-token edge function; uses useNavigate
- * @in window.location.search (code, state, error, error_description params), Supabase session (JWT), exchange-microsoft-token edge function
- * @out Outlook access/refresh tokens stored via edge function; popup closes on success; error state displayed on failure
- * @err OAuth error param from Microsoft (error + error_description displayed); missing code; CSRF nonce mismatch; edge function failure
- * @hazard StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
- * @shared-edges frontend/src/components/OutlookOAuthButton.tsx→INITIATES OAuth flow; supabase/functions/exchange-microsoft-token→EXCHANGES code for tokens
- * @trail outlook-oauth#1 | OutlookOAuthButton redirects to Microsoft → Microsoft redirects to callback → parse params → validate CSRF → exchange code via edge function → popup closes
- */
+// @crumb frontend-page-outlook-oauth-callback
+// UI/AUTH/OAUTH | parse_oauth_params | validate_csrf_nonce | exchange_tokens | close_popup
+// why: Outlook OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, close popup
+// in:window.location.search(code,state,error,error_description),Supabase session(JWT),exchange-microsoft-token edge function out:Outlook access/refresh tokens stored via edge function,popup closes on success err:OAuth error from Microsoft,missing code,CSRF nonce mismatch,edge function failure
+// hazard: StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+// edge:frontend/src/components/OutlookOAuthButton.tsx -> RELATES
+// edge:supabase/functions/exchange-microsoft-token -> CALLS
+// edge:outlook-oauth#1 -> STEP_IN
+// prompt: Test CSRF nonce round-trip. Verify Mail.Send + Mail.ReadBasic scopes present. Confirm popup closes and parent SettingsPage detects connected state. Check token storage differentiates mail vs calendar.
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'

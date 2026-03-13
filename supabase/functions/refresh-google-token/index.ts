@@ -1,3 +1,13 @@
+// @crumb edge-refresh-google-token
+// Auth/OAuth | access_token_refresh | expiry_check | token_persistence
+// why: Refresh expired Google OAuth access tokens using stored refresh token — called by frontend token-refresh lib before Calendar/Gmail API calls
+// in:POST body (user_id,provider:'gmail'|'google_calendar'),env vars (GMAIL_CLIENT_ID,GMAIL_CLIENT_SECRET,GOOGLE_CALENDAR_CLIENT_ID,GOOGLE_CALENDAR_CLIENT_SECRET,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY) out:JSON {access_token:string,expires_at:number} on success; JSON {error:string} on failure; updates oauth_connections with new access_token and expires_at err:Missing refresh_token (invalid_grant) -> 401; Google refresh endpoint failure -> 502; DB update failure -> 500
+// hazard: invalid_grant error means the refresh_token is revoked — caller must handle reconnect flow (redirect to OAuth button in SettingsPage)
+// hazard: No lock on concurrent refresh calls — two requests in-flight simultaneously both refresh and overwrite each other's new token
+// edge:frontend/src/lib/token-refresh.ts -> SERVES
+// edge:supabase/functions/exchange-google-token/index.ts -> RELATES
+// edge:google-token-refresh#1 -> STEP_IN
+// prompt: Add idempotency guard: check if existing token still valid before calling Google refresh endpoint. Handle invalid_grant by marking connection as disconnected. Add rate limit protection against rapid refresh calls.
 /**
  * Refresh a Google OAuth access token using the stored refresh_token.
  * Handles both Gmail and Google Calendar providers.

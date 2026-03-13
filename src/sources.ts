@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id backend-sources-registry
- * @area DAT
- * @intent Source registry and validation — define approved/secondary/disallowed source tiers for engineer discovery, enforce citation quality by blocking paid databases and inference tools
- * @responsibilities Export SourceRegistry constant (primary/secondary/disallowed lists), export isApprovedSource(url) validator, export getSourceTier(url) classifier, export validateCitationUrl(url) enforcer
- * @contracts isApprovedSource(url: string) → bool; getSourceTier(url: string) → SourceTier | null; validateCitationUrl(url: string) → ValidationResult
- * @in Citation URLs from discovery and validation pipeline
- * @out Boolean approval status; SourceTier classification; ValidationResult with tier and rejection reason
- * @err No I/O — pure in-memory validation; no exceptions thrown
- * @hazard Disallowed list relies on domain-prefix matching — a disallowed domain hosted on a subdomain of an approved domain (e.g., linkedin.internal.github.com) would be incorrectly approved
- * @hazard Source tiers are hardcoded — new platforms (e.g., Bluesky, Sourcegraph) require manual code changes; no runtime configuration path
- * @shared-edges src/validation.ts→CALLS isApprovedSource per citation URL; src/enforcement.ts→CALLS getSourceTier to enforce quality gates; src/discovery.ts→GENERATES urls validated here
- * @trail sources#1 | discovery returns candidate with citations → validation calls isApprovedSource per citation URL → disallowed citations cause signal to be dropped → enforcement re-checks tiers at quality gate
- * @prompt Add runtime-configurable source allowlist. Consider domain allowlist stored in GatingConfig so operators can add org-specific internal platforms. Add URL liveness check (HEAD request) at validation time.
- */
+// @crumb backend-sources-registry
+// DAT | source_registry_export | source_approval_validation | source_tier_classification | citation_url_enforcement
+// why: Source registry and validation — define approved/secondary/disallowed source tiers for engineer discovery, enforce citation quality by blocking paid databases and inference tools
+// in:Citation URLs from discovery and validation pipeline out:Boolean approval status; SourceTier classification; ValidationResult with tier and rejection reason err:No I/O — pure in-memory validation; no exceptions thrown
+// hazard: Disallowed list relies on domain-prefix matching — a disallowed domain on a subdomain of an approved domain would be incorrectly approved
+// hazard: Source tiers are hardcoded — new platforms require manual code changes; no runtime configuration path
+// edge:src/validation.ts -> CALLS
+// edge:src/enforcement.ts -> CALLS
+// edge:src/discovery.ts -> RELATES
+// edge:sources#1 -> STEP_IN
+// prompt: Add runtime-configurable source allowlist. Consider domain allowlist stored in GatingConfig so operators can add org-specific internal platforms. Add URL liveness check (HEAD request) at validation time.
 
 /**
  * Data Source Registry and Validation

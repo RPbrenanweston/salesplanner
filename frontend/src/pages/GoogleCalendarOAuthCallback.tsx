@@ -1,17 +1,12 @@
-/**
- * @crumb
- * @id frontend-page-google-calendar-oauth-callback
- * @area UI/Auth/OAuth
- * @intent Google Calendar OAuth callback — receive authorization code from Google, exchange for tokens via edge function, close popup
- * @responsibilities Parse code/state/error from URL params on mount, validate CSRF nonce, exchange code for tokens via Supabase edge function, close popup
- * @contracts GoogleCalendarOAuthCallback() → JSX; reads window.location.search for OAuth params; calls exchange-google-token edge function; uses useNavigate
- * @in window.location.search (code, state, error params), Supabase session (JWT), exchange-google-token edge function
- * @out Google Calendar access/refresh tokens stored via edge function; popup closes on success; error state displayed on failure
- * @err OAuth error param from Google (error displayed); missing code; CSRF nonce mismatch; edge function failure
- * @hazard StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
- * @shared-edges frontend/src/components/GoogleCalendarOAuthButton.tsx→INITIATES OAuth flow; supabase/functions/exchange-google-token→EXCHANGES code for tokens
- * @trail google-calendar-oauth#1 | GoogleCalendarOAuthButton redirects to Google → Google redirects to callback → parse params → validate CSRF → exchange code via edge function → popup closes
- */
+// @crumb frontend-page-google-calendar-oauth-callback
+// UI/AUTH/OAUTH | parse_oauth_params | validate_csrf_nonce | exchange_tokens | close_popup
+// why: Google Calendar OAuth callback — receive authorization code from Google, exchange for tokens via edge function, close popup
+// in:window.location.search(code,state,error),Supabase session(JWT),exchange-google-token edge function out:Google Calendar access/refresh tokens stored via edge function,popup closes on success err:OAuth error from Google,missing code,CSRF nonce mismatch,edge function failure
+// hazard: StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+// edge:frontend/src/components/GoogleCalendarOAuthButton.tsx -> RELATES
+// edge:supabase/functions/exchange-google-token -> CALLS
+// edge:google-calendar-oauth#1 -> STEP_IN
+// prompt: Test CSRF nonce round-trip. Verify calendar scopes differ from Gmail scopes (calendar.events vs gmail.readonly). Confirm popup closes correctly on both success and error.
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'

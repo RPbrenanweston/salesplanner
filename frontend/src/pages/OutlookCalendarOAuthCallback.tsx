@@ -1,17 +1,12 @@
-/**
- * @crumb
- * @id frontend-page-outlook-calendar-oauth-callback
- * @area UI/Auth/OAuth
- * @intent Outlook Calendar OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, close popup
- * @responsibilities Parse code/state/error/error_description from URL params on mount, validate CSRF nonce, exchange code for tokens via Supabase edge function, close popup
- * @contracts OutlookCalendarOAuthCallback() → JSX; reads window.location.search for OAuth params; calls exchange-microsoft-token edge function; uses useNavigate
- * @in window.location.search (code, state, error, error_description params), Supabase session (JWT), exchange-microsoft-token edge function
- * @out Outlook Calendar access/refresh tokens stored via edge function; popup closes on success; error state displayed on failure
- * @err OAuth error param from Microsoft (error + error_description displayed); missing code; CSRF nonce mismatch; edge function failure
- * @hazard StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
- * @shared-edges frontend/src/components/OutlookCalendarOAuthButton.tsx→INITIATES OAuth flow; supabase/functions/exchange-microsoft-token→EXCHANGES code for tokens
- * @trail outlook-calendar-oauth#1 | OutlookCalendarOAuthButton redirects to Microsoft → Microsoft redirects to callback → parse params → validate CSRF → exchange code via edge function → popup closes
- */
+// @crumb frontend-page-outlook-calendar-oauth-callback
+// UI/AUTH/OAUTH | parse_oauth_params | validate_csrf_nonce | exchange_tokens | close_popup
+// why: Outlook Calendar OAuth callback — receive authorization code from Microsoft, exchange for tokens via edge function, close popup
+// in:window.location.search(code,state,error,error_description),Supabase session(JWT),exchange-microsoft-token edge function out:Outlook Calendar access/refresh tokens stored via edge function,popup closes on success err:OAuth error from Microsoft,missing code,CSRF nonce mismatch,edge function failure
+// hazard: StrictMode double-invoke guarded with useRef flag — OAuth codes are single-use
+// edge:frontend/src/components/OutlookCalendarOAuthButton.tsx -> RELATES
+// edge:supabase/functions/exchange-microsoft-token -> CALLS
+// edge:outlook-calendar-oauth#1 -> STEP_IN
+// prompt: Test CSRF nonce round-trip. Verify Calendar.ReadWrite scope is present. Confirm popup close fires correctly. Check token storage differentiates calendar vs mail connection.
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'

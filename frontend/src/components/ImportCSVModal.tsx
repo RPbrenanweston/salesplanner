@@ -1,19 +1,13 @@
-/**
- * @crumb
- * @id frontend-component-import-csv-modal
- * @area UI/Contacts/Import
- * @intent CSV import modal — upload a CSV file of contacts, map columns to contact fields, validate rows, bulk-insert into contacts table, and ALWAYS assign to a list (no orphaned contacts)
- * @responsibilities Parse CSV via Web Worker, render column mapping UI, validate required columns, handle duplicate strategy (skip/update/create), batch-insert mapped rows to Supabase contacts, create new list or assign to existing list via list_contacts junction table (auto-creates fallback list if none selected), capture per-row error details (row number, email, reason), show success/error summary with scrollable error detail panel
- * @contracts ImportCSVModal({ isOpen, onClose, onImportComplete }) → JSX; uses Web Worker for CSV parsing; calls supabase.from('contacts').insert (per-row with duplicate check); calls supabase.from('lists').insert (on new list); calls supabase.from('list_contacts').insert (batch); requires org_id from auth context
- * @in CSV file (user upload), Web Worker parse result, supabase contacts+lists+list_contacts tables, useAuth (user), onClose callback, onImportComplete callback
- * @out Contact rows inserted/updated in contacts table; optional list created in lists table; contact-list associations in list_contacts; onImportComplete called on success; import summary (imported/skipped/errors) displayed
- * @err CSV parse error (Web Worker error displayed); missing required email column (row skipped with detail captured); Supabase insert/update failure (per-row error detail captured: row, email, reason); list creation failure (import aborted with error); list assignment batch failure (error count incremented); all errors displayed in scrollable table on completion
- * @hazard Per-row duplicate check issues individual SELECT+INSERT/UPDATE queries — N queries for N rows; large imports (5000+) will be slow
- * @hazard list_contacts batch insert does not use ON CONFLICT — if contacts already exist in the target list, duplicate junction rows may be created
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES contacts+lists+list_contacts; parent page (Contacts or Lists)→RENDERS modal; onImportComplete callback→REFRESHES contact list; frontend/src/workers/parse-csv.worker.ts→PARSES CSV file
- * @trail csv-import#1 | User clicks "Import CSV" → ImportCSVModal renders → user selects file → Web Worker parses → column mapping UI → preview with list mode selection (default: new / existing / none-with-auto-fallback) → import: ALWAYS create or select list → per-row insert/update with error detail capture → batch list assignment → complete summary with list name and scrollable error table
- * @prompt Add batch insert for contacts (chunk 500). Add ON CONFLICT to list_contacts insert to prevent duplicate junction rows. Consider streaming progress updates during import.
- */
+// @crumb frontend-component-import-csv-modal
+// UI/Contacts/Import | csv_parsing | column_mapping | duplicate_strategy | batch_insert | list_assignment | error_detail_capture
+// why: CSV import modal — upload a CSV file of contacts, map columns to contact fields, validate rows, bulk-insert into contacts table, and ALWAYS assign to a list
+// in:CSV file (user upload),Web Worker parse result,supabase contacts+lists+list_contacts tables,useAuth out:Contact rows inserted/updated,list created/assigned,onImportComplete called,import summary displayed err:CSV parse error,missing email column (row skipped),per-row insert failure (detail captured),list creation failure (aborted),list assignment batch failure
+// hazard: Per-row duplicate check issues individual SELECT+INSERT/UPDATE — N queries for N rows, large imports (5000+) will be slow
+// hazard: list_contacts batch insert lacks ON CONFLICT — duplicate junction rows may be created
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/workers/parse-csv.worker.ts -> CALLS
+// edge:csv-import#1 -> STEP_IN
+// prompt: Add batch insert for contacts (chunk 500). Add ON CONFLICT to list_contacts insert. Consider streaming progress updates during import.
 import { useState, useEffect, useRef } from 'react';
 import { X, Upload, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';

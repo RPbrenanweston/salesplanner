@@ -1,20 +1,14 @@
-/**
- * @crumb
- * @id frontend-salesforce-api-client
- * @area INF
- * @intent Bridge Salesforce REST API for record discovery, contact mapping, and activity sync tracking
- * @responsibilities SOQL querying, record transformation to SalesBlock schema, OAuth connection management, auto-push validation, activity sync flagging
- * @contracts querySalesforceRecords(options: SalesforceQueryOptions) → Promise<SalesforceRecord[]>; getSalesforceUserId() → Promise<string>; mapSalesforceToContact(record: SalesforceRecord) → Contact; getSalesforceConnection() → Promise<SalesforceConnection>; isSalesforceAutoPushEnabled() → Promise<boolean>; markActivityForSync(sfRecordId: string) → Promise<void>
- * @in OAuth tokens (via getSalesforceConnection), SOQL query options, Salesforce record objects
- * @out SalesBlock Contact schema, query results, auto-push status, activity sync flags
- * @err SupabaseError on token fetch failure, Salesforce API errors on SOQL execution, missing OAuth connection
- * @hazard SOQL injection risk if objectType or field names not validated (objectType not yet guarded); markActivityForSync is fire-and-forget with no retry/error tracking
- * @fixed ownerId validated against Salesforce 15/18-char alphanumeric format before SOQL interpolation — prevents SOQL injection via ownerId parameter (2026-03-08)
- * @hazard OAuth token refresh not automated—expired token returns 401 but no handler to proactively refresh
- * @shared-edges frontend/src/lib/supabase.ts→USES for auth and DB access; frontend/src/hooks/useAuth.ts→CALLS for user context; supabase/functions/sync-activities-to-salesforce→CONSUMES marked records
- * @trail salesforce-sync#1 | Salesforce records queried → mapped to SalesBlock contact schema → activity updates flagged for async sync
- * @prompt When adding new SOQL queries, escape user-controlled inputs (objectType comes from caller). Consider token refresh wrapper around API calls (currently missing). Add retry logic to markActivityForSync after network errors.
- */
+// @crumb frontend-salesforce-api-client
+// INF | soql_querying | record_transformation | oauth_connection_management | auto_push_validation | activity_sync_flagging
+// why: Bridge Salesforce REST API for record discovery, contact mapping, and activity sync tracking
+// in:OAuth tokens,SOQL query options,Salesforce record objects out:SalesBlock Contact schema,query results,auto-push status,activity sync flags err:SupabaseError on token fetch failure;Salesforce API errors on SOQL execution;missing OAuth connection
+// hazard: SOQL injection risk if objectType or field names not validated (objectType not yet guarded); markActivityForSync is fire-and-forget with no retry/error tracking
+// hazard: OAuth token refresh not automated — expired token returns 401 but no handler to proactively refresh
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:supabase/functions/sync-activities-to-salesforce -> READS
+// edge:salesforce-sync#1 -> STEP_IN
+// prompt: When adding new SOQL queries, escape user-controlled inputs (objectType comes from caller). Consider token refresh wrapper around API calls (currently missing). Add retry logic to markActivityForSync after network errors.
 
 import { supabase } from './supabase';
 

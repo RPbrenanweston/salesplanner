@@ -1,0 +1,756 @@
+{
+  "project": "SalesBlock.io — Pre-Launch Fixes",
+  "branchName": "ralph/prelaunch-fixes",
+  "description": "Comprehensive pre-launch PRD: security fixes, data-integrity, functionality, launch-critical features, and core UX improvements. P1=security/data-loss, P2=functionality-breaks, P3=core UX features, P4=deferrable polish.",
+  "userStories": [
+    {
+      "id": "FIX-001",
+      "title": "Sanitize RichTextEditor HTML output to prevent XSS",
+      "description": "As a user, I need HTML content stored and rendered by the app to be safe so malicious scripts in script/template bodies cannot execute in the browser.",
+      "acceptanceCriteria": [
+        "DOMPurify (or equivalent) sanitizes HTML in RichTextEditor.tsx before calling onChange",
+        "ScriptModal.tsx sanitizes content before Supabase insert",
+        "TemplateModal.tsx sanitizes body before Supabase insert",
+        "Pasted content with <script> tags is stripped on input",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/components/RichTextEditor.tsx — onChange outputs raw HTML, dangerouslySetInnerHTML enables XSS. Also affects ScriptModal.tsx and TemplateModal.tsx."
+    },
+    {
+      "id": "FIX-002",
+      "title": "Add CSRF nonce to all OAuth state params",
+      "description": "As a user, I need OAuth flows to be protected against state forgery so an attacker cannot complete OAuth on my behalf.",
+      "acceptanceCriteria": [
+        "GmailOAuthButton.tsx adds lib/oauth-csrf.ts nonce to state param before redirect",
+        "GoogleCalendarOAuthButton.tsx adds nonce to state param",
+        "SalesforceOAuthButton.tsx adds nonce to state param",
+        "OutlookOAuthButton.tsx adds nonce to state param",
+        "OutlookCalendarOAuthButton.tsx adds nonce to state param",
+        "Each callback page validates nonce via validateOAuthState before proceeding",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb hazard: GmailOAuthButton.tsx — state param contains user_id without CSRF nonce; GoogleCalendarOAuthButton.tsx, SalesforceOAuthButton.tsx, OutlookOAuthButton.tsx, OutlookCalendarOAuthButton.tsx — same pattern."
+    },
+    {
+      "id": "FIX-003",
+      "title": "Add ProtectedRoute guard to Diagnostics page",
+      "description": "As an operator, I need the Diagnostics page to be authentication-gated so unauthenticated users cannot access internal DB state.",
+      "acceptanceCriteria": [
+        "Diagnostics.tsx route in App.tsx is wrapped in ProtectedRoute",
+        "Diagnostics page renders a read-only mode by default (SELECT-only queries, no writes)",
+        "Admin-write mode requires an explicit ?admin=true query param AND authenticated session",
+        "Direct URL access while unauthenticated redirects to /signin",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/pages/Diagnostics.tsx — no auth guard, direct URL exposes internal DB state; each test fires real Supabase writes in production."
+    },
+    {
+      "id": "FIX-004",
+      "title": "Fix SignUp to rollback on org/user insert failure",
+      "description": "As a new user, I need sign-up to either fully succeed or fully fail so I never end up authenticated with a broken account state.",
+      "acceptanceCriteria": [
+        "SignUp.tsx catches org/user insert failure after successful auth.signUp",
+        "On insert failure: calls supabase.auth.signOut() and displays error message",
+        "User is not left in authenticated-but-broken state",
+        "Invitation_id fetched only when search param present; expired invitations show clear error",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/pages/SignUp.tsx — if signUp succeeds but org/user insert fails, user lands in authenticated-but-broken state with no recovery path."
+    },
+    {
+      "id": "FIX-005",
+      "title": "Add missing routes for Arena and ContentLibrary pages",
+      "description": "As a user, I need Arena and ContentLibrary to be reachable via navigation so pages that exist in the codebase are actually accessible.",
+      "acceptanceCriteria": [
+        "App.tsx includes lazy import for Arena.tsx at /arena",
+        "App.tsx includes lazy import for ContentLibrary.tsx at /content-library",
+        "Both routes are wrapped in ProtectedRoute",
+        "Both routes are added to the AppLayout nav so they appear in sidebar",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/App.tsx — Add routes for /arena and /content-library; these pages exist as .tsx files but have no Route entries."
+    },
+    {
+      "id": "FIX-006",
+      "title": "Add root ErrorBoundary, Sentry error tracking, and per-OAuth error boundaries",
+      "description": "As a user, I need render errors to show a recoverable error screen rather than a blank white page so I understand what went wrong.",
+      "acceptanceCriteria": [
+        "main.tsx wraps <App /> in a root ErrorBoundary component that renders a user-visible error message",
+        "SettingsPage.tsx wraps each of the 5 OAuth integration buttons in its own ErrorBoundary",
+        "Single OAuth button throw no longer crashes the entire integrations tab",
+        "ErrorBoundary displays fallback UI with a reload CTA",
+        "Typecheck passes",
+        "Sentry DSN configured via VITE_SENTRY_DSN env var",
+        "Unhandled errors captured in Sentry with user context"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/main.tsx — no root ErrorBoundary causes blank white screen; frontend/src/pages/SettingsPage.tsx — single OAuth throw crashes entire integrations tab. | FEAT-002 merged here — install @sentry/react in main.tsx alongside ErrorBoundary"
+    },
+    {
+      "id": "FIX-007",
+      "title": "Fix AddContactModal to pass org_id from auth context",
+      "description": "As a rep, I need contacts I create to always be linked to my org so contacts are not created without org association.",
+      "acceptanceCriteria": [
+        "AddContactModal.tsx reads org_id from useAuth() hook",
+        "Contact insert payload includes org_id field",
+        "If org_id is null, insert is blocked and user sees an error",
+        "Existing contacts with null org_id are NOT modified (migration out of scope)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/components/AddContactModal.tsx — contact insert does not link to org_id from session; contacts may be created without org association."
+    },
+    {
+      "id": "FIX-008",
+      "title": "Add ON CONFLICT handling to ImportCSVModal list_contacts insert",
+      "description": "As a rep, I need CSV import to handle duplicates gracefully so re-importing a list does not create duplicate junction rows.",
+      "acceptanceCriteria": [
+        "ImportCSVModal.tsx list_contacts batch insert uses ON CONFLICT DO NOTHING",
+        "Per-row contact upsert is batched (max 500 rows per chunk) not N individual queries",
+        "Import summary correctly reports inserted vs skipped counts",
+        "Import of 5000+ contacts completes without timeout",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/components/ImportCSVModal.tsx — list_contacts batch insert lacks ON CONFLICT; per-row duplicate check is N queries for N rows."
+    },
+    {
+      "id": "FIX-009",
+      "title": "Fix Pipeline drag StrictMode double-fire and add optimistic rollback",
+      "description": "As a rep, I need drag-and-drop deal stage updates to be reliable so a failed DB update does not silently desync the board.",
+      "acceptanceCriteria": [
+        "Pipeline.tsx onDragEnd handler is idempotent (no duplicate stage updates in StrictMode)",
+        "Failed Supabase stage update reverts deal card to original column",
+        "User sees an error toast on stage update failure",
+        "No console errors related to @hello-pangea/dnd in StrictMode",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/pages/Pipeline.tsx — @hello-pangea/dnd StrictMode double-invocation; no optimistic rollback on failed stage update."
+    },
+    {
+      "id": "FIX-010",
+      "title": "Add calendar pre-check and failure feedback to BookMeetingModal",
+      "description": "As a rep, I need BookMeetingModal to verify a calendar is connected before booking so I always know whether a calendar event was actually created.",
+      "acceptanceCriteria": [
+        "BookMeetingModal.tsx checks getCalendarConnection() before rendering the time slot form",
+        "If no calendar connected, renders CTA to connect calendar in Settings (not blank form)",
+        "If createCalendarEvent fails after form submit, user sees explicit error (not silent success)",
+        "Activity log entry is still created even if calendar event creation fails",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/components/BookMeetingModal.tsx — createCalendarEvent silently fails if no calendar connected; user thinks meeting booked but no event exists."
+    },
+    {
+      "id": "FIX-011",
+      "title": "Fix ContactDetailPage null back navigation",
+      "description": "As a rep, I need the back button on a contact detail page to always navigate to a valid route so direct URL navigation does not break the back button.",
+      "acceptanceCriteria": [
+        "ContactDetailPage.tsx back navigation uses location.state?.from ?? '/lists' as fallback",
+        "Direct URL navigation to /contacts/:id no longer breaks the back button",
+        "Inline field save failure shows error toast (not silent failure)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/pages/ContactDetailPage.tsx — useLocation back navigation depends on location.state.from; if navigated directly, state is null."
+    },
+    {
+      "id": "FIX-012",
+      "title": "Add idempotency guards to Stripe webhook edge function",
+      "description": "As an operator, I need Stripe webhook processing to be idempotent so duplicate webhook deliveries do not create duplicate subscription state.",
+      "acceptanceCriteria": [
+        "handle-stripe-webhook/index.ts tracks processed event IDs in a Supabase table or Stripe idempotency key",
+        "Duplicate event_id returns 200 without reprocessing",
+        "Missing org_id or user_id in metadata returns 400 with log entry (not silent failure)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazard: supabase/functions/handle-stripe-webhook/index.ts — no idempotency guard; duplicate webhook fires create duplicate state updates; missing org_id silently breaks."
+    },
+    {
+      "id": "FIX-013",
+      "title": "Add idempotency guards to Salesforce sync and email reply tracker",
+      "description": "As an operator, I need activity sync jobs to be idempotent so duplicate webhook fires do not create duplicate Salesforce Tasks or reply records.",
+      "acceptanceCriteria": [
+        "sync-activities-to-salesforce/index.ts adds idempotency guard (check existing Task ID before insert)",
+        "track-email-replies/index.ts adds idempotency guard (skip activity if replied_at already set)",
+        "One contact failure in Salesforce sync does not retry entire batch",
+        "Token expiration check added before Salesforce API calls",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazards: sync-activities-to-salesforce — no idempotency, no partial failure recovery, token not checked; track-email-replies — same patterns."
+    },
+    {
+      "id": "FIX-014",
+      "title": "Add team invitation transactional rollback on email failure",
+      "description": "As a manager, I need team invitation to either send successfully or clean up its database row so failed invitations can be resent.",
+      "acceptanceCriteria": [
+        "send-team-invitation/index.ts deletes the invitation row if Resend/SMTP email send fails",
+        "Frontend caller receives clear error and can retry",
+        "Invitation expiry is enforced server-side at acceptance time (e.g., 7 days)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazard: supabase/functions/send-team-invitation/index.ts — email failure leaves invitation row in pending state with no email sent; stale links remain valid indefinitely."
+    },
+    {
+      "id": "FIX-015",
+      "title": "Add concurrent refresh lock for Google and Microsoft token refresh",
+      "description": "As a user, I need token refresh to handle concurrent calls safely so two in-flight refresh requests do not overwrite each other's tokens.",
+      "acceptanceCriteria": [
+        "refresh-google-token/index.ts adds optimistic lock (check token valid before calling Google endpoint)",
+        "refresh-microsoft-token/index.ts mirrors same lock pattern",
+        "invalid_grant from either provider marks oauth_connections row as disconnected",
+        "Frontend token-refresh.ts adds one retry on transient network failure before returning null",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazards: refresh-google-token — no lock on concurrent refresh calls; refresh-microsoft-token — same; token-refresh.ts — no retry on transient failures."
+    },
+    {
+      "id": "FIX-016",
+      "title": "Add Salesforce connection pre-check to activity log modals and SOQL guard",
+      "description": "As a rep, I need Salesforce sync in activity modals to fail gracefully so a disconnected integration does not silently error on every activity log.",
+      "acceptanceCriteria": [
+        "LogActivityModal.tsx calls getSalesforceConnection() before markActivityForSync; skips sync and shows warning if not connected",
+        "LogSocialActivityModal.tsx applies same pre-check",
+        "salesforce.ts objectType parameter is validated against an allowlist before use in SOQL query",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazards: LogActivityModal, LogSocialActivityModal — markActivityForSync without connection check; salesforce.ts — SOQL injection on unguarded objectType."
+    },
+    {
+      "id": "FIX-017",
+      "title": "Add delete confirmations for SalesBlocks, Scripts, Goals, and EmailTemplates",
+      "description": "As a rep, I need destructive delete actions to require confirmation so accidental clicks do not permanently destroy sessions or content.",
+      "acceptanceCriteria": [
+        "SalesBlocks.tsx shows confirmation modal before deleting a SalesBlock",
+        "Scripts.tsx shows confirmation dialog before deleting a script",
+        "Goals.tsx shows confirmation dialog before deleting a goal",
+        "EmailTemplates.tsx shows confirmation dialog before deleting a template",
+        "ListDetailPage.tsx replaces browser confirm() with modal matching bulk delete pattern",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Breadcrumb hazards: SalesBlocks.tsx — delete fires immediately; Scripts.tsx — no confirmation; Goals.tsx — single click permanently removes goal; ListDetailPage.tsx — uses browser confirm()."
+    },
+    {
+      "id": "FIX-018",
+      "title": "Fix useTheme listener cleanup and write failure feedback",
+      "description": "As a user, I need theme preference to persist correctly so a failed Supabase write is visible and stale event listeners don't accumulate.",
+      "acceptanceCriteria": [
+        "useTheme.ts useEffect returns cleanup that removes the matchMedia change listener",
+        "If Supabase write fails, theme preference reverts to previous value (not silent divergence)",
+        "User sees a toast warning if theme preference could not be saved",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb hazards: frontend/src/hooks/useTheme.ts — system theme listener not cleaned up on unmount; write fails silently while UI shows new theme."
+    },
+    {
+      "id": "FIX-019",
+      "title": "Fix Arena void-700 missing Tailwind colour class",
+      "description": "As a user, I need the Arena leaderboard to render correctly so rank colours display properly without falling back to undefined CSS.",
+      "acceptanceCriteria": [
+        "tailwind.config.js includes void-700 in the theme color palette",
+        "Arena.tsx rank colour renders the correct VV design token colour",
+        "No Tailwind undefined class warnings in browser console",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/pages/Arena.tsx — void-700 missing from tailwind.config.js; rank colour fallback uses undefined colour class."
+    },
+    {
+      "id": "FIX-020",
+      "title": "Fix ProtectedRoute redirect loop and useAuth loading race",
+      "description": "As a user, I need auth routing to be stable so concurrent logout does not cause a redirect loop and loading states do not leave me on a blank screen.",
+      "acceptanceCriteria": [
+        "ProtectedRoute.tsx does not redirect to /signin until loading=false AND user=null (both conditions)",
+        "Concurrent logout does not trigger multiple /signin redirects",
+        "useAuth.ts loading flag remains true until first getSession resolves",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb hazards: ProtectedRoute.tsx — synchronous redirect causes loop on concurrent logout; useAuth.ts — loading=false but user still null race condition."
+    },
+    {
+      "id": "FIX-021",
+      "title": "Fix TrialExpiryBanner dismiss persistence",
+      "description": "As a user, I need the trial expiry banner dismiss to persist across navigation so I am not shown the same banner on every page change.",
+      "acceptanceCriteria": [
+        "TrialExpiryBanner.tsx persists dismissed=true to localStorage keyed by orgId + trial_ends_at",
+        "Dismissed banner does not re-appear on route change",
+        "Banner re-appears after 24 hours (localStorage TTL)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/components/TrialExpiryBanner.tsx — dismissal in React local state only; reappears on navigation."
+    },
+    {
+      "id": "FIX-022",
+      "title": "Add time-range filter to Analytics page",
+      "description": "As a manager, I need Analytics to support time-range filtering so activity count queries do not grow unboundedly as the database grows.",
+      "acceptanceCriteria": [
+        "Analytics.tsx has a time-range selector (Last 7 days / 30 days / 90 days / All time)",
+        "All activity aggregation queries include created_at filter matching selected range",
+        "Default range is Last 30 days",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/pages/Analytics.tsx — no time-range filter on activity aggregation; loads all-time counts growing unbounded."
+    },
+    {
+      "id": "FIX-023",
+      "title": "Add pagination to ContactActivityTimeline and Email page",
+      "description": "As a rep, I need activity feeds to be paginated so high-volume contacts and email lists do not cause slow queries and blank-state delays.",
+      "acceptanceCriteria": [
+        "ContactActivityTimeline.tsx fetches first 20 activities; Load more button fetches next 20",
+        "Email.tsx paginates email activity list (25 items per page or infinite scroll)",
+        "Both components handle empty states with clear messaging",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb hazards: ContactActivityTimeline.tsx — 100+ activities cause unbounded query; Email.tsx — no pagination, large volumes cause slow query."
+    },
+    {
+      "id": "FIX-024",
+      "title": "Fix Home.tsx CreateSalesBlockModal post-create callback",
+      "description": "As a rep, I need a newly created SalesBlock to appear on the Home dashboard immediately so I don't need to reload the page after creating one.",
+      "acceptanceCriteria": [
+        "Home.tsx passes a callback to CreateSalesBlockModal that re-fetches the salesblocks query on close",
+        "New SalesBlock card appears in dashboard without page reload",
+        "React Query invalidateQueries or refetch called correctly",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/pages/Home.tsx — CreateSalesBlockModal launched from Home must re-fetch salesblocks after close; if callback not wired, new block won't appear."
+    },
+    {
+      "id": "FIX-025",
+      "title": "Fix ForgotPassword SITE_URL to use correct production origin",
+      "description": "As a user trying to reset my password, I need reset links to point to the correct production URL so reset emails do not contain localhost links.",
+      "acceptanceCriteria": [
+        "ForgotPassword.tsx uses VITE_SITE_URL env var as redirectTo (not window.location.origin)",
+        "VITE_SITE_URL is set in production Vercel env vars to the production domain",
+        "Dev environment correctly uses localhost from .env.local",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb hazard: frontend/src/pages/ForgotPassword.tsx — window.location.origin used for redirectTo; in dev points to localhost; reset links expire if opened in different environment."
+    },
+    {
+      "id": "FEAT-001",
+      "title": "Add Google SSO and returnTo deep link on SignIn page",
+      "description": "As a user, I need to sign in with Google and have my destination preserved so I can reach deep-linked pages directly after authentication.",
+      "acceptanceCriteria": [
+        "SignIn.tsx has a 'Continue with Google' button that triggers Supabase social login",
+        "SignIn.tsx reads a returnTo query param and redirects to that path after successful sign-in",
+        "returnTo value is validated to be a relative path (prevents open redirect)",
+        "Rate limit error from Supabase shows lockout feedback message",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/SignIn.tsx — Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback for rate limit errors. [MOVED from roadmap — pre-launch blocker]"
+    },
+    {
+      "id": "FEAT-003",
+      "title": "Pull pricing from Supabase config table instead of hardcoded constants",
+      "description": "As a product manager, I need pricing to be stored in Supabase so price changes do not require a code deploy and Stripe price IDs stay in sync.",
+      "acceptanceCriteria": [
+        "Supabase table pricing_plans stores: id, name, monthly_price_cents, annual_price_cents, stripe_price_id_monthly, stripe_price_id_annual, features (jsonb)",
+        "PricingPage.tsx fetches from pricing_plans table on mount",
+        "create-checkout-session edge function uses Stripe price ID from pricing_plans (not hardcoded)",
+        "PricingPage shows loading skeleton and error toast (not alert) on load failure",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/PricingPage.tsx — Pull pricing from Supabase table to avoid price drift. Add error toast instead of alert. [MOVED from roadmap — pre-launch blocker]"
+    },
+    {
+      "id": "FEAT-005",
+      "title": "Add invite member flow to Team page",
+      "description": "As a manager, I need an invite button on the Team page so I can onboard new reps without leaving the team management view.",
+      "acceptanceCriteria": [
+        "Team.tsx has an Invite Member button that triggers the send-team-invitation flow",
+        "Invite modal collects email and role (sdr | ae | manager)",
+        "Success state shows confirmation message; failure shows error with retry",
+        "Time-range filter on activity aggregation (Last 30 days / 90 days / All time)",
+        "Empty team state renders onboarding CTA",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Team.tsx — Add time-range filter for activity aggregation. Handle empty org_id gracefully. Add invite member flow. [MOVED from roadmap — pre-launch blocker]"
+    },
+    {
+      "id": "FEAT-004",
+      "title": "Add Analytics time-range filter and Recharts trend visualisation",
+      "description": "As a manager, I need to filter analytics by time range and see trend lines so I can assess team performance over specific periods.",
+      "acceptanceCriteria": [
+        "Analytics.tsx has time-range selector: Last 7 / 30 / 90 days",
+        "KPI cards update to reflect selected time range",
+        "Recharts LineChart renders activity trend per day for calls, emails, and meetings",
+        "KPI card loading skeleton shown during data fetch",
+        "Custom KPI target input validates min=0, max=10000 with inline error",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Analytics.tsx — Add time-range filter. Add loading skeleton per KPI card. Validate custom KPI bounds. Consider Recharts for trend visualisation. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-006",
+      "title": "Add Arena real-time leaderboard and time-range filter",
+      "description": "As a rep, I need the leaderboard to update in real-time and support time-range filtering so competitions are current and fairly measured.",
+      "acceptanceCriteria": [
+        "Arena.tsx subscribes to Supabase real-time on the activities table for live score updates",
+        "Time-range filter: Today / This Week / This Month / All Time",
+        "Leaderboard is scoped to org_id (no cross-org data)",
+        "Real-time subscription cleaned up on component unmount",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Arena.tsx — Consider real-time subscription for live leaderboard. Add time-range filter. Enforce org-scoped leaderboard. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-007",
+      "title": "Add Pipeline deal value totals and empty-state improvements",
+      "description": "As a rep, I need to see total deal value per pipeline stage and have meaningful empty states so I can assess pipeline value at a glance.",
+      "acceptanceCriteria": [
+        "Pipeline.tsx column header shows total deal value (sum) for all deals in that stage",
+        "Empty pipeline shows a Create Your First Deal CTA",
+        "Failed stage update shows error toast and reverts card to original column",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Pipeline.tsx — Add deal value total in column header. Add optimistic rollback for failed stage updates. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-008",
+      "title": "Add Goals timezone-correct aggregation and empty state",
+      "description": "As a rep, I need goal progress to calculate correctly at day/week boundaries and show a helpful empty state when no goals exist.",
+      "acceptanceCriteria": [
+        "Goals.tsx activity aggregation uses UTC-based day boundaries (not browser local time)",
+        "Empty goal list shows a Create Your First Goal CTA",
+        "Delete goal action shows a confirmation modal before permanent removal",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Goals.tsx — Fix time-zone boundary for daily/weekly aggregation. Add empty state. Add delete confirmation. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-009",
+      "title": "Add SalesBlocks status filter tabs and empty state",
+      "description": "As a rep, I need to filter SalesBlocks by status and see an empty state so managing active vs completed sessions is clear.",
+      "acceptanceCriteria": [
+        "SalesBlocks.tsx has filter tabs: All / Active / Completed / Scheduled",
+        "Empty state shows a Create SalesBlock CTA with description",
+        "Delete SalesBlock shows confirmation modal (from FIX-017)",
+        "salesblocks query verified to be scoped by org_id",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/SalesBlocks.tsx — Add delete confirmation dialog. Audit salesblocks query for org_id scoping. Add empty state. Consider status filter tabs. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-010",
+      "title": "Add Scripts search, categories, and SalesBlock linking",
+      "description": "As a rep, I need to search scripts and tag them by category so finding the right script during a call is fast and contextual.",
+      "acceptanceCriteria": [
+        "Scripts.tsx has a search input filtering by title/content",
+        "Script cards have a category/tag field (configurable freeform text)",
+        "ScriptModal.tsx collects category on create/edit",
+        "Scripts page allows filtering by category",
+        "Optional: link a script to a SalesBlock so it auto-loads during a session",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Scripts.tsx — Add script categories/tags. Add search. Link scripts to SalesBlock session. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-011",
+      "title": "Add EmailTemplates preview and search/filter",
+      "description": "As a rep, I need to preview email templates and search across them so selecting the right template when composing is quick.",
+      "acceptanceCriteria": [
+        "EmailTemplates.tsx has a search input filtering by subject/name",
+        "Template card has an expand/preview button showing rendered HTML body",
+        "Delete failure shows error toast (not silent failure)",
+        "Verified RLS scopes email_templates to org_id",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/EmailTemplates.tsx — Add error toast on delete failure. Verify RLS. Add template preview and search/filter. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-012",
+      "title": "Add template insertion to ComposeEmailModal",
+      "description": "As a rep, I need to insert an email template into the compose modal so I can send consistent, pre-approved messaging without copying manually.",
+      "acceptanceCriteria": [
+        "ComposeEmailModal.tsx has an Insert Template button that opens a template picker",
+        "Template picker shows filterable list from email_templates table",
+        "Selected template populates subject and body fields",
+        "Existing body content is replaced with confirmation prompt before overwrite",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/components/ComposeEmailModal.tsx — Add template insertion from EmailTemplates. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-013",
+      "title": "Consolidate Microsoft OAuth buttons into single MicrosoftOAuthButton",
+      "description": "As a developer, I need OutlookOAuthButton and OutlookCalendarOAuthButton consolidated so fixes only need to be made in one place.",
+      "acceptanceCriteria": [
+        "New component MicrosoftOAuthButton.tsx accepts an integrationType prop: 'mail' | 'calendar'",
+        "integrationType='mail' uses Mail.Send + Mail.ReadBasic scopes",
+        "integrationType='calendar' uses Calendar.ReadWrite scopes",
+        "OutlookOAuthButton.tsx and OutlookCalendarOAuthButton.tsx replaced with MicrosoftOAuthButton usage",
+        "CSRF nonce added to state param (FIX-002 applied here)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/components/OutlookOAuthButton.tsx — Consolidate OutlookOAuthButton and OutlookCalendarOAuthButton into a single MicrosoftOAuthButton parameterized by integration type. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-014",
+      "title": "Consolidate Gmail and Google Calendar OAuth buttons into shared hook",
+      "description": "As a developer, I need Google OAuth button logic extracted into a shared hook so Gmail and Calendar flows share one implementation.",
+      "acceptanceCriteria": [
+        "New hook useGoogleOAuth.ts accepts a provider param: 'gmail' | 'google_calendar'",
+        "Hook returns: initiateOAuth, connectionStatus, disconnect",
+        "GmailOAuthButton.tsx and GoogleCalendarOAuthButton.tsx use useGoogleOAuth hook",
+        "Scope sets correctly differentiate: gmail.readonly for Gmail, calendar.events for Calendar",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/components/GoogleCalendarOAuthButton.tsx — Consolidate OAuth button logic with GmailOAuthButton into a shared hook with provider param. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-015",
+      "title": "Add SettingsPage per-OAuth ErrorBoundaries and success/error toasts",
+      "description": "As a user, I need settings changes to provide clear success/failure feedback and OAuth errors to be contained so one broken integration doesn't crash the whole page.",
+      "acceptanceCriteria": [
+        "Each of the 5 OAuth integration buttons is wrapped in its own ErrorBoundary",
+        "Profile save, org save, pipeline stage save all show success toast on completion",
+        "All settings save failures show error toast (not silent failure)",
+        "Each settings tab extracted into its own sub-component",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/SettingsPage.tsx — Wrap each OAuth button in ErrorBoundary. Add success/error toasts for all save actions. Extract each tab into a sub-component. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-016",
+      "title": "Add configurable activity types via org settings",
+      "description": "As a manager, I need activity types to be configurable per org so teams can add custom call outcomes without requiring a code deploy.",
+      "acceptanceCriteria": [
+        "Supabase table activity_types stores: id, org_id, label, value, icon",
+        "LogActivityModal.tsx fetches activity_types for the org on mount",
+        "Default types (call, email, meeting, note, social) are seeded on org creation",
+        "Managers can add/remove types in SettingsPage",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/components/LogActivityModal.tsx — Make activity types configurable via org settings. Add outcome field for calls. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-017",
+      "title": "Add batch list_contacts count query to fix Lists N+1 pattern",
+      "description": "As a rep, I need the Lists page to load quickly so contact counts don't trigger N separate queries for N lists.",
+      "acceptanceCriteria": [
+        "Lists.tsx replaces per-list count query with a single GROUP BY aggregation query",
+        "Contact counts still display correctly per list card",
+        "getSalesforceConnection errors caught and handled (does not crash Lists page)",
+        "Lists page load time does not scale linearly with list count",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Lists.tsx — Batch list_contacts count into single query. Add error catch around getSalesforceConnection. Add list sorting and search. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-018",
+      "title": "Add ContactActivityTimeline cursor-based pagination",
+      "description": "As a rep, I need the contact activity timeline to load incrementally so high-volume contacts don't cause unbounded queries and slow renders.",
+      "acceptanceCriteria": [
+        "ContactActivityTimeline.tsx fetches first 20 activities ordered by created_at DESC",
+        "Load More button fetches next 20 using cursor (last activity ID)",
+        "Activity type icon map has a fallback icon for unmapped types",
+        "userId prop passed to filter own activities where relevant",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/components/ContactActivityTimeline.tsx — Add pagination or cursor-based infinite scroll. Expand activity type icon map with fallback icon. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-019",
+      "title": "Add ContactDetailPage 404 state and server-side sort for large lists",
+      "description": "As a rep, I need a proper 404 screen when a contact doesn't exist and for lists to sort server-side so large contact volumes perform correctly.",
+      "acceptanceCriteria": [
+        "ContactDetailPage.tsx renders a 404 Not Found UI when contactId returns no data",
+        "ListDetailPage.tsx sort state passes ORDER BY to Supabase query (not client-side)",
+        "Back navigation null guard applied: location.state?.from ?? '/lists'",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Breadcrumb prompts: ContactDetailPage — Add 404 state when contact not found. ListDetailPage — Move sort to server-side when list grows. [UI feature — core UX work]",
+      "deferrable": false
+    },
+    {
+      "id": "FEAT-020",
+      "title": "Add Social page empty state and date range filter",
+      "description": "As a rep, I need the Social page to show a helpful empty state and allow date filtering so I can review social activity for specific periods.",
+      "acceptanceCriteria": [
+        "Social.tsx shows an empty state with a Log Activity CTA when no social activities exist",
+        "Null contact joins (deleted contact) render contact name as 'Deleted Contact' not blank/error",
+        "Date range filter: Last 7 / 30 / 90 days",
+        "platform field presence verified on activities table before filtering",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Social.tsx — Add null guard for deleted contacts. Add empty state with CTA. Add date range filter. [UI feature — core UX work]",
+      "deferrable": true
+    },
+    {
+      "id": "FEAT-021",
+      "title": "Add merge tag validation and preview to TemplateModal",
+      "description": "As a rep, I need template merge tags validated at save time and previewed at send time so raw {{first_name}} tags are never sent to prospects.",
+      "acceptanceCriteria": [
+        "TemplateModal.tsx validates {{merge_tags}} at save time against a known variable list",
+        "Unknown merge tags produce a warning (not blocking error) at save",
+        "Send-time preview in ComposeEmailModal substitutes merge tags with contact values",
+        "Subject line capped at 200 characters; body capped at 50,000 characters",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/components/TemplateModal.tsx — Validate merge tags at save time. Add send-time preview with variable substitution. Enforce limits. [UI feature — core UX work]",
+      "deferrable": true
+    },
+    {
+      "id": "FEAT-022",
+      "title": "Add Home dashboard skeleton loaders and empty-state messaging",
+      "description": "As a rep, I need the Home dashboard to show skeleton placeholders while loading and meaningful empty states when no data exists.",
+      "acceptanceCriteria": [
+        "Home.tsx shows skeleton loader per data section independently (not full-page spinner)",
+        "Goals section shows 'Set your first goal' CTA when goals array is empty",
+        "SalesBlock schedule shows 'No sessions today' when no blocks are scheduled",
+        "Activity feed shows 'No recent activity' when activities array is empty",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/Home.tsx — Add empty-state messaging when goals have no activities. Consider skeleton loaders per data section independently. [UI feature — core UX work]",
+      "deferrable": true
+    },
+    {
+      "id": "FEAT-023",
+      "title": "Add ImportCSVModal batch insert and streaming progress updates",
+      "description": "As a rep, I need CSV import to handle large files efficiently and show real-time progress so I know how the import is going for 5000+ contacts.",
+      "acceptanceCriteria": [
+        "ImportCSVModal.tsx inserts contacts in chunks of 500 rows per batch",
+        "Progress bar updates after each batch completes (X of N contacts imported)",
+        "Import summary shows inserted, updated, skipped, and failed counts",
+        "List assignment uses ON CONFLICT DO NOTHING (from FIX-008)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/components/ImportCSVModal.tsx — Add batch insert for contacts (chunk 500). Consider streaming progress updates during import. [UI feature — core UX work]",
+      "deferrable": true
+    },
+    {
+      "id": "FEAT-024",
+      "title": "Add ContentLibrary redundancy review and merge/split decision",
+      "description": "As a product manager, I need ContentLibrary, EmailTemplates, and Scripts pages to be clearly differentiated so users aren't confused by overlapping content views.",
+      "acceptanceCriteria": [
+        "Audit: identify whether ContentLibrary adds distinct value over EmailTemplates + Scripts pages",
+        "If redundant: ContentLibrary redirects to a unified /library view replacing both separate pages",
+        "If distinct: ContentLibrary has clear description text explaining its purpose vs scripts/templates",
+        "RLS on email_templates and call_scripts verified to scope to same org_id",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Breadcrumb prompt: frontend/src/pages/ContentLibrary.tsx — Merge with EmailTemplates and Scripts pages or remove redundancy. Verify org-scoped RLS. [UI feature — core UX work]",
+      "deferrable": true
+    },
+    {
+      "id": "FEAT-025",
+      "title": "Add team invitation resend endpoint and expiry enforcement",
+      "description": "As a manager, I need to resend team invitations and have expired links rejected so the invitation flow is reliable and secure.",
+      "acceptanceCriteria": [
+        "send-team-invitation edge function supports a resend=true mode that deletes previous pending row and creates new invitation",
+        "Invitation expiry enforced server-side at acceptance time (reject if created_at > 7 days ago)",
+        "SettingsPage Invite tab shows pending invitations with Resend action",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Breadcrumb prompt: supabase/functions/send-team-invitation/index.ts — Add transactional rollback if email send fails. Add resend endpoint. Enforce invitation expiry at acceptance time. [UI feature — core UX work]",
+      "deferrable": true
+    }
+  ]
+}

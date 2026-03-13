@@ -1,19 +1,13 @@
-/**
- * @crumb
- * @id frontend-component-add-deal-modal
- * @area UI/Deals
- * @intent Add deal modal — form to create a new deal with contact search/link, pipeline stage selection, and value entry
- * @responsibilities Render deal creation form (name, value, stage, close date), search and link existing contacts, insert into deals table, call onDealAdded callback
- * @contracts AddDealModal({ salesBlockId, onClose, onDealAdded }) → JSX; calls supabase.from('deals').insert; useEffect fetches contacts for search; requires salesBlockId prop
- * @in salesBlockId (string), supabase deals + contacts tables, onClose callback, onDealAdded callback
- * @out New deal row in deals table with linked contact_id; onDealAdded called with new deal; modal closed via onClose
- * @err Supabase insert failure (caught, error message shown); contact search failure (silent — search results empty)
- * @hazard Deal stage options are fetched from Supabase pipeline_stages table — if no stages exist for the org, the stage dropdown will be empty and the deal cannot be created with a valid stage
- * @hazard Contact search within the modal fetches all contacts for the org — on large datasets this is an unbounded query that will slow the modal open time and may hit Supabase row limits
- * @shared-edges frontend/src/lib/supabase.ts→CALLS deals insert + contacts select; parent page→RENDERS modal; deals table→INSERTS to; pipeline_stages table→READS stages from
- * @trail add-deal#1 | User clicks "Add Deal" → AddDealModal renders → useEffect fetches contacts + stages → user fills form → handleSubmit → supabase insert → onDealAdded(newDeal) → modal closes
- * @prompt Paginate or debounce contact search. Verify stage options gracefully handle empty pipeline_stages. Add deal value currency selector.
- */
+// @crumb frontend-component-add-deal-modal
+// UI/Deals | deal_creation_form | contact_search_link | stage_selection | supabase_insert | on_deal_added_callback
+// why: Add deal modal — form to create a new deal with contact search/link, pipeline stage selection, and value entry
+// in:salesBlockId,supabase deals + contacts tables out:New deal row with linked contact_id,onDealAdded called err:Supabase insert failure,contact search failure (silent empty)
+// hazard: Empty pipeline_stages table causes empty stage dropdown — deal cannot be created with valid stage
+// hazard: Contact search fetches all org contacts unbounded — large datasets slow modal open and may hit row limits
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/components/DealDetailModal.tsx -> RELATES
+// edge:add-deal#1 -> STEP_IN
+// prompt: Paginate or debounce contact search. Verify stage options handle empty pipeline_stages. Add deal value currency selector.
 import { useState, useEffect } from 'react'
 import { X, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'

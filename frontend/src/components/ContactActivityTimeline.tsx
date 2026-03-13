@@ -1,19 +1,12 @@
-/**
- * @crumb
- * @id frontend-component-contact-activity-timeline
- * @area UI/Contacts
- * @intent Contact activity timeline — display chronological activity feed for a single contact (calls, emails, social, meetings, notes)
- * @responsibilities Fetch activities from Supabase for contactId on mount, render typed activity entries with icons and timestamps, support pagination or infinite scroll
- * @contracts ContactActivityTimeline({ contactId }) → JSX; calls supabase.from('activities').select().eq('contact_id', contactId).order('created_at'); renders typed activity list
- * @in contactId (string), supabase activities table (contact_id, type, description, created_at, user_id)
- * @out Sorted activity feed displayed with type icons (Phone, Mail, Share2, Calendar, FileText, MessageCircle); empty state if no activities
- * @err Supabase select failure (activities silently not shown or error state displayed); contactId undefined (query returns empty — no guard shown)
- * @hazard Activities are fetched without pagination — a contact with a long sales history (100+ activities) will trigger an unbounded Supabase query that loads all rows at once, causing slow render and high memory use
- * @hazard Activity type icons are statically mapped — if a new activity type is introduced in the backend without a matching icon entry here, that activity type will render without an icon or throw, silently degrading the timeline
- * @shared-edges supabase activities table→READS from; frontend/src/pages (ContactDetail or SalesBlockDetail)→RENDERS this component; LogActivityModal→WRITES activities that appear here
- * @trail contact-timeline#1 | Contact detail page renders → ContactActivityTimeline mounts with contactId → useEffect fetches activities → renders sorted list → user sees call/email/social history
- * @prompt Add pagination or cursor-based infinite scroll. Expand activity type icon map with a fallback icon. Pass userId to filter to own activities if needed.
- */
+// @crumb frontend-component-contact-activity-timeline
+// UI/Contacts | fetch_activities | render_typed_entries | icons_and_timestamps | pagination
+// why: Contact activity timeline — display chronological activity feed for a single contact (calls, emails, social, meetings, notes)
+// in:contactId,supabase activities table out:Sorted activity feed with type icons,empty state if none err:Supabase select failure (silently not shown),contactId undefined (empty query)
+// hazard: Activities fetched without pagination — 100+ activities cause unbounded query, slow render, high memory
+// hazard: Activity type icons statically mapped — new backend types render without icon or throw
+// edge:frontend/src/components/LogActivityModal.tsx -> RELATES
+// edge:contact-timeline#1 -> STEP_IN
+// prompt: Add pagination or cursor-based infinite scroll. Expand activity type icon map with fallback icon. Pass userId to filter own activities.
 import { useEffect, useState } from 'react';
 import { Phone, Mail, Share2, Calendar, FileText, MessageCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';

@@ -1,3 +1,13 @@
+// @crumb edge-refresh-microsoft-token
+// Auth/OAuth | access_token_refresh | expiry_check | token_persistence
+// why: Refresh expired Microsoft OAuth access tokens using stored refresh token — called by frontend token-refresh lib before Outlook/Calendar API calls
+// in:POST body (user_id,provider:'outlook'|'outlook_calendar'),env vars (OUTLOOK_CLIENT_ID,OUTLOOK_CLIENT_SECRET,SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY) out:JSON {access_token:string,expires_at:number} on success; JSON {error:string} on failure; updates oauth_connections with new access_token and expires_at err:Missing refresh_token (invalid_grant) -> 401; Microsoft refresh endpoint failure -> 502; DB update failure -> 500
+// hazard: Microsoft tokens have a rolling refresh window — if refresh_token itself expires (90 days inactive), user must reconnect
+// hazard: No lock on concurrent refresh calls — simultaneous requests may cause token overwrite race
+// edge:frontend/src/lib/token-refresh.ts -> SERVES
+// edge:supabase/functions/exchange-microsoft-token/index.ts -> RELATES
+// edge:microsoft-token-refresh#1 -> STEP_IN
+// prompt: Handle invalid_grant by marking oauth_connections row as disconnected and returning clear error to caller. Add check whether token is already valid before calling Microsoft endpoint. Mirror refresh-google-token behavior for consistency.
 /**
  * Refresh a Microsoft OAuth access token using the stored refresh_token.
  * Handles both Outlook Mail and Outlook Calendar providers.

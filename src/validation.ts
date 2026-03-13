@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id validation-five-signals
- * @area DAT
- * @intent Evaluate 5 signals (code, depth, sustained, thinking, peer) against discovered candidates; only include profiles with ≥3 signals
- * @responsibilities Signal evaluation (5 functions), threshold gating, citation mapping, profile conversion
- * @contracts evaluateCodeSignal(candidate) → SignalResult; evaluateDepthSignal(candidate, config) → SignalResult; evaluateSustainedSignal(candidate) → SignalResult; evaluateThinkingSignal(candidate) → SignalResult; evaluatePeerSignal(candidate) → SignalResult; validateCandidate(candidate, config) → ValidationResult; toValidatedProfile(validation) → ValidatedProfile
- * @in DiscoveredCandidate[], GatingConfig
- * @out ValidatedProfile[] (only candidates with signalCount ≥ 3)
- * @err ValidationError if validation.included === false on toValidatedProfile()
- * @hazard Signal evaluation functions check URL patterns only — no HTTP validation (404s not detected until enforcement phase)
- * @hazard evaluateDepthSignal checks candidate.name for keywords instead of fetching/analyzing content (false positives on name overlaps with tech terms)
- * @shared-edges discovery.ts→PROVIDES input; database.ts→CONSUMES output; enforcement.ts→CONSUMES ValidatedProfile[]
- * @trail validation-pipeline#2 | 5 signals evaluated in sequence before threshold gating
- * @prompt Before adding new signals, audit false positive rate against test set. Consider URL verification cost vs benefit (move to enforcement?).
- */
+// @crumb validation-five-signals
+// DAT | signal_evaluation | threshold_gating | citation_mapping | profile_conversion
+// why: Evaluate 5 signals (code, depth, sustained, thinking, peer) against discovered candidates; only include profiles with >=3 signals
+// in:DiscoveredCandidate[], GatingConfig out:ValidatedProfile[] (only candidates with signalCount >= 3) err:ValidationError if validation.included === false on toValidatedProfile()
+// hazard: Signal evaluation functions check URL patterns only — no HTTP validation (404s not detected until enforcement phase)
+// hazard: evaluateDepthSignal checks candidate.name for keywords instead of fetching/analyzing content (false positives on name overlaps with tech terms)
+// edge:src/discovery.ts -> READS
+// edge:src/database.ts -> WRITES
+// edge:src/enforcement.ts -> SERVES
+// edge:validation-pipeline#2 -> STEP_IN
+// prompt: Before adding new signals, audit false positive rate against test set. Consider URL verification cost vs benefit (move to enforcement?).
 
 import { DiscoveredCandidate } from './discovery.js';
 import { GatingConfig, SignalName, Citation, ValidatedProfile } from './types.js';

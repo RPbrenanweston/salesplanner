@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id backend-gating-interactive
- * @area UI/CLI
- * @intent Interactive gating — collect search parameters (engineering focus, languages, depth, evidence priorities, geography) from the user via CLI prompts, validate, and save as GatingConfig
- * @responsibilities Prompt user for each GatingConfig field via readline, validate inputs, construct GatingConfig, call saveConfig to persist
- * @contracts collectGatingAnswers() → Promise<GatingConfig>; uses readline.createInterface on stdin/stdout; calls saveConfig(config) on completion
- * @in stdin (user keyboard input), GatingConfig type + EvidencePriority enum from types.ts, saveConfig from config.ts
- * @out GatingConfig object returned; config.json written via saveConfig
- * @err Invalid input (prompts re-asked or defaults applied); saveConfig failure (Zod validation error thrown — config not saved)
- * @hazard readline.createInterface on stdin/stdout is not cleaned up — if the user terminates mid-prompt (Ctrl+C), the readline interface may hold stdin open, preventing the process from exiting cleanly
- * @hazard Gating answers collected interactively every run — if the agent is run in a CI/CD or non-interactive environment (no TTY), readline prompts will hang indefinitely waiting for stdin that never comes
- * @shared-edges src/types.ts→IMPORTS GatingConfig + EvidencePriority; src/config.ts→CALLS saveConfig; src/index.ts→CALLS collectGatingAnswers when no config found
- * @trail gating#1 | index.ts detects no config.json → calls collectGatingAnswers → user answers CLI prompts → GatingConfig built → saveConfig writes config.json → config returned
- * @prompt Add rl.close() after config collection. Add --config flag to index.ts to skip interactive gating for CI use.
- */
+// @crumb backend-gating-interactive
+// UI/CLI | readline_prompting | input_validation | gating_config_construction | config_persistence
+// why: Interactive gating — collect search parameters (engineering focus, languages, depth, evidence priorities, geography) from the user via CLI prompts, validate, and save as GatingConfig
+// in:stdin (user keyboard input), GatingConfig type + EvidencePriority enum from types.ts, saveConfig from config.ts out:GatingConfig object returned; config.json written via saveConfig err:Invalid input (prompts re-asked or defaults applied); saveConfig failure (Zod validation error thrown)
+// hazard: readline.createInterface on stdin/stdout is not cleaned up — Ctrl+C mid-prompt may hold stdin open preventing clean exit
+// hazard: Gating answers collected interactively every run — CI/CD or non-interactive environments will hang indefinitely
+// edge:src/types.ts -> READS
+// edge:src/config.ts -> CALLS
+// edge:src/index.ts -> SERVES
+// edge:gating#1 -> STEP_IN
+// prompt: Add rl.close() after config collection. Add --config flag to index.ts to skip interactive gating for CI use.
 import * as readline from 'readline/promises';
 import { stdin as input, stdout as output } from 'process';
 import { GatingConfig, EvidencePriority } from './types.js';

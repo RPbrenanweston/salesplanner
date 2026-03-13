@@ -1,19 +1,12 @@
-/**
- * @crumb
- * @id frontend-component-list-builder-modal
- * @area UI/Lists
- * @intent List builder modal — create or edit a smart contact list with filter criteria (company, title, source, domain, social handles) that dynamically resolves matching contacts
- * @responsibilities Render filter builder UI (add/remove filter rows with field + operator + value), preview matching contact count, save list definition to lists table, call onSaved callback
- * @contracts ListBuilderModal({ list?, onClose, onSaved }) → JSX; calls supabase.from('contacts').select with dynamic filter; calls supabase.from('lists').upsert; optional list prop for edit mode
- * @in list (optional existing list for edit), supabase contacts + lists tables, useAuth (org_id), onClose callback, onSaved callback
- * @out List definition row upserted in lists table with filter criteria JSON; onSaved called with list record; modal closed
- * @err Supabase preview query failure (count shows error); Supabase upsert failure (caught, error shown); invalid filter combination (empty result — no guard)
- * @hazard Filter criteria are stored as JSON in the lists table and re-evaluated dynamically — if the contacts table schema changes (field renamed or removed), existing list filter criteria will silently return 0 results or throw a Supabase query error
- * @hazard Contact preview count query executes on every filter change with no debounce — rapid filter edits will fire multiple concurrent Supabase queries and the UI may show a stale count if responses arrive out of order
- * @shared-edges supabase contacts table→READS for preview; supabase lists table→UPSERTS list definition; frontend/src/pages/Lists.tsx→RENDERS modal; ListDetailPage→READS list and executes filters
- * @trail list-builder#1 | User clicks "New List" → ListBuilderModal renders → user adds filter rows → preview count updates → handleSave → supabase upsert → onSaved(list) → modal closes → list appears in Lists page
- * @prompt Debounce preview queries. Add schema-versioning to filter criteria JSON so migrations can update stored filters. Add filter validation before save.
- */
+// @crumb frontend-component-list-builder-modal
+// UI/Lists | filter_builder_ui | preview_matching_count | save_list_definition | on_saved_callback
+// why: List builder modal — create or edit a smart contact list with filter criteria that dynamically resolves matching contacts
+// in:list (optional for edit),supabase contacts + lists tables,useAuth (org_id) out:List definition upserted with filter criteria JSON,onSaved called err:Supabase preview query failure,Supabase upsert failure,invalid filter combination (empty result)
+// hazard: Filter criteria stored as JSON — contacts table schema changes cause silent 0 results or query errors
+// hazard: Preview count query fires on every filter change with no debounce — concurrent queries produce stale counts
+// edge:frontend/src/pages/Lists.tsx -> RELATES
+// edge:list-builder#1 -> STEP_IN
+// prompt: Debounce preview queries. Add schema-versioning to filter criteria JSON. Add filter validation before save.
 import { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
