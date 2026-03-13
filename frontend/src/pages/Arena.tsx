@@ -1,20 +1,14 @@
-/**
- * @crumb
- * @id frontend-arena-leaderboard
- * @area UI
- * @intent Display competitive sales leaderboard ranking reps by calls, emails, deals moved, and total activity score
- * @responsibilities Fetch battle stats for all org users, compute ranks, render leaderboard table, navigate back to home
- * @contracts Arena() → JSX; loads BattleStats[] from supabase, renders ranked leaderboard with Trophy/Zap/Mail/Phone activity breakdown
- * @in Supabase activities table (aggregated per user), useAuth for current user context, useNavigate for back navigation
- * @out Leaderboard table sorted by total_activity, current user highlighted, loading skeleton while fetching
- * @err Supabase query failure (network/auth), no stats returned (empty org activity)
- * @hazard void-700 missing from tailwind.config.js — rank colour fallback uses undefined colour class, renders without colour (cosmetic only)
- * @fixed Added useNavigate import and navigate const — resolved TS2552 "Cannot find name 'navigate'" (2026-03-08)
- * @fixed Added ArrowLeft to lucide-react destructure — resolved TS2304 "Cannot find name 'ArrowLeft'" (2026-03-08)
- * @shared-edges frontend/src/hooks/useAuth.ts→CALLS for current user; frontend/src/lib/supabase.ts→QUERIES activities; frontend/src/App.tsx→ROUTES to /arena
- * @trail leaderboard#1 | User navigates to /arena → Arena mounts → loadStats fetches aggregated activity counts → sorted by total_activity → rendered with rank badges (🥇🥈🥉 for top 3) → back button navigates to /
- * @prompt VV-native at build time — uses void-950/900/800, cyan-neon, indigo-electric throughout. Remaining: add void-700 to tailwind.config.js for rank fallback colour. Consider real-time subscription on activities table for live leaderboard. Add time-range filter (today/week/month). Enforce org-scoped leaderboard for multi-tenant isolation.
- */
+// @crumb frontend-arena-leaderboard
+// UI | fetch_battle_stats | compute_ranks | render_leaderboard | navigate_back
+// why: Display competitive sales leaderboard ranking reps by calls, emails, deals moved, and total activity score
+// in:Supabase activities table(aggregated per user),useAuth,useNavigate out:leaderboard table sorted by total_activity,current user highlighted,loading skeleton err:Supabase query failure(network/auth),no stats returned(empty org activity)
+// hazard: void-700 missing from tailwind.config.js — rank colour fallback uses undefined colour class
+// hazard: N+1 query pattern (line 41-50) — fetches ALL activities client-side then aggregates with forEach instead of using SQL GROUP_BY; on 100k+ activities, timeouts and slow to load
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:leaderboard#1 -> STEP_IN
+// prompt: Add void-700 to tailwind.config.js. Consider real-time subscription for live leaderboard. Add time-range filter. Enforce org-scoped leaderboard.
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Zap, Mail, Phone, TrendingUp, ArrowLeft } from 'lucide-react';
@@ -36,6 +30,7 @@ export default function Arena() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<BattleStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -47,7 +42,7 @@ export default function Arena() {
     try {
       const { data: activities, error } = await supabase
         .from('activities')
-        .select('user_id, type, team_members(display_name)')
+        .select('user_id, type, users!activities_user_id_fkey(display_name)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -56,7 +51,7 @@ export default function Arena() {
 
       activities.forEach((activity: any) => {
         const userId = activity.user_id;
-        const userName = activity.team_members?.display_name || 'Unknown';
+        const userName = activity.users?.display_name || 'Unknown';
 
         if (!userStats.has(userId)) {
           userStats.set(userId, {
@@ -87,6 +82,8 @@ export default function Arena() {
       setStats(sortedStats);
     } catch (error) {
       console.error('Failed to load leaderboard:', error);
+      setLoadError('Failed to load leaderboard. Please refresh the page.');
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -129,6 +126,12 @@ export default function Arena() {
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-8">
+        {loadError && (
+          <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 mb-6">
+            <p className="text-sm text-red-alert">{loadError}</p>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="flex items-center gap-3 text-white/60">

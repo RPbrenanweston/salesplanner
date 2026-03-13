@@ -1,3 +1,12 @@
+// @crumb frontend-component-error-boundary
+// CORE | error_capture | error_fallback_ui | error_logging | page_reload
+// why: Error boundary component wrapping React render tree to catch JS errors, display fallback UI, and prevent white-screen-of-death cascades
+// in:children:ReactNode out:Either children or error fallback UI with reload button err:React lifecycle error in child component,getDerivedStateFromError fails
+// hazard: Errors caught but only logged to console — no server-side error tracking or alerts, critical errors go unnoticed in production
+// hazard: Reload button causes full page reload, losing all unsaved state — users must rework recent changes after error
+// hazard: Error message displayed as-is from error.message — internal implementation details or stack traces leak to end users if error not sanitized
+// edge:frontend/src/App.tsx -> SERVES
+// prompt: Add Sentry or error tracking service to send caught errors to backend. Store error timestamp and user session ID for debugging. Sanitize error messages before display.
 import React from 'react'
 
 interface Props {
@@ -30,7 +39,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
           <div className="text-center max-w-md px-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Something went wrong</h1>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
-              {this.state.error?.message ?? 'An unexpected error occurred.'}
+              {'An unexpected error occurred. Please reload and try again.'}
             </p>
             <button
               onClick={() => window.location.reload()}

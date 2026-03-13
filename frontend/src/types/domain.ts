@@ -1,3 +1,4 @@
+/** @id salesblock.types.domain.domain */
 /**
  * Domain types - Core business entities
  */
@@ -53,6 +54,8 @@ export interface ContactList {
   updated_at?: string
 }
 
+export type SessionType = 'call' | 'email' | 'social'
+
 export interface SalesBlock {
   id: string
   org_id: string
@@ -66,11 +69,20 @@ export interface SalesBlock {
   actual_end?: string
   duration_minutes: number
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+  session_type: SessionType
   calendar_event_id?: string
   notes?: string
   list?: { name: string }
   contact_count?: number
   created_at?: string
+}
+
+export interface ProgressFlags {
+  intro_given: boolean
+  conversation_held: boolean
+  asked_for_meeting: boolean
+  meeting_booked: boolean
+  objection_details: string
 }
 
 export interface Activity {
@@ -83,11 +95,28 @@ export interface Activity {
   outcome: 'no_answer' | 'voicemail' | 'connect' | 'conversation' | 'meeting_booked' | 'not_interested' | 'follow_up' | 'other'
   notes?: string
   duration_seconds?: number
+  progress_flags?: ProgressFlags | null
   contact?: {
     first_name: string
     last_name: string
   }
   created_at?: string
+}
+
+export type ResearchLevel = 'contact' | 'company'
+export type ResearchCategory = 'news' | 'pain_points' | 'tech_stack' | 'funding' | 'general'
+
+export interface ResearchEntry {
+  id: string
+  org_id: string
+  contact_id?: string | null
+  company_name: string
+  level: ResearchLevel
+  category: ResearchCategory
+  content: string
+  created_by: string
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Goal {

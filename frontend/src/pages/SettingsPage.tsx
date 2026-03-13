@@ -1,19 +1,19 @@
-/**
- * @crumb
- * @id frontend-page-settings
- * @area UI/Pages
- * @intent Multi-tab settings hub — manage profile, organisation, team, integrations, pipeline stages, and billing for the current user and org
- * @responsibilities Load org data + pipeline stages + billing info, render 6-tab UI, handle logo upload, save org settings, toggle Salesforce auto-push, manage pipeline stages CRUD, render all 5 OAuth integration buttons
- * @contracts SettingsPage() → JSX; reads/writes orgs + pipeline_stages + users tables + Supabase Storage; uses useAuth for current user
- * @in supabase (orgs + pipeline_stages + users + storage), useAuth, GmailOAuthButton + OutlookOAuthButton + GoogleCalendarOAuthButton + OutlookCalendarOAuthButton + SalesforceOAuthButton
- * @out 6-tab settings UI with profile edit, org management, team roster, OAuth integration buttons, pipeline stage editor, billing display
- * @err Logo upload failure (uploadError state shown); org save failure (silent console.error); pipeline stage save failure (silent); Supabase Storage URL construction may fail silently on non-standard bucket config
- * @hazard All 5 OAuth integrations render inside a single tab — if any OAuth button throws on mount it will crash the entire integrations tab and potentially the full SettingsPage via unhandled render error
- * @hazard Logo upload uses Supabase Storage with a hardcoded bucket name — if the bucket name or path conventions change, uploads silently store to wrong location and the logo_url in orgs will be stale/broken
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES orgs+pipeline_stages+users; frontend/src/hooks/useAuth.ts→READS current user; frontend/src/components/GmailOAuthButton.tsx→RENDERS; frontend/src/components/OutlookOAuthButton.tsx→RENDERS; frontend/src/components/GoogleCalendarOAuthButton.tsx→RENDERS; frontend/src/components/OutlookCalendarOAuthButton.tsx→RENDERS; frontend/src/components/SalesforceOAuthButton.tsx→RENDERS; frontend/src/App.tsx→ROUTES to /settings
- * @trail settings#1 | SettingsPage mounts → load org + pipeline stages → render tabs → user edits profile or org → save → user connects integration → OAuth button redirects → callback page returns → user edits pipeline → save
- * @prompt Wrap each OAuth button in its own ErrorBoundary to isolate render crashes. Add success/error toasts for all save actions. Validate org logo URL before displaying. Extract each tab into a sub-component for maintainability. VV design applied: void-950 page bg, glass-card panels, indigo-electric active tab + CTAs + toggles ON, red-alert danger zone + destructive actions, vv-section-title labels, font-display headings, font-mono stats, white/10 borders, VV inline spinners (hierarchy/team/stages/billing), bg-black/60 modal backdrop, disabled inputs dark:bg-white/5 dark:text-white/50, ease-snappy transitions.
- */
+// @crumb frontend-page-settings
+// UI/PAGES | load_org_data | render_six_tab_ui | logo_upload | org_settings_save | salesforce_auto_push | pipeline_stages_crud | oauth_buttons
+// why: Multi-tab settings hub — manage profile, organisation, team, integrations, pipeline stages, and billing
+// in:supabase(orgs+pipeline_stages+users+storage),useAuth,GmailOAuthButton+OutlookOAuthButton+GoogleCalendarOAuthButton+OutlookCalendarOAuthButton+SalesforceOAuthButton out:6-tab settings UI with profile edit,org management,team roster,OAuth buttons,pipeline stage editor,billing display err:logo upload failure(uploadError state),org save failure(silent),pipeline stage save failure(silent),Storage URL construction may fail silently
+// hazard: All 5 OAuth integrations render inside a single tab — if any OAuth button throws on mount it crashes the entire integrations tab
+// hazard: Logo upload uses Supabase Storage with a hardcoded bucket name — path convention changes cause silent stale/broken logo_url
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> READS
+// edge:frontend/src/components/GmailOAuthButton.tsx -> RELATES
+// edge:frontend/src/components/OutlookOAuthButton.tsx -> RELATES
+// edge:frontend/src/components/GoogleCalendarOAuthButton.tsx -> RELATES
+// edge:frontend/src/components/OutlookCalendarOAuthButton.tsx -> RELATES
+// edge:frontend/src/components/SalesforceOAuthButton.tsx -> RELATES
+// edge:frontend/src/App.tsx -> RELATES
+// edge:settings#1 -> STEP_IN
+// prompt: Wrap each OAuth button in its own ErrorBoundary. Add success/error toasts for all save actions. Validate org logo URL before displaying. Extract each tab into a sub-component.
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
@@ -89,6 +89,18 @@ export default function SettingsPage() {
   const [availableTeams, setAvailableTeams] = useState<{ id: string; name: string }[]>([])
   const [sendingInvite, setSendingInvite] = useState(false)
 
+  // Profile state
+  const [displayName, setDisplayName] = useState('')
+  const [profileEmail, setProfileEmail] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
+  const [passwordNew, setPasswordNew] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains('dark'))
+
   // Hierarchy management state
   const [divisions, setDivisions] = useState<{
     id: string
@@ -110,26 +122,32 @@ export default function SettingsPage() {
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamDivisionId, setNewTeamDivisionId] = useState<string | null>(null)
 
-  // Load organization data
+  // Load organization data + profile data
   useEffect(() => {
     const loadOrgData = async () => {
       if (!user) return
 
-      const { data: userData } = await supabase
+      // Load profile data
+      setProfileEmail(user.email || '')
+      const { data: profileData } = await supabase
         .from('users')
-        .select('org_id, role')
+        .select('org_id, role, display_name')
         .eq('id', user.id)
         .single()
 
-      if (!userData?.org_id) return
+      if (profileData) {
+        setDisplayName(profileData.display_name || '')
+        setUserRole(profileData.role)
+      }
 
-      setOrgId(userData.org_id)
-      setUserRole(userData.role)
+      if (!profileData?.org_id) return
+
+      setOrgId(profileData.org_id)
 
       const { data: orgData } = await supabase
         .from('organizations')
         .select('name, logo_url, sf_auto_push_activities')
-        .eq('id', userData.org_id)
+        .eq('id', profileData.org_id)
         .single()
 
       if (orgData) {
@@ -923,13 +941,171 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       {activeTab === 'profile' && (
-        <div className="max-w-2xl">
+        <div className="max-w-2xl space-y-8">
           <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white mb-4">
             Profile Settings
           </h2>
-          <p className="text-gray-600 dark:text-white/50">
-            Profile customization coming soon.
-          </p>
+
+          {/* Display Name */}
+          <div className="glass-card p-6">
+            <label className="vv-section-title block mb-2">Display Name</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => {
+                  setDisplayName(e.target.value)
+                  setProfileSaved(false)
+                }}
+                placeholder="Enter your display name"
+                className="flex-1 px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/50 focus:border-indigo-electric transition-all"
+              />
+              <button
+                onClick={async () => {
+                  if (!user) return
+                  setSavingProfile(true)
+                  setProfileSaved(false)
+                  try {
+                    const { error } = await supabase
+                      .from('users')
+                      .update({ display_name: displayName })
+                      .eq('id', user.id)
+                    if (error) throw error
+                    setProfileSaved(true)
+                    setTimeout(() => setProfileSaved(false), 3000)
+                  } catch (err) {
+                    console.error('Failed to save display name:', err)
+                  } finally {
+                    setSavingProfile(false)
+                  }
+                }}
+                disabled={savingProfile}
+                className="px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy disabled:opacity-50"
+              >
+                {savingProfile ? 'Saving...' : profileSaved ? 'Saved!' : 'Save'}
+              </button>
+            </div>
+          </div>
+
+          {/* Email (read-only) */}
+          <div className="glass-card p-6">
+            <label className="vv-section-title block mb-2">Email Address</label>
+            <input
+              type="email"
+              value={profileEmail}
+              disabled
+              className="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/50 cursor-not-allowed text-sm"
+            />
+            <p className="text-xs text-gray-500 dark:text-white/40 mt-2">
+              Email address cannot be changed here. Contact support if you need to update it.
+            </p>
+          </div>
+
+          {/* Change Password */}
+          <div className="glass-card p-6">
+            <label className="vv-section-title block mb-4">Change Password</label>
+            <div className="space-y-3">
+              <input
+                type="password"
+                value={passwordNew}
+                onChange={(e) => {
+                  setPasswordNew(e.target.value)
+                  setPasswordError(null)
+                  setPasswordSuccess(false)
+                }}
+                placeholder="New password"
+                className="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/50 focus:border-indigo-electric transition-all"
+              />
+              <input
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => {
+                  setPasswordConfirm(e.target.value)
+                  setPasswordError(null)
+                  setPasswordSuccess(false)
+                }}
+                placeholder="Confirm new password"
+                className="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/50 focus:border-indigo-electric transition-all"
+              />
+              {passwordError && (
+                <p className="text-sm text-red-alert">{passwordError}</p>
+              )}
+              {passwordSuccess && (
+                <p className="text-sm text-emerald-signal">Password updated successfully.</p>
+              )}
+              <button
+                onClick={async () => {
+                  setPasswordError(null)
+                  setPasswordSuccess(false)
+                  if (passwordNew.length < 6) {
+                    setPasswordError('Password must be at least 6 characters.')
+                    return
+                  }
+                  if (passwordNew !== passwordConfirm) {
+                    setPasswordError('Passwords do not match.')
+                    return
+                  }
+                  setChangingPassword(true)
+                  try {
+                    const { error } = await supabase.auth.updateUser({
+                      password: passwordNew,
+                    })
+                    if (error) throw error
+                    setPasswordSuccess(true)
+                    setPasswordNew('')
+                    setPasswordConfirm('')
+                    setTimeout(() => setPasswordSuccess(false), 5000)
+                  } catch (err: any) {
+                    setPasswordError(err.message || 'Failed to update password.')
+                  } finally {
+                    setChangingPassword(false)
+                  }
+                }}
+                disabled={changingPassword || !passwordNew}
+                className="px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy disabled:opacity-50"
+              >
+                {changingPassword ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </div>
+
+          {/* Theme Preference */}
+          <div className="glass-card p-6">
+            <label className="vv-section-title block mb-2">Theme Preference</label>
+            <p className="text-sm text-gray-600 dark:text-white/50 mb-4">
+              Choose your preferred color scheme.
+            </p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  document.documentElement.classList.remove('dark')
+                  localStorage.setItem('theme', 'light')
+                  setDarkMode(false)
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-snappy border ${
+                  !darkMode
+                    ? 'bg-indigo-electric text-white border-indigo-electric'
+                    : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/60 border-gray-200 dark:border-white/10 hover:border-indigo-electric/50'
+                }`}
+              >
+                Light
+              </button>
+              <button
+                onClick={() => {
+                  document.documentElement.classList.add('dark')
+                  localStorage.setItem('theme', 'dark')
+                  setDarkMode(true)
+                }}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ease-snappy border ${
+                  darkMode
+                    ? 'bg-indigo-electric text-white border-indigo-electric'
+                    : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/60 border-gray-200 dark:border-white/10 hover:border-indigo-electric/50'
+                }`}
+              >
+                Dark
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

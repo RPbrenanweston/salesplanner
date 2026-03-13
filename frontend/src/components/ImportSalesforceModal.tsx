@@ -1,19 +1,13 @@
-/**
- * @crumb
- * @id frontend-component-import-salesforce-modal
- * @area UI/Contacts/Import
- * @intent Salesforce import modal — query Salesforce CRM records via connected integration and import selected contacts/leads into the contacts table
- * @responsibilities Query Salesforce records via lib/salesforce helpers, display results in a selectable list, map Salesforce fields to contact schema, bulk-insert selected records to Supabase
- * @contracts ImportSalesforceModal({ onClose, onImported }) → JSX; calls querySalesforceRecords + getSalesforceUserId from lib/salesforce; calls supabase.from('contacts').insert (bulk)
- * @in lib/salesforce (querySalesforceRecords, getSalesforceUserId), supabase contacts table, useAuth (user_id, org_id), onClose callback, onImported callback
- * @out Selected Salesforce records inserted as contacts in Supabase; onImported called with count; modal closed
- * @err No Salesforce connection (error state shown before query); Salesforce API error (shown in modal); Supabase bulk insert failure (caught, error shown)
- * @hazard Salesforce field mapping from SFDC Contact/Lead schema to the local contacts schema is hardcoded — if the local schema changes or the SFDC object has custom fields required for data quality, the mapping will be incomplete and records will import with missing data
- * @hazard Salesforce queries may time out or return large record sets — if querySalesforceRecords fetches more than the displayed limit, users may not see all available records and may underestimate what was available for import
- * @shared-edges frontend/src/lib/salesforce.ts→CALLS querySalesforceRecords + getSalesforceUserId; supabase contacts table→BULK INSERTS to; parent page (Contacts)→RENDERS modal; SalesforceOAuthButton→PROVIDES connection
- * @trail sf-import#1 | User clicks "Import from Salesforce" → ImportSalesforceModal renders → querySalesforceRecords fetches SFDC data → user selects records → map fields → supabase insert → onImported(count) → modal closes
- * @prompt Make field mapping configurable. Add record count cap with pagination. Pre-check Salesforce connection status before rendering form.
- */
+// @crumb frontend-component-import-salesforce-modal
+// UI/Contacts/Import | query_salesforce_records | selectable_record_list | field_mapping | bulk_insert
+// why: Salesforce import modal — query Salesforce CRM records via connected integration and import selected contacts/leads into the contacts table
+// in:lib/salesforce (querySalesforceRecords, getSalesforceUserId),supabase contacts table,useAuth out:Selected Salesforce records inserted as contacts,onImported called err:No Salesforce connection (error shown),Salesforce API error,Supabase bulk insert failure
+// hazard: Hardcoded SFDC field mapping — local schema changes or custom SFDC fields cause incomplete imports
+// hazard: Salesforce queries may time out or return large record sets exceeding displayed limit
+// edge:frontend/src/lib/salesforce.ts -> CALLS
+// edge:frontend/src/components/SalesforceOAuthButton.tsx -> RELATES
+// edge:sf-import#1 -> STEP_IN
+// prompt: Make field mapping configurable. Add record count cap with pagination. Pre-check Salesforce connection status before rendering form.
 import { useState } from 'react';
 import { X, Database, AlertCircle, CheckCircle } from 'lucide-react';
 import {

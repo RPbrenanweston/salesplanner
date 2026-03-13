@@ -1,3 +1,4 @@
+/** @id salesblock.types.domain.enums */
 /**
  * Enum types and constants
  */
@@ -13,6 +14,12 @@ export enum SalesBlockStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
+}
+
+export const SESSION_TYPE_LABELS: Record<string, string> = {
+  call: 'Call Block',
+  email: 'Email Block',
+  social: 'Social Block',
 }
 
 export enum ActivityType {

@@ -1,25 +1,23 @@
-/**
- * @crumb
- * @id frontend-app-orchestrator
- * @area DOM
- * @intent Root component — orchestrates complete React Router routing architecture, lazy-loaded page splits, and QueryClient initialization for the full SalesBlock.io app
- * @responsibilities Declare all 24 routes (public, protected, OAuth callbacks); wrap app in QueryClientProvider + Suspense; enforce ProtectedRoute for authenticated pages; compose AppLayout around protected views
- * @contracts App() → JSX; no props; wraps all pages in BrowserRouter + QueryClientProvider; protected routes via <ProtectedRoute>; layout via <AppLayout>
- * @in React Router v6, TanStack QueryClient, ProtectedRoute, AppLayout, PageLoader, 24 lazy-loaded page modules
- * @out Fully routed SPA — "/" (MarketingPage), "/signin|signup|forgot-password|pricing" (public), "/dashboard|salesblocks|lists|…" (protected behind AppLayout), OAuth callback routes
- * @err Missing route for Arena.tsx and ContentLibrary.tsx — pages exist but are not yet routed; navigating to those paths returns no-match (blank)
- * @hazard 24 routes hardcoded — no dynamic route registry; adding a new page requires both a lazy import AND a new <Route> entry here
- * @hazard React Query cache not persisted — QueryClient resets on full page reload; no localStorage or sessionStorage persistence configured
- * @shared-edges frontend/src/components/ProtectedRoute.tsx→WRAPS protected routes; frontend/src/components/AppLayout.tsx→WRAPS authenticated views; frontend/src/components/PageLoader.tsx→SUSPENSE fallback; all pages in frontend/src/pages/→LAZY LOADED
- * @trail app#1 | Browser request → BrowserRouter matches path → Suspense loads lazy chunk → ProtectedRoute checks auth → AppLayout renders nav + outlet → Page component mounts
- * @prompt Add routes for /arena (Arena.tsx) and /content-library (ContentLibrary.tsx) when those pages are ready to surface; consider a route registry pattern to avoid dual-entry (import + Route) for each new page
- */
+/** @id salesblock.pages.app.app */
+// @crumb frontend-app-orchestrator
+// DOM | route_declaration | query_client_initialization | protected_route_enforcement | app_layout_composition
+// why: Root component — orchestrates complete React Router routing architecture, lazy-loaded page splits, and QueryClient initialization for the full SalesBlock.io app
+// in:React Router v6,TanStack QueryClient,ProtectedRoute,AppLayout,PageLoader,24 lazy-loaded page modules out:Fully routed SPA,public routes,protected routes behind AppLayout,OAuth callback routes err:Missing route for Arena.tsx and ContentLibrary.tsx — pages exist but not yet routed
+// hazard: 24 routes hardcoded — no dynamic route registry; adding a new page requires both a lazy import AND a new Route entry here
+// hazard: React Query cache not persisted — QueryClient resets on full page reload; no localStorage or sessionStorage persistence configured
+// edge:frontend/src/components/ProtectedRoute.tsx -> RELATES
+// edge:frontend/src/components/AppLayout.tsx -> RELATES
+// edge:frontend/src/components/PageLoader.tsx -> RELATES
+// edge:frontend/src/pages/ -> RELATES
+// edge:app#1 -> STEP_IN
+// prompt: Add routes for /arena (Arena.tsx) and /content-library (ContentLibrary.tsx) when those pages are ready to surface; consider a route registry pattern to avoid dual-entry (import + Route) for each new page
 import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import PageLoader from './components/PageLoader'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
+import { Toaster } from './components/ui/toaster'
 
 // Lazy load all page components for code splitting
 const Home = lazy(() => import('./pages/Home'))
@@ -51,6 +49,15 @@ const Diagnostics = lazy(() => import('./pages/Diagnostics'))
 
 const queryClient = new QueryClient()
 
+/** Gate: only renders children when ?debug=true is present, otherwise redirects to /dashboard */
+function DebugGate({ children }: { children: React.ReactNode }) {
+  const [searchParams] = useSearchParams()
+  if (searchParams.get('debug') !== 'true') {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <>{children}</>
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -66,12 +73,14 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/pricing" element={<PricingPage />} />
 
-            {/* Diagnostics - protected, no layout (standalone debug page) */}
+            {/* Diagnostics - protected, gated behind ?debug=true, no layout (standalone debug page) */}
             <Route
               path="/diagnostics"
               element={
                 <ProtectedRoute>
-                  <Diagnostics />
+                  <DebugGate>
+                    <Diagnostics />
+                  </DebugGate>
                 </ProtectedRoute>
               }
             />
@@ -234,6 +243,7 @@ function App() {
             />
           </Routes>
         </Suspense>
+        <Toaster />
       </BrowserRouter>
     </QueryClientProvider>
   )

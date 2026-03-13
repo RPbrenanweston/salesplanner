@@ -1,0 +1,20 @@
+Validating       84 files (Schema C format)...
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VALIDATION RESULTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total files with breadcrumbs:       84
+Total hazards found:      180
+Total edges found:      304
+
+Average hazards per file: 2
+Average edges per file: 3
+
+ERRORS FOUND:
+  • Hazard violations (< 2): 0 files
+  • Missing 'why:' statement: 0 files
+  • Invalid edge types: 0 edges
+  • Missing edge targets: 0 edges
+
+✅ All breadcrumbs validated successfully!

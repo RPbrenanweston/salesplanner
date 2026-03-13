@@ -1,19 +1,15 @@
-/**
- * @crumb
- * @id frontend-page-analytics
- * @area UI/Pages
- * @intent Activity analytics dashboard — aggregate and visualise rep performance metrics (calls, emails, social, meetings) with custom KPI tracking
- * @responsibilities Load activity counts by type, render KPI cards with trend indicators, display custom KPIs from user-defined metrics, open CustomKPIModal for additions
- * @contracts Analytics() → JSX; reads activities (aggregated by type) from Supabase; uses useAuth for user+org_id scoping; launches CustomKPIModal
- * @in supabase (activities table), useAuth (user/org_id), CustomKPIModal component
- * @out KPI summary cards (calls/emails/social/meetings), trend lines, custom KPI section with add button
- * @err Supabase aggregation query failure (all metrics show 0 with no error state); custom KPI load failure (silently empty)
- * @hazard No time-range filter on activity aggregation — loads all-time counts; grows unbounded and may cause slow queries as activity volume increases
- * @hazard Custom KPI values are user-entered targets without server-side validation — negative or extremely large values render without bounds checking
- * @shared-edges frontend/src/components/CustomKPIModal.tsx→LAUNCHES; frontend/src/lib/supabase.ts→QUERIES activities; frontend/src/hooks/useAuth.ts→CALLS for user; frontend/src/App.tsx→ROUTES to /analytics
- * @trail analytics#1 | Analytics mounts → load activity aggregates + custom KPIs → render KPI cards → CustomKPIModal adds new metric → refresh KPI list
- * @prompt Add time-range filter (today/week/month/all-time) to activity queries. Add loading skeleton per KPI card. Validate custom KPI bounds on input. Consider Recharts or similar for trend visualisation instead of manual counts. VV design applied: void-950 page bg, min-h-full p-6, VV spinner loading state, vv-section-title "Insights" label, font-display headings, glass-card KPI + chart panels, indigo-electric active date tab, indigo-electric CTA buttons (Add KPI, Custom KPI), ease-snappy transitions, font-mono numeric values, white/10 borders, recharts recolored to VV palette (indigo-electric/emerald-signal/cyan-neon/purple-neon).
- */
+// @crumb frontend-page-analytics
+// UI/PAGES | load_activity_counts | render_kpi_cards | trend_indicators | custom_kpi_tracking | custom_kpi_modal
+// why: Activity analytics dashboard — aggregate and visualise rep performance metrics with custom KPI tracking
+// in:supabase(activities table),useAuth(user/org_id),CustomKPIModal out:KPI summary cards(calls/emails/social/meetings),trend lines,custom KPI section err:Supabase aggregation failure(all metrics show 0),custom KPI load failure(silently empty)
+// hazard: No time-range filter on activity aggregation — loads all-time counts; grows unbounded causing slow queries
+// hazard: Custom KPI values are user-entered targets without server-side validation — negative or large values render without bounds checking
+// edge:frontend/src/components/CustomKPIModal.tsx -> CALLS
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:analytics#1 -> STEP_IN
+// prompt: Add time-range filter to activity queries. Add loading skeleton per KPI card. Validate custom KPI bounds on input. Consider Recharts for trend visualisation.
 import { useEffect, useState } from 'react';
 import { Phone, Mail, Share2, Calendar, Plus, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -216,6 +212,20 @@ export default function Analytics() {
 
     if (!activities) return 0;
 
+    // Pre-fetch deals for pipeline_value metric
+    let pipelineValue = 0;
+    if (kpi.numerator_metric === 'pipeline_value' || kpi.denominator_metric === 'pipeline_value') {
+      const { data: deals } = await supabase
+        .from('deals')
+        .select('value, stage')
+        .eq('user_id', user.id);
+      if (deals) {
+        pipelineValue = deals
+          .filter(d => d.stage !== 'Closed Won' && d.stage !== 'Closed Lost')
+          .reduce((sum, d) => sum + (d.value || 0), 0);
+      }
+    }
+
     const metricValue = (metric: string): number => {
       switch (metric) {
         case 'calls':
@@ -235,8 +245,7 @@ export default function Analytics() {
         case 'replies':
           return activities.filter((a) => a.type === 'email' && a.replied_at !== null).length;
         case 'pipeline_value':
-          // TODO: Implement pipeline value calculation from deals table
-          return 0;
+          return pipelineValue;
         default:
           return 0;
       }
@@ -302,10 +311,18 @@ export default function Analytics() {
       // Build daily activity data
       const dailyMap: Record<string, DailyActivity> = {};
 
-      // Initialize all dates in range
+      // Initialize all dates in range using local dates so the chart
+      // groups activities by the user's local day, not UTC day.
+      const toLocalDateKey = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+
       const current = new Date(start);
       while (current <= end) {
-        const dateKey = current.toISOString().split('T')[0];
+        const dateKey = toLocalDateKey(current);
         dailyMap[dateKey] = {
           date: dateKey,
           calls: 0,
@@ -316,9 +333,10 @@ export default function Analytics() {
         current.setDate(current.getDate() + 1);
       }
 
-      // Populate with activity data
+      // Populate with activity data — use local date so a 11pm activity
+      // appears on the user's local day, not the UTC next-day.
       activities?.forEach((activity) => {
-        const dateKey = activity.created_at.split('T')[0];
+        const dateKey = toLocalDateKey(new Date(activity.created_at));
         if (dailyMap[dateKey]) {
           if (activity.type === 'call') dailyMap[dateKey].calls += 1;
           if (activity.type === 'email') dailyMap[dateKey].emails += 1;
@@ -395,7 +413,10 @@ export default function Analytics() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse YYYY-MM-DD keys as local midnight to avoid UTC-to-local shift
+    // that would show the previous day for users in negative-offset timezones.
+    const [year, month, day] = (dateString as string).split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',

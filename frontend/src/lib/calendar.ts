@@ -1,25 +1,18 @@
-/**
- * @crumb
- * @id frontend-calendar-integration
- * @area INF
- * @intent Unified OAuth wrapper for Google Calendar v3 and Microsoft Outlook Graph APIs enabling event CRUD and free/busy slot calculation
- * @responsibilities Calendar event lifecycle (create, update, delete), OAuth provider selection, free/busy slot calculation, availability formatting
- * @contracts createCalendarEvent(event: CalendarEvent) → Promise<CalendarEventResponse>; updateCalendarEvent(eventId: string, event: CalendarEvent) → Promise<void>; deleteCalendarEvent(eventId: string) → Promise<void>; getFreeBusySlots(startTime: Date, endTime: Date) → Promise<TimeSlot[]>; formatAvailabilityText(slots: TimeSlot[]) → string
- * @in OAuth tokens (via getCalendarConnection), CalendarEvent objects {title, description, start, end}, time range parameters
- * @out CalendarEventResponse {eventId, provider}, TimeSlot[] {start, end}, formatted availability string (up to 6 slots, human-readable)
- * @err OAuth token expiration (401 from Calendar v3 or Graph), API rate limits (429), timezone handling errors on slot calculation
- * @hazard Free/busy algorithm assumes UTC conversion for both providers—timezone mismatches on DST transitions can cause double-booking; formatAvailabilityText hardcoded to 6 slots—large availability windows lose detail
- * @hazard Provider selection race: getCalendarConnection may return expired token before refresh completes—createCalendarEvent fails with 401 but no automatic retry
- * @shared-edges frontend/src/lib/calendar-connection.ts→USES for OAuth token retrieval; frontend/src/components/ScheduleMeeting.tsx→CALLS for event creation; frontend/src/hooks/useCalendarSync.ts→CONSUMES for two-way sync updates
- * @trail calendar-integration#1 | User opens scheduling UI → getFreeBusySlots queries both providers → displays aggregated availability → user selects slot → createCalendarEvent syncs to Google and Outlook
- * @prompt When adding multi-calendar support (multiple Google/Outlook accounts per user), ensure free/busy queries aggregate across ALL accounts. Verify timezone normalization before slot comparison—test DST transitions. Add exponential backoff retry for transient 429/503 errors.
- */
+// @crumb frontend-calendar-integration
+// INF | event_lifecycle_crud | oauth_provider_selection | free_busy_calculation | availability_formatting
+// why: Unified OAuth wrapper for Google Calendar v3 and Microsoft Outlook Graph APIs enabling event CRUD and free/busy slot calculation
+// in:OAuth tokens,CalendarEvent objects,time range parameters out:CalendarEventResponse,TimeSlot[],formatted availability string err:OAuth token expiration (401);API rate limits (429);timezone handling errors on slot calculation
+// hazard: Free/busy algorithm assumes UTC conversion — timezone mismatches on DST transitions can cause double-booking; formatAvailabilityText hardcoded to 6 slots
+// hazard: Provider selection race — getCalendarConnection may return expired token before refresh completes; createCalendarEvent fails with 401 but no automatic retry
+// edge:calendar-integration#1 -> STEP_IN
+// prompt: When adding multi-calendar support, ensure free/busy queries aggregate across ALL accounts. Verify timezone normalization before slot comparison — test DST transitions. Add exponential backoff retry for transient 429/503 errors.
 
-import { supabase } from './supabase';
+import { getValidToken } from './token-refresh';
 
 /**
  * Calendar API wrapper for Google Calendar and Microsoft Outlook Calendar.
  * Handles event creation, updates, and deletion via OAuth-connected accounts.
+ * Uses getValidToken() for automatic token refresh before API calls.
  */
 
 interface CalendarEvent {
@@ -35,42 +28,28 @@ interface CalendarEventResponse {
 }
 
 /**
- * Get user's connected calendar OAuth connection (Google or Outlook)
+ * Get user's connected calendar OAuth connection (Google or Outlook).
+ * Uses getValidToken() which auto-refreshes expired tokens.
  */
 async function getCalendarConnection(): Promise<{
   provider: 'google_calendar' | 'outlook_calendar';
   accessToken: string;
 } | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  // Check for Google Calendar connection first
-  const { data: googleConn } = await supabase
-    .from('oauth_connections')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('provider', 'google_calendar')
-    .maybeSingle();
-
-  if (googleConn) {
+  // Try Google Calendar first (with auto-refresh)
+  const googleToken = await getValidToken('google_calendar');
+  if (googleToken) {
     return {
       provider: 'google_calendar',
-      accessToken: googleConn.access_token,
+      accessToken: googleToken,
     };
   }
 
-  // Fallback to Outlook Calendar
-  const { data: outlookConn } = await supabase
-    .from('oauth_connections')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('provider', 'outlook_calendar')
-    .maybeSingle();
-
-  if (outlookConn) {
+  // Fallback to Outlook Calendar (with auto-refresh)
+  const outlookToken = await getValidToken('outlook_calendar');
+  if (outlookToken) {
     return {
       provider: 'outlook_calendar',
-      accessToken: outlookConn.access_token,
+      accessToken: outlookToken,
     };
   }
 

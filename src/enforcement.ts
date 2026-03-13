@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id enforcement-hallucination-control
- * @area SEC
- * @intent Prevent uncited claims, seniority inference, unsupported skill assertions, contradictions (quality gate before report generation)
- * @responsibilities 4 enforcement rules (citation coverage, seniority inference prevention, skill summarization, contradiction detection), violation collection, profile filtering
- * @contracts checkCitationCoverage(profiles[], getProfileText) → Violation[]; checkSeniorityInference(profiles[]) → Violation[]; checkSkillSummarization(profiles[], getProfileText) → Violation[]; checkContradictions(profiles[], getProfileText) → Violation[]; enforceHallucinationControl(profiles[], getProfileText) → EnforcementResult {passed: bool, violations: Violation[], profilesProcessed: int, profilesRejected: int}; filterEnforcedProfiles(profiles[], result) → ValidatedProfile[]
- * @in ValidatedProfile[], getProfileText callback function
- * @out Violation[], filtered profile list (failed profiles removed)
- * @err EnforcementError on violation detection (non-fatal, rules triggered)
- * @hazard Regex patterns for claim detection are basic — false positives on non-claims (e.g., "This pattern worked well" flagged as factual claim)
- * @hazard Sentence extraction splits on [.!?] breaking on abbreviations (Ph.D., U.S., e.g. not handled)
- * @shared-edges validation.ts→PROVIDES ValidatedProfile[]; report.ts→CONSUMES filtered profiles; database.ts→LOGS violations
- * @trail validation-pipeline#4 | Hallucination rules enforced before markdown report generation
- * @prompt Refactor sentence extraction to use NLP tokenizer (not regex split). Add abbrev test cases. Consider false positive rate vs enforcement strictness trade-off.
- */
+// @crumb enforcement-hallucination-control
+// SEC | citation_coverage_check | seniority_inference_prevention | skill_summarization_check | contradiction_detection | profile_filtering
+// why: Prevent uncited claims, seniority inference, unsupported skill assertions, contradictions (quality gate before report generation)
+// in:ValidatedProfile[], getProfileText callback function out:Violation[], filtered profile list (failed profiles removed) err:EnforcementError on violation detection (non-fatal, rules triggered)
+// hazard: Regex patterns for claim detection are basic — false positives on non-claims (e.g., "This pattern worked well" flagged as factual claim)
+// hazard: Sentence extraction splits on [.!?] breaking on abbreviations (Ph.D., U.S., e.g. not handled)
+// edge:src/validation.ts -> READS
+// edge:src/report.ts -> SERVES
+// edge:src/database.ts -> WRITES
+// edge:validation-pipeline#4 -> STEP_IN
+// prompt: Refactor sentence extraction to use NLP tokenizer (not regex split). Add abbrev test cases. Consider false positive rate vs enforcement strictness trade-off.
 
 import { ValidatedProfile, Citation } from './types';
 

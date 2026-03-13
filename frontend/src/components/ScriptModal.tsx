@@ -1,23 +1,19 @@
-/**
- * @crumb
- * @id frontend-component-script-modal
- * @area UI/Content/Scripts
- * @intent Script modal — create or edit a call/meeting script with rich text formatting, save to Supabase scripts table for use during sales calls
- * @responsibilities Load existing script data if editing, render title field + RichTextEditor for script body, save new/updated script to Supabase scripts table, call onSave callback
- * @contracts ScriptModal({ isOpen, onClose, onSave, orgId, scriptId? }) → JSX; reads scripts table if scriptId provided; calls supabase.from('scripts').insert or .update; calls onSave on success
- * @in isOpen (boolean), onClose callback, onSave callback, orgId (string), scriptId (optional string — if provided, load and edit existing script)
- * @out New or updated script row in scripts table; onSave called with script id; modal closed
- * @err Supabase read failure (edit mode — script not loaded, form renders empty); Supabase insert/update failure (caught, error shown)
- * @hazard RichTextEditor outputs raw HTML — script body is stored as HTML in Supabase; if the script is later rendered with dangerouslySetInnerHTML without sanitization, XSS is possible if a user embeds script tags in the body
- * @hazard Script upsert does not validate title uniqueness per org — duplicate script titles are silently allowed, causing confusion in the script selector dropdown on Scripts page
- * @shared-edges supabase scripts table→READS (edit) and INSERTS/UPDATES; frontend/src/components/RichTextEditor.tsx→RENDERS for body; frontend/src/pages/Scripts.tsx→RENDERS modal + READS scripts; parent→PASSES orgId + scriptId
- * @trail script-edit#1 | User clicks Edit Script → ScriptModal loads with existing script → user edits title + body → handleSave → supabase update → onSave() → modal closes → Scripts page refreshes
- * @prompt Sanitize HTML before storing (DOMPurify). Add title uniqueness validation. Add script tagging/categorization (discovery vs objection handling vs closing).
- */
+// @crumb frontend-component-script-modal
+// UI/Content/Scripts | load_existing_script | render_title_body_form | save_script | on_save_callback
+// why: Script modal — create or edit a call/meeting script with rich text formatting, save to Supabase scripts table for use during sales calls
+// in:isOpen,onClose,onSave,orgId,scriptId (optional) out:New or updated script row,onSave called err:Supabase read failure (form renders empty),Supabase insert/update failure
+// hazard: RichTextEditor outputs raw HTML stored in Supabase — unsanitized rendering enables XSS
+// hazard: No title uniqueness validation per org — duplicate titles cause confusion in script selector
+// edge:frontend/src/components/RichTextEditor.tsx -> RELATES
+// edge:frontend/src/pages/Scripts.tsx -> RELATES
+// edge:script-edit#1 -> STEP_IN
+// prompt: Sanitize HTML before storing (DOMPurify). Add title uniqueness validation. Add script tagging/categorization.
+import DOMPurify from 'dompurify';
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { RichTextEditor } from './RichTextEditor';
+import { logError } from '../lib/error-logger';
 
 interface ScriptModalProps {
   isOpen: boolean;
@@ -63,10 +59,10 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
 
       const script = data as CallScript;
       setName(script.name);
-      setContent(script.content);
+      setContent(DOMPurify.sanitize(script.content));
       setIsShared(script.is_shared);
     } catch (error) {
-      console.error('Error loading script:', error);
+      logError(error, 'ScriptModal.loadScript');
       alert('Failed to load script');
     }
   }
@@ -117,7 +113,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
       onSuccess();
       resetAndClose();
     } catch (error) {
-      console.error('Error saving script:', error);
+      logError(error, 'ScriptModal.handleSubmit');
       alert('Failed to save script');
     } finally {
       setLoading(false);
@@ -172,7 +168,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
             </label>
             <RichTextEditor
               content={content}
-              onChange={setContent}
+              onChange={(html) => setContent(DOMPurify.sanitize(html))}
               placeholder="Write your call script here. Use formatting to organize your talking points..."
             />
           </div>

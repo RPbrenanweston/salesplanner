@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id frontend-component-rich-text-editor
- * @area UI/Editor
- * @intent Rich text editor — Tiptap-based WYSIWYG editor with bold, italic, ordered/unordered list, undo/redo toolbar for composing formatted content
- * @responsibilities Render Tiptap editor with StarterKit + Placeholder extension, expose toolbar buttons for formatting actions, call onChange with HTML string on every content update
- * @contracts RichTextEditor({ content, onChange, placeholder? }) → JSX; uses useEditor from @tiptap/react with StarterKit + Placeholder; calls onChange(editor.getHTML()) on update
- * @in content (string — initial HTML), onChange callback (receives HTML string), placeholder (optional string)
- * @out Formatted HTML string on every keystroke via onChange; rendered editable WYSIWYG area
- * @err Tiptap extension load failure (rare — editor renders blank); onChange called with empty string if editor content is empty paragraph (consumers must handle "<p></p>" as empty)
- * @hazard onChange is called with raw HTML — if the HTML is later rendered unsanitized (e.g. with dangerouslySetInnerHTML), XSS vulnerabilities are possible if user-authored content contains script tags or event handlers
- * @hazard Tiptap StarterKit does not restrict HTML tags — a user could paste rich content with arbitrary inline styles or spans that bypass the editor's visual formatting model, producing unexpected HTML in stored content
- * @shared-edges @tiptap/react→USED as editor engine; ComposeEmailModal→RENDERS this component for email body; ScriptModal→MAY RENDER for script content
- * @trail rich-text#1 | Parent renders RichTextEditor with initial content → user types/formats → Tiptap fires onUpdate → onChange(editor.getHTML()) called → parent stores HTML
- * @prompt Sanitize HTML output before storing (DOMPurify or server-side). Add image paste support. Consider output format: HTML vs markdown vs Tiptap JSON for storage.
- */
+// @crumb frontend-component-rich-text-editor
+// UI/Editor | tiptap_editor_render | toolbar_formatting | on_change_html_output
+// why: Rich text editor — Tiptap-based WYSIWYG editor with bold, italic, ordered/unordered list, undo/redo toolbar for composing formatted content
+// in:content (initial HTML),onChange callback,placeholder (optional) out:Formatted HTML string via onChange,rendered editable WYSIWYG area err:Tiptap extension load failure (renders blank),empty paragraph as empty string
+// hazard: onChange outputs raw HTML — unsanitized rendering via dangerouslySetInnerHTML enables XSS
+// hazard: StarterKit does not restrict HTML tags — pasted rich content produces unexpected HTML in storage
+// edge:frontend/src/components/ComposeEmailModal.tsx -> RELATES
+// edge:frontend/src/components/ScriptModal.tsx -> RELATES
+// edge:rich-text#1 -> STEP_IN
+// prompt: Sanitize HTML output before storing (DOMPurify or server-side). Add image paste support. Consider output format: HTML vs markdown vs Tiptap JSON for storage.
+import DOMPurify from 'dompurify';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -35,7 +30,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Start typing 
     ],
     content,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      onChange(DOMPurify.sanitize(editor.getHTML()));
     },
   });
 

@@ -1,24 +1,21 @@
-/**
- * @crumb
- * @id frontend-page-content-library
- * @area UI/Pages
- * @intent Unified content library — combined view of email templates and call scripts for browsing and management
- * @responsibilities Load and display both email_templates and call_scripts in one view, filter by type, open TemplateModal or ScriptModal for create/edit, delete items
- * @contracts ContentLibrary() → JSX; reads email_templates + call_scripts from Supabase; writes on create/update/delete
- * @in supabase (email_templates + call_scripts tables), TemplateModal + ScriptModal components
- * @out Tabbed or merged content list with type labels, shared badges, edit/delete actions
- * @err Supabase query failure for either type (silent partial load — may show only one content type with no indication the other failed)
- * @hazard Dual-table load with no error differentiation — if email_templates query fails, scripts still render and vice versa; partial state looks identical to full success state
- * @hazard RLS on both tables must scope to same org — if one table has tighter RLS than the other, the views will show inconsistent ownership across content types
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES email_templates+call_scripts; frontend/src/components/TemplateModal.tsx→LAUNCHES; frontend/src/components/ScriptModal.tsx→LAUNCHES; frontend/src/App.tsx→ROUTES to /content-library
- * @trail content-library#1 | ContentLibrary mounts → load templates + scripts → render unified list → user filters by type → user creates/edits via modal → reload
- * @prompt VV tokens applied — glass-card, indigo-electric CTAs, cyan-neon script accents, red-alert delete, VV spinners on load states. Surface load errors per content type with distinct error banners. Merge with EmailTemplates and Scripts pages or remove redundancy. Add bulk actions. Verify org-scoped RLS on both tables.
- */
+// @crumb frontend-page-content-library
+// UI/PAGES | load_email_templates | load_call_scripts | filter_by_type | create_edit_modals | delete_items
+// why: Unified content library — combined view of email templates and call scripts for browsing and management
+// in:supabase(email_templates+call_scripts),TemplateModal+ScriptModal out:tabbed or merged content list with type labels,shared badges,edit/delete actions err:Supabase query failure for either type(silent partial load)
+// hazard: Dual-table load with no error differentiation — partial state looks identical to full success state
+// hazard: RLS on both tables must scope to same org — inconsistent RLS causes inconsistent ownership across content types
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/components/TemplateModal.tsx -> CALLS
+// edge:frontend/src/components/ScriptModal.tsx -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:content-library#1 -> STEP_IN
+// prompt: Surface load errors per content type with distinct error banners. Merge with EmailTemplates and Scripts pages or remove redundancy. Verify org-scoped RLS.
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Share2, Lock, Mail, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { TemplateModal } from '../components/TemplateModal';
 import { ScriptModal } from '../components/ScriptModal';
+import DOMPurify from 'dompurify';
 
 interface EmailTemplate {
   id: string;
@@ -145,7 +142,7 @@ export default function ContentLibrary() {
   // ─── Utilities ───
   function stripHtml(html: string): string {
     const tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
+    tmp.innerHTML = DOMPurify.sanitize(html);
     return tmp.textContent || tmp.innerText || '';
   }
 

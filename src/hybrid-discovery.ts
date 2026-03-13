@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id hybrid-discovery-orchestrator
- * @area OBS
- * @intent Orchestrate discovery pipeline: database-first (token efficient), web fallback, staleness filtering, dead URL detection, result capping at target count
- * @responsibilities Database querying, web discovery gap calculation, staleness detection (90-day threshold), dead URL filtering, result assembly, statistics reporting
- * @contracts queryDatabaseForProfiles(db, config, maxStaleDays=90) → DatabaseResult<ValidatedProfile[]>; flagStaleProfiles(profiles[], maxStaleDays=90) → ProfileWithStaleness[]; checkUrlLiveness(url) → Promise<bool>; detectDeadUrls(profile) → Promise<string[]>; filterFreshProfiles(profiles[], maxStaleDays=90) → Promise<{fresh, stale, withDeadUrls}>; calculateWebDiscoveryGap(dbProfileCount, targetCount=20) → number; runHybridDiscovery(db, config, webDiscoveryFn, maxStaleDays=90, targetCount=20) → Promise<HybridDiscoveryResult>
- * @in Database (available/unavailable), GatingConfig, web discovery function callback
- * @out HybridDiscoveryResult {profiles[], fromDatabase: int, fromWeb: int, staleProfilesRevalidated: int, deadUrlsDetected: int, totalReturned: int}
- * @err Database unavailable (graceful fallback), no web discovery function provided, invalid maxStaleDays
- * @hazard checkUrlLiveness() matches only obvious dead patterns (404.html, deleted, removed) — legitimate dead URLs (soft 404s, auth walls) pass through
- * @hazard flagStaleProfiles() uses 90-day hardcoded threshold — no config override, mismatch between DB staleness and enforcement timeline
- * @shared-edges database.ts→CALLS queryDatabaseForProfiles(); validation.ts→CALLS toValidatedProfile(); report.ts→CONSUMES result statistics
- * @trail validation-pipeline#1 | Hybrid discovery feeds validated profiles to enforcement and report generation
- * @prompt Add configurable staleness threshold to GatingConfig (currently hardcoded 90 days). Consider parallel web discovery for large gaps (current implementation sequential).
- */
+// @crumb hybrid-discovery-orchestrator
+// OBS | database_querying | web_discovery_gap_calculation | staleness_detection | dead_url_filtering | result_assembly | statistics_reporting
+// why: Orchestrate discovery pipeline: database-first (token efficient), web fallback, staleness filtering, dead URL detection, result capping at target count
+// in:Database (available/unavailable), GatingConfig, web discovery function callback out:HybridDiscoveryResult {profiles[],fromDatabase,fromWeb,staleProfilesRevalidated,deadUrlsDetected,totalReturned} err:Database unavailable (graceful fallback), no web discovery function provided, invalid maxStaleDays
+// hazard: checkUrlLiveness() matches only obvious dead patterns — soft 404s and auth walls pass through
+// hazard: flagStaleProfiles() uses 90-day hardcoded threshold — no config override, mismatch with enforcement timeline
+// edge:src/database.ts -> CALLS
+// edge:src/validation.ts -> CALLS
+// edge:src/report.ts -> SERVES
+// edge:validation-pipeline#1 -> STEP_IN
+// prompt: Add configurable staleness threshold to GatingConfig (currently hardcoded 90 days). Consider parallel web discovery for large gaps.
 
 import { Database, DatabaseResult } from './database.js';
 import { GatingConfig, ValidatedProfile } from './types.js';

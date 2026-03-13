@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id frontend-page-goals
- * @area UI/Pages
- * @intent Sales goal tracking — create, display, and delete metric targets (calls/emails/meetings/deals) with period-based progress tracking
- * @responsibilities Load user goals with current progress values, render progress bars vs targets, open goal creation form, delete goals, support daily/weekly/monthly periods
- * @contracts Goals() → JSX; reads goals+user_goals from Supabase; writes on create/delete; uses useAuth for user scoping
- * @in supabase (goals, user_goals, activities tables), useAuth (user)
- * @out Goal list with progress bars, create form inline, delete action per goal
- * @err Supabase query failure (empty goal list); activity aggregate failure (progress shows 0 for all goals — looks broken not empty)
- * @hazard Goal progress is computed client-side from activities table — if activities period filter uses local time vs UTC, progress may be miscounted (off-by-one day boundary)
- * @hazard No confirmation on goal delete — single click permanently removes goal and history
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES goals+activities; frontend/src/hooks/useAuth.ts→CALLS; frontend/src/App.tsx→ROUTES to /goals
- * @trail goals#1 | Goals mounts → load goals with period aggregates → render progress bars → create goal writes to goals table → delete removes immediately
- * @prompt Add delete confirmation. Fix time-zone boundary for daily/weekly progress aggregation (use UTC consistently). Add empty state when no goals set. Verify goals are user-scoped not org-scoped. VV design applied: glass-card goal cards, indigo-electric CTA + submit, emerald-signal progress bars, void-900 modal, vv-section-title form labels, white/10 borders.
- */
+// @crumb frontend-page-goals
+// UI/PAGES | load_user_goals | render_progress_bars | create_goal_form | delete_goals | period_support
+// why: Sales goal tracking — create, display, and delete metric targets with period-based progress tracking
+// in:supabase(goals,user_goals,activities),useAuth(user) out:goal list with progress bars,create form inline,delete action per goal err:Supabase query failure(empty goal list),activity aggregate failure(progress shows 0)
+// hazard: Goal progress computed client-side — if activities period filter uses local time vs UTC, progress miscounted at day boundaries
+// hazard: No confirmation on goal delete — single click permanently removes goal and history
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:goals#1 -> STEP_IN
+// prompt: Add delete confirmation. Fix time-zone boundary for daily/weekly aggregation. Add empty state. Verify goals are user-scoped not org-scoped.
 import { useState, useEffect } from 'react'
 import { Plus, Target, Trash2, TrendingUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -38,6 +33,7 @@ interface GoalWithProgress extends Goal {
 export default function Goals() {
   const [goals, setGoals] = useState<GoalWithProgress[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [isAddGoalModalOpen, setIsAddGoalModalOpen] = useState(false)
 
   // Add goal form state
@@ -96,6 +92,8 @@ export default function Goals() {
       setGoals(goalsWithProgress)
     } catch (error) {
       console.error('Error loading goals:', error)
+      setLoadError('Failed to load goals. Please refresh the page.')
+      setLoading(false)
     } finally {
       setLoading(false)
     }
@@ -285,6 +283,12 @@ export default function Goals() {
 
   return (
     <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
+      {loadError && (
+        <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
+          <p className="text-sm text-red-alert">{loadError}</p>
+        </div>
+      )}
+
       <div className="flex items-end justify-between">
         <div>
           <p className="vv-section-title mb-1">Performance</p>

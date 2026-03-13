@@ -1,23 +1,21 @@
-/**
- * @crumb
- * @id frontend-page-sign-in
- * @area UI/Auth
- * @intent Email + password sign-in — authenticate existing user and redirect to app root on success
- * @responsibilities Render email/password form, call supabase.auth.signInWithPassword, navigate to / on success, display error on failure
- * @contracts SignIn() → JSX; calls supabase.auth.signInWithPassword; uses useNavigate for redirect
- * @in supabase.auth.signInWithPassword, useNavigate, user-entered email + password
- * @out Authenticated session via Supabase; redirect to /; or inline error message on failure
- * @err Invalid credentials (error displayed inline); network failure (error displayed inline)
- * @hazard No rate limiting on the sign-in form — relies entirely on Supabase Auth rate limiting which is not verified in crumb; brute force possible if Supabase limits are misconfigured
- * @hazard Redirect on success goes unconditionally to / — if the user arrived from a protected deep link (e.g. /lists/123), that destination is lost; no returnTo param handling
- * @shared-edges frontend/src/lib/supabase.ts→CALLS auth.signInWithPassword; frontend/src/App.tsx→ROUTES to /sign-in; frontend/src/pages/SignUp.tsx→LINKED; frontend/src/pages/ForgotPassword.tsx→LINKED
- * @trail sign-in#1 | SignIn renders → user enters credentials → handleSignIn → signInWithPassword → success: navigate('/') | failure: setError
- * @prompt VV tokens applied — void-950 background, glass-card form, indigo-electric CTA, indigo-electric focus rings, red-alert error banner. Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback if Supabase returns rate limit error.
- */
+// @crumb frontend-page-sign-in
+// UI/AUTH | render_email_password_form | sign_in_with_password | navigate_on_success | display_error
+// why: Email + password sign-in — authenticate existing user and redirect to app root on success
+// in:supabase.auth.signInWithPassword,useNavigate,user-entered email+password out:authenticated session via Supabase,redirect to / err:invalid credentials(error inline),network failure(error inline)
+// hazard: No rate limiting on sign-in form — relies entirely on Supabase Auth rate limiting; brute force possible if misconfigured
+// hazard: Redirect on success goes unconditionally to / — deep link destination lost; no returnTo param handling
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:frontend/src/pages/SignUp.tsx -> RELATES
+// edge:frontend/src/pages/ForgotPassword.tsx -> RELATES
+// edge:sign-in#1 -> STEP_IN
+// prompt: Add returnTo param to preserve destination URL. Add Google SSO as alternative. Add lockout feedback for rate limit errors.
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ROUTES } from '../lib/routes'
+import { isRateLimited } from '../lib/rate-limiter'
+import { validateEmail } from '../lib/form-utils'
 
 export default function SignIn() {
   const navigate = useNavigate()
@@ -28,6 +26,21 @@ export default function SignIn() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    if (!password || password.length < 1) {
+      setError('Password is required.')
+      return
+    }
+
+    if (isRateLimited(`sign-in:${email.toLowerCase()}`, { windowMs: 60_000, maxRequests: 5 })) {
+      setError('Too many attempts. Please wait a minute and try again.')
+      return
+    }
+
     setLoading(true)
     setError('')
 

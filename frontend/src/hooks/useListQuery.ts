@@ -1,3 +1,14 @@
+/** @id salesblock.hooks.lists.use-list-query */
+// @crumb frontend-hook-use-list-query
+// DAT | list_data_fetching | contact_count_loading | query_caching | stale_time_management
+// why: React Query wrapper hooks for contact list data — consolidates caching strategy and stale time config in one place for lists, contacts, and counts
+// in:userId/listId (string|undefined),enabled state based on prop presence out:ContactList objects,contact array,count number,TanStack Query loading/error state err:fetch failure (network),Supabase read failure,stale data window (2-1 min)
+// hazard: useUserLists doesn't filter archived lists — will include deleted/archived lists in query results unless handled upstream
+// hazard: useListContacts loads all contacts into memory — for lists with 100k+ contacts, browser memory exhausted; no pagination
+// edge:frontend/src/lib/queries/listQueries.ts -> CALLS
+// edge:frontend/src/pages/ListDetailPage.tsx -> CALLS
+// edge:data-fetching#1 -> STEP_IN
+// prompt: Add cursor-based pagination for useListContacts (e.g., first 50, fetch more on scroll). Filter archived=false in useUserLists. Test with 100k+ contacts.
 /**
  * React Query hooks for list data fetching
  */

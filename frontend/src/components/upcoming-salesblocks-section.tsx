@@ -1,3 +1,13 @@
+// @crumb frontend-component-upcoming-salesblocks-section
+// UI/Dashboard/Planning | weekly_block_preview | schedule_visibility | list_item_summarization
+// why: Upcoming salesblocks section — preview next week's scheduled blocks with duration and contact counts to help users plan calendar
+// in:salesblocks:SalesBlock[](id,title,scheduled_start,duration_minutes,contact_count,list.name) out:Compact list of blocks with datetime and metadata; "No upcoming blocks" empty state err:Empty array,undefined list.name,null scheduled_start
+// hazard: Label "Upcoming This Week" is hardcoded but filtering logic lives in parent component — no guarantee only this week shown. If parent changes filter, UX label becomes misleading.
+// hazard: formatDateTime relies on browser locale — displays may vary (2026-03-13 vs 13/03/2026) confusing users comparing schedules. No truncation for very long block titles or list names.
+// edge:frontend/src/hooks/useDashboardData.ts -> READS
+// edge:frontend/src/lib/time.ts -> CALLS
+// prompt: Move "Upcoming This Week" label and date range to parent (or accept as prop). Pass timezone info to formatDateTime. Add ellipsis/truncate utility for titles >30 chars.
+
 /**
  * Section showing upcoming salesblocks for the week
  */

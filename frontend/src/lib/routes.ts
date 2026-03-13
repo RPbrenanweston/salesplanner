@@ -1,3 +1,4 @@
+/** @id salesblock.lib.core.routes */
 /**
  * Centralized route paths for the application
  *

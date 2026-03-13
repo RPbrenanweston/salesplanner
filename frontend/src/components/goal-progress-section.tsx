@@ -1,3 +1,12 @@
+// @crumb frontend-component-goal-progress-section
+// UI/Dashboard/Metrics | goal_tracking | progress_visualization | threshold_based_coloring
+// why: Goal progress section — display user sales goals with color-coded progress bars based on achievement percentage thresholds
+// in:goals:GoalProgress[](label,current,target) out:Progress bar list with color coding (blue→yellow→green) and percentage labels err:Empty goals array (show empty state),NaN target values (guard with Math.min)
+// hazard: Color thresholds (50%=blue, 75%=yellow, 100%=green) are hardcoded — if goal types vary (email vs calls), fixed thresholds may misrepresent progress
+// hazard: Goals rendered in arbitrary order without sorting — user cannot quickly find priority goals; no timestamp or goal deadline shown
+// edge:frontend/src/hooks/useGoalProgress.ts -> READS
+// prompt: Add sorting by progress % (ascending to show gaps first) or by creation order. Consider adding goal deadline/deadline-aware "time remaining" indicator. Document color threshold meanings.
+
 /**
  * Section showing goal progress with progress bars
  */

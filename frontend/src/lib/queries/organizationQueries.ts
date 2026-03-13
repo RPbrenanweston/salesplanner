@@ -1,3 +1,4 @@
+/** @id salesblock.lib.queries.organization-queries */
 /**
  * Organization-related data fetching functions
  *

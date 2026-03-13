@@ -1,23 +1,20 @@
-/**
- * @crumb
- * @id frontend-page-sign-up
- * @area UI/Auth
- * @intent User registration — create new account or accept org invitation from email link; creates org on fresh signup
- * @responsibilities Parse invitation_id + email from URL params, load invitation data from Supabase, render signup form (email/password/displayName/orgName), call supabase.auth.signUp, create org + user record on success
- * @contracts SignUp() → JSX; reads team_invitations table; calls supabase.auth.signUp + inserts orgs + users; uses useSearchParams for invitation_id
- * @in supabase (team_invitations + orgs + users tables, auth.signUp), useSearchParams (invitation_id + email), user-entered form fields
- * @out New Supabase auth user + org record + users record; redirect to /; or inline error
- * @err Invitation load failure (silent — form still renders without invitation context); signUp failure (error displayed); org/user insert failure (silent — user is authenticated but app record missing)
- * @hazard If supabase.auth.signUp succeeds but the subsequent org or user insert fails, the user lands in an authenticated-but-broken state — no org_id, no users record, app will 404 or show empty state with no recovery path
- * @hazard Invitation data is fetched by invitation_id from URL with no CSRF token or expiry check on the frontend — the backend must enforce expiry; if it doesn't, old invitation links remain valid indefinitely
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES team_invitations+orgs+users; frontend/src/App.tsx→ROUTES to /sign-up; frontend/src/pages/SignIn.tsx→LINKED; supabase/functions/send-team-invitation/index.ts→GENERATES invitation links
- * @trail sign-up#1 | SignUp mounts → parse URL params → load invitation (if present) → user fills form → handleSignUp → auth.signUp → insert org + user → navigate('/')
- * @prompt VV tokens applied — void-950 background, glass-card form, indigo-electric CTA, white/5 inputs with indigo-electric focus rings, red-alert error banner. Add post-signup org/user insert error handling with retry or rollback. Validate invitation_id expiry on the frontend before rendering form. Add email verification step for non-invitation signups.
- */
+// @crumb frontend-page-sign-up
+// UI/AUTH | parse_invitation_params | load_invitation_data | render_signup_form | auth_sign_up | create_org_user
+// why: User registration — create new account or accept org invitation from email link; creates org on fresh signup
+// in:supabase(team_invitations+orgs+users,auth.signUp),useSearchParams(invitation_id+email),user-entered form fields out:new auth user+org record+users record,redirect to / err:invitation load failure(silent),signUp failure(error displayed),org/user insert failure(silent broken state)
+// hazard: If signUp succeeds but org/user insert fails, user lands in authenticated-but-broken state with no recovery path
+// hazard: Invitation data fetched by invitation_id with no CSRF/expiry check on frontend — old invitation links may remain valid indefinitely
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:frontend/src/pages/SignIn.tsx -> RELATES
+// edge:supabase/functions/send-team-invitation/index.ts -> RELATES
+// edge:sign-up#1 -> STEP_IN
+// prompt: Add post-signup org/user insert error handling with retry or rollback. Validate invitation_id expiry on frontend. Add email verification for non-invitation signups.
 import { useState, useEffect } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ROUTES } from '../lib/routes'
+import { isRateLimited } from '../lib/rate-limiter'
 
 export default function SignUp() {
   const navigate = useNavigate()
@@ -57,6 +54,7 @@ export default function SignUp() {
             .select('org_id, team_id, role, organizations(name)')
             .eq('id', inviteId)
             .eq('status', 'pending')
+            .gt('expires_at', new Date().toISOString())
             .single()
 
           if (invite) {
@@ -82,11 +80,20 @@ export default function SignUp() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (isRateLimited(`sign-up:${email.toLowerCase()}`, { windowMs: 60_000, maxRequests: 3 })) {
+      setError('Too many attempts. Please wait a minute and try again.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
+    // Track org created so we can delete it if the user-record step fails
+    let createdOrgId: string | null = null
+
     try {
-      // Create auth user
+      // Step 1: Create auth user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -103,6 +110,7 @@ export default function SignUp() {
       if (authData.user) {
         if (isInvitation && invitationData) {
           // Invitation flow: join existing organization
+          // Step 2a: Create user record in the invited org
           const { error: userError } = await supabase
             .from('users')
             .insert([
@@ -117,9 +125,14 @@ export default function SignUp() {
               },
             ])
 
-          if (userError) throw userError
+          if (userError) {
+            // Compensate: sign out the auth user we just created so they
+            // are not left in an authenticated-but-profileless state
+            await supabase.auth.signOut()
+            throw new Error('Failed to set up your account. Please try again.')
+          }
 
-          // Mark invitation as accepted
+          // Step 2b: Mark invitation as accepted (best-effort — non-fatal)
           if (invitationId) {
             await supabase
               .from('team_invitations')
@@ -127,7 +140,9 @@ export default function SignUp() {
               .eq('id', invitationId)
           }
         } else {
-          // New org flow: create organization and manager user
+          // New org flow: create organization then manager user
+
+          // Step 2: Create organization
           const { data: orgData, error: orgError } = await supabase
             .from('organizations')
             .insert([
@@ -139,9 +154,15 @@ export default function SignUp() {
             .select()
             .single()
 
-          if (orgError) throw orgError
+          if (orgError) {
+            // Compensate: sign out the orphaned auth user
+            await supabase.auth.signOut()
+            throw new Error('Failed to create your organization. Please try again.')
+          }
 
-          // Create user record with manager role
+          createdOrgId = orgData.id
+
+          // Step 3: Create user record with manager role
           const { error: userError } = await supabase
             .from('users')
             .insert([
@@ -155,14 +176,27 @@ export default function SignUp() {
               },
             ])
 
-          if (userError) throw userError
+          if (userError) {
+            // Compensate: delete the org we just created, then sign out.
+            // org deletion cascades to dependent rows via ON DELETE CASCADE.
+            if (createdOrgId) {
+              await supabase.from('organizations').delete().eq('id', createdOrgId)
+            }
+            await supabase.auth.signOut()
+            throw new Error('Failed to set up your account. Please try again.')
+          }
         }
 
-        // Navigate to home after successful signup
+        // All steps succeeded — navigate to home
         navigate(ROUTES.HOME)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign up')
+      // Show a human-readable message; preserve specific messages we threw above
+      const message =
+        err instanceof Error && err.message !== 'Failed to sign up'
+          ? err.message
+          : 'Sign up failed. Please check your details and try again.'
+      setError(message)
     } finally {
       setLoading(false)
     }

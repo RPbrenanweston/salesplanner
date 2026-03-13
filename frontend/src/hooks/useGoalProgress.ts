@@ -1,3 +1,16 @@
+/** @id salesblock.hooks.goals.use-goal-progress */
+// @crumb frontend-hook-use-goal-progress
+// DAT | goal_tracking | activity_aggregation | progress_calculation | period_normalization
+// why: Load user goals (daily/weekly/monthly) and calculate progress by counting activities in each period — provides realtime progress UI for goal dashboard
+// in:user from useAuth,goals table (optional),activities table out:goalProgress[],loading bool err:goals table missing (graceful fallback to defaults),activity count query fails
+// hazard: Lines 50-57 and 68-81: N+1 pattern in countActivitiesForGoal — fires 2+ separate Supabase count queries per goal instead of batching; 5 goals = 10+ count queries
+// hazard: Period calculation (lines 29-37) using Date constructor on months can overflow — new Date(2024,1,31) wraps to March 3, breaking weekly start date for Feb
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:supabase:goals -> READS
+// edge:supabase:activities -> READS
+// edge:frontend/src/components/GoalProgressCard.tsx -> CALLS
+// edge:goal-tracking#1 -> STEP_IN
+// prompt: Batch activity counts with single query grouping by type. Use date-fns for period boundaries (avoids month overflow). Cache goals table with React Query. Test Feb 29 on leap years.
 /**
  * Hook for calculating goal progress
  */

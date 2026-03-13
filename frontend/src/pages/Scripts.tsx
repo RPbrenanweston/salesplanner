@@ -1,23 +1,19 @@
-/**
- * @crumb
- * @id frontend-page-scripts
- * @area UI/Pages
- * @intent Call script library — create, edit, share, and delete reusable call scripts for sales reps
- * @responsibilities Load user's scripts (owned + shared), render script cards, open ScriptModal for create/edit, delete scripts
- * @contracts Scripts() → JSX; reads call_scripts table by user_id from Supabase; writes on create/update/delete
- * @in supabase (call_scripts table, auth.getUser), ScriptModal component
- * @out Grid/list of script cards with name, content preview, shared badge, edit/delete actions
- * @err Supabase load failure (silent — empty list renders); delete error (no feedback)
- * @hazard No delete confirmation dialog — delete fires immediately on button click; user can accidentally delete scripts with no undo
- * @hazard Shared script visibility depends on RLS — if call_scripts table lacks org_id RLS, scripts from other orgs may appear in shared view
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES call_scripts; frontend/src/components/ScriptModal.tsx→LAUNCHES for create/edit; frontend/src/App.tsx→ROUTES to /scripts
- * @trail scripts#1 | Scripts mounts → load scripts → render cards → user clicks New → ScriptModal → save → reload → user deletes → immediate remove
- * @prompt Add delete confirmation. Verify RLS on call_scripts. Add script categories/tags. Add search. Consider linking scripts to SalesBlock session for in-session use. VV design applied: glass-card script cards, indigo-electric Create Script CTA, vv-section-title removed in favour of font-display headings, white/10 borders, indigo-electric/15 shared badge, red-alert delete hover, void-950 page bg, font-mono metadata.
- */
+// @crumb frontend-page-scripts
+// UI/PAGES | load_user_scripts | render_script_cards | create_edit_modal | delete_scripts
+// why: Call script library — create, edit, share, and delete reusable call scripts for sales reps
+// in:supabase(call_scripts table,auth.getUser),ScriptModal out:grid of script cards with name,content preview,shared badge,edit/delete actions err:Supabase load failure(silent empty list),delete error(no feedback)
+// hazard: No delete confirmation dialog — delete fires immediately on button click; accidental deletion with no undo
+// hazard: Shared script visibility depends on RLS — if call_scripts lacks org_id RLS, scripts from other orgs may appear
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/components/ScriptModal.tsx -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:scripts#1 -> STEP_IN
+// prompt: Add delete confirmation. Verify RLS on call_scripts. Add script categories/tags. Add search. Link scripts to SalesBlock session.
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Share2, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ScriptModal } from '../components/ScriptModal';
+import DOMPurify from 'dompurify';
 
 interface CallScript {
   id: string;
@@ -31,6 +27,7 @@ interface CallScript {
 export default function Scripts() {
   const [scripts, setScripts] = useState<CallScript[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingScriptId, setEditingScriptId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -56,6 +53,8 @@ export default function Scripts() {
       setScripts(data || []);
     } catch (error) {
       console.error('Error loading scripts:', error);
+      setLoadError('Failed to load scripts. Please refresh the page.');
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -98,7 +97,7 @@ export default function Scripts() {
   // Strip HTML tags for preview
   function stripHtml(html: string): string {
     const tmp = document.createElement('DIV');
-    tmp.innerHTML = html;
+    tmp.innerHTML = DOMPurify.sanitize(html);
     return tmp.textContent || tmp.innerText || '';
   }
 
@@ -129,6 +128,12 @@ export default function Scripts() {
           Create Script
         </button>
       </div>
+
+      {loadError && (
+        <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
+          <p className="text-sm text-red-alert">{loadError}</p>
+        </div>
+      )}
 
       {/* Scripts List */}
       {scripts.length === 0 ? (

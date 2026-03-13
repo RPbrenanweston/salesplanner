@@ -1,19 +1,13 @@
-/**
- * @crumb
- * @id backend-exclusion-persistence
- * @area DAT
- * @intent Exclusion persistence — maintain a persistent list of previously returned candidates to prevent re-surfacing the same profiles across multiple search runs
- * @responsibilities Load exclusion list from JSON file, add new candidates to exclusion list, filter candidate arrays against exclusion list, save updated exclusion list to disk
- * @contracts loadExclusions(path?) → Promise<ExclusionList>; saveExclusions(list, path?) → Promise<void>; addToExclusions(list, candidate) → ExclusionList; filterExcluded(candidates[], list) → DiscoveredCandidate[]; isExcluded(candidate, list) → bool
- * @in exclusions.json file (or default path), DiscoveredCandidate[] for filtering
- * @out ExclusionList (Set/Map of excluded candidate identifiers); filtered DiscoveredCandidate[] with previously seen profiles removed
- * @err File read failure (exclusions.json missing — returns empty list, not an error); JSON.parse failure (malformed exclusions.json — error thrown, caller must handle)
- * @hazard Exclusion list grows unboundedly — every candidate added is never removed; over many runs the exclusions.json file will grow large and slow down I/O, especially on slow filesystems or cloud volumes
- * @hazard Exclusion matching uses candidate handle or primaryUrl as key — if a candidate's GitHub handle changes or they update their primary URL, the same person may re-appear in results as a new candidate despite being previously excluded
- * @shared-edges src/index.ts→CALLS load/save/filterExcluded; src/discovery.ts→CANDIDATES filtered here before validation; ./exclusions.json→READS and WRITES
- * @trail exclusion#1 | index.ts loads exclusions → discovery returns candidates → filterExcluded removes previously seen → remaining validated → new candidates added to exclusions → list saved
- * @prompt Add exclusion list TTL (expire entries after N days). Consider using primaryUrl as primary exclusion key with handle as fallback. Add exclusion count to run statistics.
- */
+// @crumb backend-exclusion-persistence
+// DAT | exclusion_list_loading | candidate_exclusion_addition | candidate_array_filtering | exclusion_list_persistence
+// why: Exclusion persistence — maintain a persistent list of previously returned candidates to prevent re-surfacing the same profiles across multiple search runs
+// in:exclusions.json file, DiscoveredCandidate[] for filtering out:ExclusionList; filtered DiscoveredCandidate[] with previously seen profiles removed err:File read failure returns empty list; JSON.parse failure throws
+// hazard: Exclusion list grows unboundedly — entries never removed; file grows large over many runs
+// hazard: Exclusion matching uses handle or primaryUrl as key — handle/URL changes cause re-appearance
+// edge:src/index.ts -> SERVES
+// edge:src/discovery.ts -> READS
+// edge:exclusion#1 -> STEP_IN
+// prompt: Add exclusion list TTL (expire entries after N days). Consider using primaryUrl as primary exclusion key with handle as fallback. Add exclusion count to run statistics.
 
 /**
  * Exclusion system for iterative candidate discovery

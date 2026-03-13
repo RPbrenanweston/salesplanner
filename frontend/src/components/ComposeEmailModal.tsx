@@ -1,30 +1,25 @@
-/**
- * @crumb
- * @id frontend-component-compose-email-modal
- * @area UI/Email
- * @intent Compose email modal — draft and send emails to contacts via connected Gmail/Outlook integration, with optional availability insertion from calendar
- * @responsibilities Render email composition form (to, subject, body), optionally insert free/busy availability slots from calendar, send email via connected mail provider, log activity to Supabase
- * @contracts ComposeEmailModal({ contactId, contactEmail, onClose, onSent }) → JSX; calls getFreeBusySlots + formatAvailabilityText from lib/calendar; calls Supabase email send function; uses useAuth
- * @in contactId (string), contactEmail (string), useAuth (userId + email provider), lib/calendar.getFreeBusySlots, Supabase email send edge function, onClose callback, onSent callback
- * @out Email sent via connected provider; activity log entry in Supabase activities table; onSent called; modal closed
- * @err No connected mail provider (error state displayed — send blocked); send failure from email API (error shown); free/busy fetch failure (calendar availability section empty, silent)
- * @hazard Email body is rendered as plain text or basic HTML — if the user pastes formatted content, the formatting may be stripped or rendered as raw HTML tags in the recipient's mail client
- * @hazard getFreeBusySlots fetches the user's calendar availability — if the connected calendar has no events, the availability block will suggest the user is fully free, which may not reflect actual availability if calendar is not up to date
- * @shared-edges frontend/src/lib/calendar.ts→CALLS getFreeBusySlots; frontend/src/hooks/useAuth.ts→READS email provider; supabase email edge function→SENDS email; supabase activities table→INSERTS activity log
- * @trail compose-email#1 | User clicks "Compose" → ComposeEmailModal renders → optionally fetches availability → user drafts email → handleSend → send via provider → supabase activity log → onSent() → modal closes
- * @prompt Validate connected email provider before rendering compose form. Clarify HTML vs plain text rendering. Add template insertion from EmailTemplates.
- */
+// @crumb frontend-component-compose-email-modal
+// UI/Email | email_composition_form | availability_insertion | send_via_provider | activity_logging
+// why: Compose email modal — draft and send emails to contacts via connected Gmail/Outlook integration, with optional availability insertion from calendar
+// in:contactId,contactEmail,useAuth (userId + email provider),lib/calendar.getFreeBusySlots,Supabase email send edge function out:Email sent via provider,activity log entry,onSent called err:No connected mail provider (send blocked),send failure,free/busy fetch failure (silent)
+// hazard: Email body rendered as plain text or basic HTML — pasted formatted content may be stripped or shown as raw HTML tags
+// hazard: getFreeBusySlots with empty calendar suggests user is fully free, which may not reflect actual availability
+// edge:frontend/src/lib/calendar.ts -> CALLS
+// edge:frontend/src/hooks/useAuth.ts -> READS
+// edge:compose-email#1 -> STEP_IN
+// prompt: Validate connected email provider before rendering compose form. Clarify HTML vs plain text rendering. Add template insertion from EmailTemplates.
 import { useState, useEffect } from 'react';
 import { X, Mail, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { getFreeBusySlots, formatAvailabilityText } from '../lib/calendar';
 import { markActivityForSync } from '../lib/salesforce';
+import { getValidToken } from '../lib/token-refresh';
 
 interface ComposeEmailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  contact: {
+  contact?: {
     id: string;
     first_name: string;
     last_name: string;
@@ -44,14 +39,11 @@ interface EmailTemplate {
 
 interface OAuthConnection {
   provider: 'gmail' | 'outlook';
-  access_token: string;
-  refresh_token: string;
-  expires_at: string;
 }
 
 export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess }: ComposeEmailModalProps) {
   const { user } = useAuth();
-  const [to, setTo] = useState(contact.email);
+  const [to, setTo] = useState(contact?.email || '');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -65,9 +57,9 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
     if (isOpen && user) {
       loadTemplates();
       loadOAuthConnection();
-      setTo(contact.email);
+      setTo(contact?.email || '');
     }
-  }, [isOpen, user, contact.email]);
+  }, [isOpen, user, contact?.email]);
 
   const loadTemplates = async () => {
     try {
@@ -86,14 +78,16 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
 
   const loadOAuthConnection = async () => {
     try {
+      // Check for connected email provider (just need to know which one is connected)
       const { data, error } = await supabase
         .from('oauth_connections')
-        .select('provider, access_token, refresh_token, expires_at')
+        .select('provider')
         .in('provider', ['gmail', 'outlook'])
+        .eq('is_active', true)
         .maybeSingle();
 
       if (error) throw error;
-      setOauthConnection(data);
+      setOauthConnection(data ? { provider: data.provider } : null);
     } catch (err) {
       console.error('Error loading OAuth connection:', err);
     }
@@ -105,10 +99,10 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
 
     // Replace variables with contact data
     const replacements: Record<string, string> = {
-      '{{first_name}}': contact.first_name,
-      '{{last_name}}': contact.last_name,
-      '{{company}}': contact.company || '',
-      '{{title}}': contact.title || '',
+      '{{first_name}}': contact?.first_name || '',
+      '{{last_name}}': contact?.last_name || '',
+      '{{company}}': contact?.company || '',
+      '{{title}}': contact?.title || '',
     };
 
     Object.entries(replacements).forEach(([placeholder, value]) => {
@@ -234,7 +228,7 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
 
       const { data, error } = await supabase.from('activities').insert({
         org_id: dbUser?.org_id,
-        contact_id: contact.id,
+        contact_id: contact?.id || null,
         user_id: userData.user?.id,
         type: 'email',
         outcome: 'other',
@@ -272,14 +266,20 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
     setIsSending(true);
 
     try {
+      // Get a valid (auto-refreshed) access token at send time
+      const accessToken = await getValidToken(oauthConnection.provider);
+      if (!accessToken) {
+        throw new Error('Failed to get valid access token. Please reconnect your email in Settings > Integrations.');
+      }
+
       let threadId: string | undefined;
       let conversationId: string | undefined;
 
       if (oauthConnection.provider === 'gmail') {
-        const result = await sendViaGmail(oauthConnection.access_token);
+        const result = await sendViaGmail(accessToken);
         threadId = result.threadId;
       } else if (oauthConnection.provider === 'outlook') {
-        const result = await sendViaOutlook(oauthConnection.access_token);
+        const result = await sendViaOutlook(accessToken);
         conversationId = result.conversationId;
       }
 

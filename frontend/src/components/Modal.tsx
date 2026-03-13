@@ -1,3 +1,15 @@
+// @crumb frontend-component-modal-wrapper
+// UI | modal_layout | backdrop_interaction | keyboard_accessibility | animation_state
+// why: Reusable modal wrapper providing consistent modal structure, keyboard handlers, backdrop click logic, and scroll prevention across 15+ modal components
+// in:isOpen:boolean,onClose callback,title:string,children:ReactNode,footer?:ReactNode,size:sm|md|lg out:Modal dialog with header/content/footer, backdrop, Escape key handling, scroll locked err:Modal renders when isOpen=false (returns null correctly),backdrop click not detected when modal nested deeply
+// hazard: document.body.style.overflow set in useEffect — race condition if multiple modals mount simultaneously, last one to unmount restores scroll
+// hazard: Escape key handler fires even when textarea/input focused if handler skips input check — user expects input to capture Escape for multi-step modals with escape-cancellable forms
+// edge:frontend/src/components/CreateSalesBlockModal.tsx -> RELATES
+// edge:frontend/src/components/LogActivityModal.tsx -> RELATES
+// edge:frontend/src/components/BookMeetingModal.tsx -> RELATES
+// edge:frontend/src/components/AddContactModal.tsx -> RELATES
+// prompt: Use ref counter for body.overflow instead of simple set/unset — verify nested modals don't break scroll. Consider passing escapeClosesModal prop to allow forms to override default Escape behavior. Add z-index management for stacked modals.
+
 /**
  * Reusable Modal component wrapper
  *

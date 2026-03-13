@@ -1,19 +1,13 @@
-/**
- * @crumb
- * @id backend-salesforce-activity-sync
- * @area INF
- * @intent Asynchronously sync local sales activities (calls, emails, meetings) to Salesforce Task objects ensuring bi-directional sales data consistency
- * @responsibilities Batch-fetch pending activities, map activity type/outcome to Salesforce Task subjects/statuses, create Tasks via REST API, persist salesforce_task_id, handle OAuth token refresh
- * @contracts async handler(req: Request) → Response({synced: count} | {error: string}); Maps 50-item activity batches; maps activity.type to Task subject; maps activity.outcome to status enum
- * @in OAuth connection (Salesforce refresh_token, access_token, expires_at), activities table (pending sync), contact record (salesforce_id for task target)
- * @out Created Salesforce Tasks via /services/data/v59.0/sobjects/Task; updated activities.salesforce_task_id and sync_status='synced'
- * @err OAuth token expired (line 45); activity.contact_id missing salesforce_id (line 78); batch of 50 has 1 contact failure—entire batch retried, partial sync lost (line 95); activity.type unmapped to subject (line 52-59 falls through to default)
- * @hazard Token expiration not checked before API call—if access_token invalid, batch silently fails after 30sec timeout with no retry, losing sync window; Activity-to-Task mapping is string-based (mapActivityTypeToSubject, mapOutcomeToStatus)—if Salesforce schema changes or enums added, mapping drifts without type safety (lines 52-59, 65-72)
- * @hazard No partial failure recovery—if contact #25 of 50 has missing salesforce_id, entire batch queued for retry, delaying contacts #26-50; Email/call metadata (duration, thread_id, conversation_id) not persisted to Salesforce—losing call duration and reply tracking integration (line 88-90); No idempotency guard—same webhook fire twice creates duplicate Tasks with different IDs
- * @shared-edges supabase/functions/track-email-replies/index.ts→READS oauth_connections same table, accesses activities from same batch flow; frontend/src/lib/salesforce.ts→USES same Token refresh pattern (refreshAccessToken), same Task creation endpoint; supabase/functions/handle-stripe-webhook/index.ts→USES same pattern of OAuth token handling and batch database updates
- * @trail salesforce-sync#1 | Activity created locally → activity.sync_status='pending' → Job polls activities table → OAuth token fetched/refreshed → mapActivityType→subject, mapOutcome→status → POST /services/data/v59.0/sobjects/Task → Salesforce Task created → activity.salesforce_task_id set, sync_status='synced' → reply tracking references salesforce_task_id for updates
- * @prompt When modifying activity-to-Task mapping, update both mapActivityTypeToSubject and mapOutcomeToStatus consistently (e.g., if activity.type adds 'demo', add case to subject mapping). Test partial failures: manually set one contact.salesforce_id to null, run sync, verify batch retry doesn't duplicate successful creates. Consider adding call_duration_seconds as Task custom field to preserve sales intelligence.
- */
+// @crumb backend-salesforce-activity-sync
+// INF | batch_activity_fetch | activity_to_task_mapping | salesforce_task_creation | oauth_token_refresh | sync_status_persistence
+// why: Asynchronously sync local sales activities (calls, emails, meetings) to Salesforce Task objects ensuring bi-directional sales data consistency
+// in:OAuth connection (Salesforce refresh_token,access_token,expires_at), activities table (pending sync), contact record (salesforce_id) out:Created Salesforce Tasks via /services/data/v59.0/sobjects/Task; updated activities.salesforce_task_id and sync_status='synced' err:OAuth token expired; contact_id missing salesforce_id; batch partial failure causes full retry; activity.type unmapped falls through to default
+// hazard: Token expiration not checked before API call — batch silently fails after 30sec timeout with no retry, losing sync window; Activity-to-Task mapping is string-based — Salesforce schema changes cause mapping drift without type safety
+// hazard: No partial failure recovery — one contact failure retries entire batch; No idempotency guard — duplicate webhook fires create duplicate Tasks
+// edge:supabase/functions/track-email-replies/index.ts -> READS
+// edge:supabase/functions/exchange-oauth-token/index.ts -> READS
+// edge:salesforce-sync#1 -> STEP_IN
+// prompt: When modifying activity-to-Task mapping, update both mapActivityTypeToSubject and mapOutcomeToStatus consistently. Test partial failures: manually set one contact.salesforce_id to null, run sync, verify batch retry doesn't duplicate successful creates. Consider adding call_duration_seconds as Task custom field.
 // US-033: Supabase Edge Function for syncing activities to Salesforce
 // Runs asynchronously to push SalesBlock activities as Salesforce Tasks
 

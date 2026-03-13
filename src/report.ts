@@ -1,19 +1,14 @@
-/**
- * @crumb
- * @id backend-report-generator
- * @area OBS
- * @intent Report generation — transform validated profiles into a structured markdown report with metadata, methodology, validated profiles (max 20) with citations, source list, and research limitations
- * @responsibilities Build markdown report string from ValidatedProfile[], embed GatingConfig parameters as metadata, format citations per profile, write report.md to disk
- * @contracts generateReport(profiles: ValidatedProfile[], config: GatingConfig) → Promise<string>; caps output at 20 profiles; writes to report.md; returns markdown string for quality passes
- * @in ValidatedProfile[] (post-enforcement), GatingConfig, fs.promises for file write, path for output directory
- * @out Markdown report string; report.md written to disk
- * @err File write failure (caught — throws, caller must handle); empty profiles array (valid — report generated with "no profiles found" section)
- * @hazard Report is written to a hardcoded filename ('report.md') — concurrent pipeline runs in the same directory will overwrite each other's reports without warning
- * @hazard Profile cap is hardcoded at 20 — if GatingConfig or CLI args ever parameterize a different count, this module will silently ignore the parameter and always cap at 20
- * @shared-edges src/types.ts→IMPORTS ValidatedProfile + GatingConfig + SignalName; src/quality.ts→RECEIVES report string for quality passes; src/index.ts→CALLS generateReport; ./report.md→WRITES output
- * @trail report#1 | index.ts calls generateReport(profiles, config) → markdown assembled → report.md written → string returned → quality passes run → final report delivered
- * @prompt Parameterize output path and profile cap via config. Add run ID to report filename to prevent overwrites. Consider JSON report output format alongside markdown for programmatic consumption.
- */
+// @crumb backend-report-generator
+// OBS | markdown_report_assembly | gating_config_metadata_embedding | citation_formatting | report_file_write
+// why: Report generation — transform validated profiles into a structured markdown report with metadata, methodology, validated profiles (max 20) with citations, source list, and research limitations
+// in:ValidatedProfile[] (post-enforcement), GatingConfig, fs.promises for file write, path for output directory out:Markdown report string; report.md written to disk err:File write failure (throws, caller must handle); empty profiles array generates "no profiles found" section
+// hazard: Report is written to a hardcoded filename ('report.md') — concurrent pipeline runs will overwrite each other's reports
+// hazard: Profile cap is hardcoded at 20 — config parameterization silently ignored
+// edge:src/types.ts -> READS
+// edge:src/quality.ts -> SERVES
+// edge:src/index.ts -> SERVES
+// edge:report#1 -> STEP_IN
+// prompt: Parameterize output path and profile cap via config. Add run ID to report filename to prevent overwrites. Consider JSON report output format alongside markdown.
 
 /**
  * Structured Research Report Generator

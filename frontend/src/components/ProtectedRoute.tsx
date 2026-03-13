@@ -1,20 +1,14 @@
-/**
- * @crumb
- * @id frontend-protected-route-enforcer
- * @area SEC
- * @intent Route wrapper component enforcing authentication requirements and preventing unauthenticated access to protected routes
- * @responsibilities Session validation at route entry, auth state change subscription, redirect to signin on auth failure, loading state display during auth check
- * @contracts ProtectedRoute({children: ReactNode}) → JSX; renders {children} if authenticated, Navigate({to: '/signin'}) if unauthenticated, animated skeleton (sidebar + content) if auth check in progress
- * @in Session state via useAuth hook, child components (protected pages)
- * @out Protected JSX or redirect to signin
- * @err getSession network failure (offline), onAuthStateChange event misses auth transition (concurrent auth operations), redirect race during logout
- * @hazard Redirect to /signin happens synchronously on first auth check—if user is legitimately logging out concurrently, redirect race can cause redirect loop (user bounces /signin → /protected → /signin)
- * @hazard useEffect dependency array missing loading—if loading state changes and component is unmounted, useEffect may fire after unmount causing memory leak
- * @fixed Loading state upgraded from bare "Loading..." text to full sidebar+content skeleton (animate-pulse) matching AppLayout dimensions — prevents layout shift on slow networks (2026-03-08)
- * @shared-edges frontend/src/hooks/useAuth.ts→CALLS for session validation; frontend/src/components/AppLayout.tsx→WRAPPED in protected route definitions; frontend/src/App.tsx→NESTS ProtectedRoute around 10+ authenticated routes; protected pages (Settings, Contacts, Lists, etc.)→RENDERED as children
- * @trail route-protection#1 | Route mounts → ProtectedRoute calls useAuth → getSession in progress → render skeleton UI → getSession returns → if authenticated, render AppLayout + children; if unauthenticated, Navigate to /signin → user signs in on /signin → redirected to requested page
- * @prompt Consider debouncing rapid auth transitions (sign out → sign in within 100ms) to prevent redirect flicker. Add telemetry for auth check latency. Test redirect race condition when user signs out while ProtectedRoute mounting.
- */
+// @crumb frontend-protected-route-enforcer
+// SEC | session_validation | auth_state_subscription | signin_redirect | loading_skeleton
+// why: Route wrapper component enforcing authentication requirements and preventing unauthenticated access to protected routes
+// in:Session state via useAuth hook,child components (protected pages) out:Protected JSX or redirect to signin err:getSession network failure,onAuthStateChange misses transition,redirect race during logout
+// hazard: Synchronous redirect to /signin on first auth check — concurrent logout causes redirect loop
+// hazard: useEffect dependency array missing loading — unmounted component may fire causing memory leak
+// edge:frontend/src/hooks/useAuth.ts -> CALLS
+// edge:frontend/src/components/AppLayout.tsx -> RELATES
+// edge:frontend/src/App.tsx -> RELATES
+// edge:route-protection#1 -> STEP_IN
+// prompt: Consider debouncing rapid auth transitions to prevent redirect flicker. Add telemetry for auth check latency. Test redirect race condition.
 
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'

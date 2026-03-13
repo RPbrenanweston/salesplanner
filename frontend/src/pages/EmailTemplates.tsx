@@ -1,23 +1,19 @@
-/**
- * @crumb
- * @id frontend-page-email-templates
- * @area UI/Pages
- * @intent Email template library — create, edit, share, and delete reusable email templates with usage and reply tracking
- * @responsibilities Load user's templates (owned + shared), render template cards with stats, open TemplateModal for create/edit, delete with confirmation, toggle shared status
- * @contracts EmailTemplates() → JSX; reads email_templates table by user_id from Supabase; writes on create/update/delete
- * @in supabase (email_templates table, auth.getUser), TemplateModal component
- * @out Grid of template cards with name, subject preview, usage stats, shared badge, edit/delete actions
- * @err Supabase load failure (silent — empty list renders); delete error (silent — no feedback to user)
- * @hazard Delete fires immediately on confirmation — no optimistic rollback if Supabase delete fails; UI shows card gone but DB may still have it
- * @hazard Shared templates are visible to all org users — no RLS verification in crumb; if RLS misconfigured, templates leak across orgs
- * @shared-edges frontend/src/lib/supabase.ts→QUERIES email_templates; frontend/src/components/TemplateModal.tsx→LAUNCHES for create/edit; frontend/src/App.tsx→ROUTES to /email-templates
- * @trail email-templates#1 | EmailTemplates mounts → load templates → render cards with stats → user edits → TemplateModal saves → reload → user deletes → confirm → remove
- * @prompt Add error toast on delete failure. Verify RLS on email_templates scopes to org_id. Add template preview before use. Add search/filter for large template libraries. VV design applied: void-950 page bg, glass-card template cards, indigo-electric Create CTA, vv-section-title "Outreach", font-display headings, font-mono stats, white/10 borders, indigo-electric/15 shared badge, red-alert delete hover, VV spinner, VV delete modal.
- */
+// @crumb frontend-page-email-templates
+// UI/PAGES | load_user_templates | render_template_cards | create_edit_modal | delete_with_confirmation | toggle_shared
+// why: Email template library — create, edit, share, and delete reusable email templates with usage and reply tracking
+// in:supabase(email_templates,auth.getUser),TemplateModal out:grid of template cards with name,subject preview,usage stats,shared badge,edit/delete actions err:Supabase load failure(silent empty list),delete error(silent no feedback)
+// hazard: Delete fires on confirmation with no optimistic rollback — UI shows card gone but DB may still have it
+// hazard: Shared templates visible to all org users — no RLS verification; if misconfigured, templates leak across orgs
+// edge:frontend/src/lib/supabase.ts -> CALLS
+// edge:frontend/src/components/TemplateModal.tsx -> CALLS
+// edge:frontend/src/App.tsx -> RELATES
+// edge:email-templates#1 -> STEP_IN
+// prompt: Add error toast on delete failure. Verify RLS on email_templates scopes to org_id. Add template preview and search/filter.
 import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2, Share2, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { TemplateModal } from '../components/TemplateModal'
+import DOMPurify from 'dompurify'
 
 interface EmailTemplate {
   id: string
@@ -34,6 +30,7 @@ interface EmailTemplate {
 export default function EmailTemplates() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
@@ -61,6 +58,8 @@ export default function EmailTemplates() {
       setTemplates(data || [])
     } catch (err) {
       console.error('Error loading templates:', err)
+      setLoadError('Failed to load templates. Please refresh the page.')
+      setLoading(false)
     } finally {
       setLoading(false)
     }
@@ -84,7 +83,7 @@ export default function EmailTemplates() {
 
   const stripHTML = (html: string) => {
     const div = document.createElement('DIV')
-    div.innerHTML = html
+    div.innerHTML = DOMPurify.sanitize(html)
     return div.textContent || div.innerText || ''
   }
 
@@ -129,6 +128,12 @@ export default function EmailTemplates() {
           Create Template
         </button>
       </div>
+
+      {loadError && (
+        <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
+          <p className="text-sm text-red-alert">{loadError}</p>
+        </div>
+      )}
 
       {/* Templates List */}
       {templates.length === 0 ? (
