@@ -1,3 +1,4 @@
+/** @id salesblock.lib.core.supabase */
 // @crumb frontend-supabase-client
 // API | client_initialization | env_var_loading | missing_credentials_warning
 // why: Expose singleton Supabase client for auth token refresh and session validation (read-only for frontend)

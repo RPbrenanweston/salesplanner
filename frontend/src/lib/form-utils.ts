@@ -1,3 +1,4 @@
+/** @id salesblock.lib.core.form-utils */
 /**
  * Reusable form hooks and utilities for consistent form handling across modals
  *

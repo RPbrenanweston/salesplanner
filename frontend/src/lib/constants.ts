@@ -1,3 +1,4 @@
+/** @id salesblock.lib.core.constants */
 /**
  * Centralized constants and magic strings/numbers
  *

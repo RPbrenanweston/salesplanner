@@ -1,3 +1,4 @@
+/** @id salesblock.lib.core.time */
 /**
  * Time and greeting utilities
  */

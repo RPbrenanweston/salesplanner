@@ -1,3 +1,4 @@
+/** @id salesblock.lib.core.formatters */
 /**
  * UI formatting utilities for activities, outcomes, and text
  */

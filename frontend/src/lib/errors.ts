@@ -1,3 +1,4 @@
+/** @id salesblock.lib.core.errors */
 /**
  * Centralized error handling and logging utilities
  *
