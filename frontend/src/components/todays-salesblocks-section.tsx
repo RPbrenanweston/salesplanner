@@ -1,3 +1,13 @@
+// @crumb frontend-component-todays-salesblocks-section
+// UI/Dashboard/Sessions | block_scheduling | start_control | block_duration_estimation
+// why: Today's salesblocks section — display scheduled blocks for current day with start/continue actions and real-time status management
+// in:salesblocks:SalesBlock[](id,title,scheduled_start,duration_minutes,status,contact_count),onStartBlock callback,onScheduleBlock callback out:List of blocks with conditional buttons (Start/Continue/Waiting) and display timing err:Empty salesblocks array (show schedule prompt),undefined list.name
+// hazard: Start button relies on canStartBlock() utility — if that function's window (e.g., 5min before scheduled_start) changes, UX breaks silently. No loading state when starting a block.
+// hazard: Time display uses toLocaleTimeString() — user's browser timezone may differ from server, showing incorrect local times for blocks scheduled in different zones
+// edge:frontend/src/hooks/useDashboardData.ts -> READS
+// edge:frontend/src/lib/salesblock.ts -> CALLS
+// prompt: Add start_loading state and disable button during request. Pass ISO server timestamp or timezone offset to toLocaleTimeString() to sync with server. Test with users in different timezones.
+
 /**
  * Section showing today's salesblocks with start button
  */

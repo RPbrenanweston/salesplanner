@@ -1,3 +1,14 @@
+// @crumb frontend-component-activity-feed-section
+// UI/Dashboard/Activity | activity_list_rendering | outcome_badge_display | time_formatting | truncated_notes_display
+// why: Activity feed section — display recent contact activities on dashboard with outcome badges, icons, and truncated notes
+// in:Activity[](id,type,outcome,notes,created_at),useDashboardData hook out:Formatted activity list with icons/badges/time,truncated notes UI err:Empty activities list (show empty state),malformed activity data
+// hazard: Notes truncation has no expand-to-full functionality — users cannot read truncated activity details from dashboard
+// hazard: Time formatting uses relative time (timeAgo) which becomes stale — 1-hour-old activity still shows "1 hour ago" after 2 hours unless refetch
+// edge:frontend/src/hooks/useDashboardData.ts -> READS
+// edge:frontend/src/lib/formatters.ts -> CALLS
+// edge:frontend/src/lib/time.ts -> CALLS
+// prompt: Add expand/modal link for full note text. Implement realtime time updates with 60s refresh interval or use absolute timestamp as fallback.
+
 /**
  * Section showing recent activities with icons and outcomes
  */
