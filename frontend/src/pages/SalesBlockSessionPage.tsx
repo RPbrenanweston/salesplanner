@@ -58,6 +58,14 @@ interface SessionStats {
   conversations: number;
 }
 
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    result.push(arr.slice(i, i + size));
+  }
+  return result;
+}
+
 export default function SalesBlockSessionPage() {
   const { salesblockId } = useParams<{ salesblockId: string }>();
   const { user } = useAuth();
@@ -192,25 +200,33 @@ export default function SalesBlockSessionPage() {
           }
         }
 
-        // Fetch contact details
-        const { data: contactsData, error: contactsError } = await supabase
-          .from('contacts')
-          .select('id, first_name, last_name, email, phone, company, title, notes')
-          .in('id', contactIds);
-
-        if (contactsError) throw contactsError;
-
-        // Fetch activity status for each contact
-        const contactsWithActivity = await Promise.all(
-          (contactsData || []).map(async (contact) => {
-            const { count } = await supabase
-              .from('activities')
-              .select('id', { count: 'exact', head: true })
-              .eq('contact_id', contact.id);
-
-            return { ...contact, hasActivity: (count ?? 0) > 0 };
-          })
+        // Fetch contact details in batches to avoid Supabase URL length limits
+        const BATCH_SIZE = 50;
+        const contactBatchResults = await Promise.all(
+          chunkArray(contactIds, BATCH_SIZE).map((chunk) =>
+            supabase
+              .from('contacts')
+              .select('id, first_name, last_name, email, phone, company, title, notes')
+              .in('id', chunk)
+          )
         );
+        const contactsError = contactBatchResults.find((r) => r.error)?.error ?? null;
+        if (contactsError) throw contactsError;
+        const contactsData = contactBatchResults.flatMap((r) => r.data || []);
+
+        // Fetch activity status in batches (avoids N individual HEAD requests)
+        const activityBatchResults = await Promise.all(
+          chunkArray(contactIds, BATCH_SIZE).map((chunk) =>
+            supabase.from('activities').select('contact_id').in('contact_id', chunk)
+          )
+        );
+        const contactsWithActivityIds = new Set(
+          activityBatchResults.flatMap((r) => r.data || []).map((a) => a.contact_id)
+        );
+        const contactsWithActivity = contactsData.map((contact) => ({
+          ...contact,
+          hasActivity: contactsWithActivityIds.has(contact.id),
+        }));
 
         setContacts(contactsWithActivity);
 
@@ -329,19 +345,18 @@ export default function SalesBlockSessionPage() {
   };
 
   const refreshActivityStatus = async () => {
-    // Re-fetch activity status for all contacts
-    const contactsWithActivity = await Promise.all(
-      contacts.map(async (contact) => {
-        const { count } = await supabase
-          .from('activities')
-          .select('id', { count: 'exact', head: true })
-          .eq('contact_id', contact.id);
-
-        return { ...contact, hasActivity: (count ?? 0) > 0 };
-      })
+    if (contacts.length === 0) return;
+    const ids = contacts.map((c) => c.id);
+    const BATCH_SIZE = 50;
+    const activityBatchResults = await Promise.all(
+      chunkArray(ids, BATCH_SIZE).map((chunk) =>
+        supabase.from('activities').select('contact_id').in('contact_id', chunk)
+      )
     );
-
-    setContacts(contactsWithActivity);
+    const hasActivitySet = new Set(
+      activityBatchResults.flatMap((r) => r.data || []).map((a) => a.contact_id)
+    );
+    setContacts((prev) => prev.map((c) => ({ ...c, hasActivity: hasActivitySet.has(c.id) })));
   };
 
   const handleEndSession = async () => {
