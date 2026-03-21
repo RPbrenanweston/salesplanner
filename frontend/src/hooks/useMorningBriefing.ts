@@ -21,6 +21,18 @@ import {
 
 type BriefingStep = 'review' | 'prioritize' | 'commit'
 
+export interface YesterdayDebrief {
+  wins: string | null
+  improvements: string | null
+  tomorrow_priorities: string | null
+  blocks_planned: number
+  blocks_completed: number
+  blocks_skipped: number
+  total_focus_ms: number
+  completion_rate: number
+  debrief_date: string
+}
+
 const BRIEFING_CUTOFF_HOUR = 15 // 3 PM
 
 function getTodayDateString(): string {
@@ -48,6 +60,7 @@ export interface UseMorningBriefingReturn {
   commitPlan: () => Promise<void>
   skipBriefing: () => void
   isCommitting: boolean
+  yesterdayDebrief: YesterdayDebrief | null
 }
 
 export function useMorningBriefing(): UseMorningBriefingReturn {
@@ -155,6 +168,45 @@ export function useMorningBriefing(): UseMorningBriefingReturn {
     },
     enabled: !!userId && !!yesterdayPlan,
     staleTime: 2 * 60 * 1000,
+  })
+
+  // --- Fetch yesterday's debrief for feedback loop ---
+  const { data: yesterdayDebrief = null } = useQuery<YesterdayDebrief | null>({
+    queryKey: ['yesterday-debrief', userId, yesterday],
+    queryFn: async () => {
+      if (!userId) return null
+      try {
+        const { data, error } = await supabase
+          .from('session_debriefs')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('debrief_date', yesterday)
+          .maybeSingle()
+        if (error) {
+          console.warn('[useMorningBriefing] session_debriefs query failed (table may not exist):', error.message)
+          return null
+        }
+        if (!data) return null
+        return {
+          wins: data.wins,
+          improvements: data.improvements,
+          tomorrow_priorities: data.tomorrow_priorities,
+          blocks_planned: data.blocks_planned ?? 0,
+          blocks_completed: data.blocks_completed ?? 0,
+          blocks_skipped: data.blocks_skipped ?? 0,
+          total_focus_ms: data.total_focus_ms ?? 0,
+          completion_rate: data.blocks_planned > 0
+            ? Math.round((data.blocks_completed / data.blocks_planned) * 100)
+            : 0,
+          debrief_date: data.debrief_date,
+        } as YesterdayDebrief
+      } catch {
+        console.warn('[useMorningBriefing] session_debriefs query threw unexpectedly')
+        return null
+      }
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
   })
 
   // --- Derived: combined suggestion list (deduplicated) ---
@@ -323,5 +375,6 @@ export function useMorningBriefing(): UseMorningBriefingReturn {
     commitPlan,
     skipBriefing,
     isCommitting: commitMutation.isPending,
+    yesterdayDebrief,
   }
 }
