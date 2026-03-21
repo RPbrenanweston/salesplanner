@@ -1,8 +1,9 @@
 /**
  * Arena - Competitive sales leaderboard and competition management
  *
- * War Room design: competition header, KPI cards, podium, leaderboard table,
+ * War Room design: competition header, dynamic KPI cards, podium, leaderboard table,
  * personal stats, and competition management tabs.
+ * KPI columns are driven by the active competition's kpi_config.
  */
 import { useState, useMemo } from 'react'
 import {
@@ -10,6 +11,9 @@ import {
   Phone,
   Mail,
   TrendingUp,
+  Share2,
+  Calendar,
+  BarChart3,
   Plus,
   Clock,
   Users,
@@ -22,8 +26,58 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { useArena, periodLabel, type Competition, type ArenaParticipant } from '../hooks/useArena'
+import {
+  useArena,
+  periodLabel,
+  type Competition,
+  type ArenaParticipant,
+  type CompetitionKPI,
+} from '../hooks/useArena'
 import { CreateCompetitionModal } from '../components/CreateCompetitionModal'
+
+// ---------------------------------------------------------------------------
+// Icon resolver
+// ---------------------------------------------------------------------------
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Phone: <Phone className="w-5 h-5 text-blue-500" />,
+  Mail: <Mail className="w-5 h-5 text-purple-500" />,
+  TrendingUp: <TrendingUp className="w-5 h-5 text-indigo-500" />,
+  Share2: <Share2 className="w-5 h-5 text-cyan-500" />,
+  Calendar: <Calendar className="w-5 h-5 text-green-500" />,
+  BarChart3: <BarChart3 className="w-5 h-5 text-orange-500" />,
+}
+
+const ACCENT_MAP: Record<string, string> = {
+  Phone: 'bg-blue-50 dark:bg-blue-900/30',
+  Mail: 'bg-purple-50 dark:bg-purple-900/30',
+  TrendingUp: 'bg-indigo-50 dark:bg-indigo-900/30',
+  Share2: 'bg-cyan-50 dark:bg-cyan-900/30',
+  Calendar: 'bg-green-50 dark:bg-green-900/30',
+  BarChart3: 'bg-orange-50 dark:bg-orange-900/30',
+}
+
+// Map KPI IDs to icon names for built-in KPIs
+const KPI_ICON_MAP: Record<string, string> = {
+  calls: 'Phone',
+  emails: 'Mail',
+  deals: 'TrendingUp',
+  social: 'Share2',
+  meetings: 'Calendar',
+}
+
+function resolveKPIIcon(kpiId: string): React.ReactNode {
+  const iconName = KPI_ICON_MAP[kpiId] || 'BarChart3'
+  return ICON_MAP[iconName] || ICON_MAP.BarChart3
+}
+
+function resolveKPIAccent(kpiId: string): string {
+  const iconName = KPI_ICON_MAP[kpiId] || 'BarChart3'
+  return ACCENT_MAP[iconName] || ACCENT_MAP.BarChart3
+}
+
+// Bar chart colors per KPI index
+const BAR_COLORS = ['bg-blue-500', 'bg-purple-500', 'bg-indigo-500', 'bg-cyan-500', 'bg-green-500', 'bg-orange-500', 'bg-pink-500', 'bg-teal-500']
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -128,7 +182,15 @@ function UserInitials({ name }: { name: string }) {
 // Podium (Top 3)
 // ---------------------------------------------------------------------------
 
-function Podium({ participants, currentUserId }: { participants: ArenaParticipant[]; currentUserId?: string }) {
+function Podium({
+  participants,
+  currentUserId,
+  kpiConfig,
+}: {
+  participants: ArenaParticipant[]
+  currentUserId?: string
+  kpiConfig: CompetitionKPI[]
+}) {
   if (participants.length === 0) return null
 
   const top3 = participants.slice(0, 3)
@@ -140,6 +202,9 @@ function Podium({ participants, currentUserId }: { participants: ArenaParticipan
   // Display order: 2nd - 1st - 3rd
   const displayOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3
   const styleOrder = top3.length >= 3 ? [medalStyles[1], medalStyles[0], medalStyles[2]] : medalStyles.slice(0, top3.length)
+
+  // Show top 3 KPIs on podium cards
+  const topKPIs = kpiConfig.slice(0, 3)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -174,18 +239,21 @@ function Podium({ participants, currentUserId }: { participants: ArenaParticipan
             <p className="font-semibold text-gray-900 dark:text-white">{p.user_name}</p>
             {isMe && <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">You</p>}
             <div className="mt-4 space-y-1.5 text-sm">
-              <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
-                <Phone className="w-3.5 h-3.5" />
-                <span>{p.calls_made} calls</span>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
-                <Mail className="w-3.5 h-3.5" />
-                <span>{p.emails_sent} emails</span>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium">
-                <TrendingUp className="w-3.5 h-3.5" />
-                <span>{p.deals_moved} deals</span>
-              </div>
+              {topKPIs.map((kpi, ki) => {
+                const count = p.kpi_scores[kpi.kpi_id] || 0
+                const isLast = ki === topKPIs.length - 1
+                return (
+                  <div
+                    key={kpi.kpi_id}
+                    className={`flex items-center justify-center gap-2 ${
+                      isLast ? 'text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    <span className="w-4 h-4 flex items-center justify-center">{resolveKPIIcon(kpi.kpi_id)}</span>
+                    <span>{count} {kpi.name.toLowerCase()}</span>
+                  </div>
+                )
+              })}
             </div>
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
               <span className="text-lg font-bold text-gray-900 dark:text-white">{p.total_score}</span>
@@ -199,10 +267,18 @@ function Podium({ participants, currentUserId }: { participants: ArenaParticipan
 }
 
 // ---------------------------------------------------------------------------
-// Leaderboard Table
+// Leaderboard Table (Dynamic KPI columns)
 // ---------------------------------------------------------------------------
 
-function LeaderboardTable({ participants, currentUserId }: { participants: ArenaParticipant[]; currentUserId?: string }) {
+function LeaderboardTable({
+  participants,
+  currentUserId,
+  kpiConfig,
+}: {
+  participants: ArenaParticipant[]
+  currentUserId?: string
+  kpiConfig: CompetitionKPI[]
+}) {
   if (participants.length === 0) {
     return (
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-12 text-center">
@@ -214,98 +290,99 @@ function LeaderboardTable({ participants, currentUserId }: { participants: Arena
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
-            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Rank
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Rep
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Calls
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Emails
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Deals
-            </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Score
-            </th>
-            <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Trend
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-          {participants.map((p) => {
-            const isMe = p.user_id === currentUserId
-            return (
-              <tr
-                key={p.user_id}
-                className={`
-                  transition
-                  ${isMe ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}
-                `}
-              >
-                <td className="px-6 py-4">
-                  <span className="text-sm font-bold text-gray-500 dark:text-gray-400">#{p.rank}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <UserInitials name={p.user_name} />
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {p.user_name}
-                        {isMe && (
-                          <span className="ml-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">(You)</span>
-                        )}
-                      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Rank
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Rep
+              </th>
+              {kpiConfig.map((kpi) => (
+                <th
+                  key={kpi.kpi_id}
+                  className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  {kpi.name}
+                </th>
+              ))}
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Score
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Trend
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+            {participants.map((p) => {
+              const isMe = p.user_id === currentUserId
+              return (
+                <tr
+                  key={p.user_id}
+                  className={`
+                    transition
+                    ${isMe ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}
+                  `}
+                >
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400">#{p.rank}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <UserInitials name={p.user_name} />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {p.user_name}
+                          {isMe && (
+                            <span className="ml-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">(You)</span>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-right text-sm text-gray-700 dark:text-gray-300">{p.calls_made}</td>
-                <td className="px-6 py-4 text-right text-sm text-gray-700 dark:text-gray-300">{p.emails_sent}</td>
-                <td className="px-6 py-4 text-right text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                  {p.deals_moved}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">{p.total_score}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex justify-center">
-                    <TrendIcon trend={p.trend} />
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                  </td>
+                  {kpiConfig.map((kpi) => (
+                    <td key={kpi.kpi_id} className="px-6 py-4 text-right text-sm text-gray-700 dark:text-gray-300">
+                      {p.kpi_scores[kpi.kpi_id] || 0}
+                    </td>
+                  ))}
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">{p.total_score}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center">
+                      <TrendIcon trend={p.trend} />
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
 
 // ---------------------------------------------------------------------------
-// My Stats Tab
+// My Stats Tab (Dynamic KPIs)
 // ---------------------------------------------------------------------------
 
 function MyStatsTab({
   personalStats,
+  kpiConfig,
 }: {
   personalStats: {
     rank: number
     total_participants: number
-    calls_made: number
-    emails_sent: number
-    deals_moved: number
+    kpi_scores: Record<string, number>
     total_score: number
     points_to_next_rank: number
     win_rate: number
   } | null
+  kpiConfig: CompetitionKPI[]
 }) {
   if (!personalStats) {
     return (
@@ -323,13 +400,20 @@ function MyStatsTab({
         ? 100
         : 0
 
-  // Simple bar chart data
-  const maxStat = Math.max(personalStats.calls_made, personalStats.emails_sent, personalStats.deals_moved, 1)
-  const barData = [
-    { label: 'Calls', value: personalStats.calls_made, color: 'bg-blue-500' },
-    { label: 'Emails', value: personalStats.emails_sent, color: 'bg-purple-500' },
-    { label: 'Deals', value: personalStats.deals_moved, color: 'bg-indigo-500' },
-  ]
+  // Build bar chart data from KPI config
+  const barData = kpiConfig.map((kpi, i) => ({
+    label: kpi.name,
+    value: personalStats.kpi_scores[kpi.kpi_id] || 0,
+    color: BAR_COLORS[i % BAR_COLORS.length],
+  }))
+  const maxStat = Math.max(...barData.map((b) => b.value), 1)
+
+  // Build scoring formula text
+  const formulaParts = kpiConfig.map((kpi) => {
+    if (kpi.points_per_unit === 1) return kpi.name
+    return `(${kpi.name} x${kpi.points_per_unit})`
+  })
+  const formulaText = formulaParts.join(' + ')
 
   return (
     <div className="space-y-6">
@@ -370,14 +454,20 @@ function MyStatsTab({
         )}
       </div>
 
-      {/* Personal KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard label="Calls Made" value={personalStats.calls_made} icon={<Phone className="w-5 h-5 text-blue-500" />} accent="bg-blue-50 dark:bg-blue-900/30" />
-        <StatCard label="Emails Sent" value={personalStats.emails_sent} icon={<Mail className="w-5 h-5 text-purple-500" />} accent="bg-purple-50 dark:bg-purple-900/30" />
-        <StatCard label="Deals Moved" value={personalStats.deals_moved} icon={<TrendingUp className="w-5 h-5 text-indigo-500" />} accent="bg-indigo-50 dark:bg-indigo-900/30" />
+      {/* Personal KPIs -- dynamic stat cards */}
+      <div className={`grid grid-cols-1 md:grid-cols-${Math.min(kpiConfig.length, 4)} gap-4`}>
+        {kpiConfig.slice(0, 4).map((kpi) => (
+          <StatCard
+            key={kpi.kpi_id}
+            label={kpi.name}
+            value={personalStats.kpi_scores[kpi.kpi_id] || 0}
+            icon={resolveKPIIcon(kpi.kpi_id)}
+            accent={resolveKPIAccent(kpi.kpi_id)}
+          />
+        ))}
       </div>
 
-      {/* Activity Breakdown Bar Chart (CSS only) */}
+      {/* Activity Breakdown Bar Chart */}
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Activity Breakdown</h3>
         <div className="space-y-4">
@@ -402,7 +492,7 @@ function MyStatsTab({
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm text-center">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Score</p>
         <p className="text-5xl font-bold text-gray-900 dark:text-white">{personalStats.total_score}</p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Calls + Emails + (Deals x3)</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{formulaText}</p>
       </div>
     </div>
   )
@@ -430,7 +520,7 @@ function CompetitionsTab({
         <Trophy className="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500 mb-3" />
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Create a New Competition</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Set a time period and challenge your team to compete.
+          Set a time period, choose KPIs, and challenge your team to compete.
         </p>
         <button
           onClick={onCreateClick}
@@ -482,6 +572,12 @@ function CompetitionsTab({
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                     {periodLabel(c.period)} &middot; {startDate} - {endDate}
+                    {c.participant_ids.length > 0 && (
+                      <span> &middot; {c.participant_ids.length} participant{c.participant_ids.length !== 1 ? 's' : ''}</span>
+                    )}
+                    {c.kpi_config.length > 0 && (
+                      <span> &middot; {c.kpi_config.length} KPI{c.kpi_config.length !== 1 ? 's' : ''}</span>
+                    )}
                   </p>
                 </div>
                 {!isActive && (
@@ -518,7 +614,20 @@ export default function Arena() {
   const [activeTab, setActiveTab] = useState<ArenaTab>('leaderboard')
   const [showCreateModal, setShowCreateModal] = useState(false)
 
-  const participantCount = useMemo(() => leaderboard.length, [leaderboard])
+  const participantCount = useMemo(() => {
+    // Show actual participant count from competition config, or leaderboard count
+    return competition.participant_ids.length > 0 ? competition.participant_ids.length : leaderboard.length
+  }, [competition.participant_ids, leaderboard])
+
+  // Build dynamic KPI stat cards from aggregates
+  const kpiStatCards = useMemo(() => {
+    return competition.kpi_config.slice(0, 3).map((kpi) => ({
+      label: `Total ${kpi.name}`,
+      value: aggregates.kpi_totals[kpi.kpi_id] || 0,
+      icon: resolveKPIIcon(kpi.kpi_id),
+      accent: resolveKPIAccent(kpi.kpi_id),
+    }))
+  }, [competition.kpi_config, aggregates.kpi_totals])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -539,13 +648,16 @@ export default function Arena() {
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {competition.name} &middot; {periodLabel(competition.period)}
+                {competition.description && (
+                  <span className="ml-2 italic">-- {competition.description}</span>
+                )}
               </p>
             </div>
 
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
                 <Users className="w-4 h-4" />
-                <span>{participantCount} participants</span>
+                <span>{participantCount} participant{participantCount !== 1 ? 's' : ''}</span>
               </div>
               <TimeRemaining endDate={competition.end_date} />
               <button
@@ -594,26 +706,17 @@ export default function Arena() {
             {/* Leaderboard Tab */}
             {activeTab === 'leaderboard' && (
               <div className="space-y-6">
-                {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <StatCard
-                    label="Total Calls"
-                    value={aggregates.total_calls}
-                    icon={<Phone className="w-5 h-5 text-blue-500" />}
-                    accent="bg-blue-50 dark:bg-blue-900/30"
-                  />
-                  <StatCard
-                    label="Total Emails"
-                    value={aggregates.total_emails}
-                    icon={<Mail className="w-5 h-5 text-purple-500" />}
-                    accent="bg-purple-50 dark:bg-purple-900/30"
-                  />
-                  <StatCard
-                    label="Deals Moved"
-                    value={aggregates.total_deals}
-                    icon={<TrendingUp className="w-5 h-5 text-indigo-500" />}
-                    accent="bg-indigo-50 dark:bg-indigo-900/30"
-                  />
+                {/* Dynamic KPI Cards + Avg Score */}
+                <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${Math.min(kpiStatCards.length + 1, 4)} gap-4`}>
+                  {kpiStatCards.map((card) => (
+                    <StatCard
+                      key={card.label}
+                      label={card.label}
+                      value={card.value}
+                      icon={card.icon}
+                      accent={card.accent}
+                    />
+                  ))}
                   <StatCard
                     label="Avg Score"
                     value={aggregates.avg_score}
@@ -623,16 +726,16 @@ export default function Arena() {
                 </div>
 
                 {/* Podium */}
-                <Podium participants={leaderboard} currentUserId={user?.id} />
+                <Podium participants={leaderboard} currentUserId={user?.id} kpiConfig={competition.kpi_config} />
 
                 {/* Full Table */}
-                <LeaderboardTable participants={leaderboard} currentUserId={user?.id} />
+                <LeaderboardTable participants={leaderboard} currentUserId={user?.id} kpiConfig={competition.kpi_config} />
               </div>
             )}
 
             {/* My Stats Tab */}
             {activeTab === 'my-stats' && (
-              <MyStatsTab personalStats={personalStats} />
+              <MyStatsTab personalStats={personalStats} kpiConfig={competition.kpi_config} />
             )}
 
             {/* Competitions Tab */}

@@ -2,17 +2,26 @@
  * useArena - Competition management and leaderboard data hook
  *
  * Fetches leaderboard data from activities table, filtered by competition date ranges.
+ * Supports dynamic KPI scoring based on competition configuration.
  * Gracefully degrades if competitions table doesn't exist (falls back to current month).
  */
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
+import { BUILTIN_KPIS } from './useCustomKPIs'
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export type CompetitionPeriod = 'day' | 'week' | 'month' | 'quarter' | 'half' | 'year'
+
+export interface CompetitionKPI {
+  kpi_id: string
+  name: string
+  activity_type: string
+  points_per_unit: number
+}
 
 export interface Competition {
   id: string
@@ -22,14 +31,15 @@ export interface Competition {
   end_date: string
   created_by: string
   is_active: boolean
+  description?: string
+  kpi_config: CompetitionKPI[]
+  participant_ids: string[]
 }
 
 export interface ArenaParticipant {
   user_id: string
   user_name: string
-  calls_made: number
-  emails_sent: number
-  deals_moved: number
+  kpi_scores: Record<string, number>
   total_score: number
   rank: number
   trend: 'up' | 'down' | 'stable'
@@ -38,18 +48,14 @@ export interface ArenaParticipant {
 export interface PersonalStats {
   rank: number
   total_participants: number
-  calls_made: number
-  emails_sent: number
-  deals_moved: number
+  kpi_scores: Record<string, number>
   total_score: number
   points_to_next_rank: number
   win_rate: number
 }
 
 export interface ArenaAggregates {
-  total_calls: number
-  total_emails: number
-  total_deals: number
+  kpi_totals: Record<string, number>
   avg_score: number
 }
 
@@ -118,6 +124,15 @@ function defaultCompetitionName(): string {
   return `${monthName} ${now.getFullYear()} Sprint`
 }
 
+function defaultKPIConfig(): CompetitionKPI[] {
+  return BUILTIN_KPIS.map((kpi) => ({
+    kpi_id: kpi.id,
+    name: kpi.name,
+    activity_type: kpi.activity_type,
+    points_per_unit: kpi.points_per_unit,
+  }))
+}
+
 function buildDefaultCompetition(): Competition {
   const range = computeDateRange('month')
   return {
@@ -128,6 +143,8 @@ function buildDefaultCompetition(): Competition {
     end_date: range.end,
     created_by: '',
     is_active: true,
+    kpi_config: defaultKPIConfig(),
+    participant_ids: [],
   }
 }
 
@@ -142,7 +159,7 @@ export function useArena() {
   const [competitions, setCompetitions] = useState<Competition[]>([])
   const [leaderboard, setLeaderboard] = useState<ArenaParticipant[]>([])
   const [personalStats, setPersonalStats] = useState<PersonalStats | null>(null)
-  const [aggregates, setAggregates] = useState<ArenaAggregates>({ total_calls: 0, total_emails: 0, total_deals: 0, avg_score: 0 })
+  const [aggregates, setAggregates] = useState<ArenaAggregates>({ kpi_totals: {}, avg_score: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -157,15 +174,50 @@ export function useArena() {
       if (queryError) throw queryError
 
       if (data && data.length > 0) {
-        const mapped: Competition[] = data.map((row: Record<string, unknown>) => ({
-          id: row.id as string,
-          name: row.name as string,
-          period: (row.period as CompetitionPeriod) || 'month',
-          start_date: row.start_date as string,
-          end_date: row.end_date as string,
-          created_by: (row.created_by as string) || '',
-          is_active: row.is_active as boolean,
-        }))
+        const mapped: Competition[] = data.map((row: Record<string, unknown>) => {
+          // Parse kpi_config: could be JSON string or array
+          let kpiConfig: CompetitionKPI[] = defaultKPIConfig()
+          if (row.kpi_config) {
+            try {
+              const parsed = typeof row.kpi_config === 'string'
+                ? JSON.parse(row.kpi_config as string)
+                : row.kpi_config
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                kpiConfig = parsed as CompetitionKPI[]
+              }
+            } catch {
+              // Fall back to defaults
+            }
+          }
+
+          // Parse participant_ids
+          let participantIds: string[] = []
+          if (row.participant_ids) {
+            try {
+              const parsed = typeof row.participant_ids === 'string'
+                ? JSON.parse(row.participant_ids as string)
+                : row.participant_ids
+              if (Array.isArray(parsed)) {
+                participantIds = parsed as string[]
+              }
+            } catch {
+              // Fall back to empty
+            }
+          }
+
+          return {
+            id: row.id as string,
+            name: row.name as string,
+            period: (row.period as CompetitionPeriod) || 'month',
+            start_date: row.start_date as string,
+            end_date: row.end_date as string,
+            created_by: (row.created_by as string) || '',
+            is_active: row.is_active as boolean,
+            description: (row.description as string) || undefined,
+            kpi_config: kpiConfig,
+            participant_ids: participantIds,
+          }
+        })
         setCompetitions(mapped)
 
         const active = mapped.find((c) => c.is_active)
@@ -184,14 +236,35 @@ export function useArena() {
         setLoading(true)
         setError(null)
 
-        const { data: activities, error: queryError } = await supabase
+        // Build the activity type filter from kpi_config
+        const trackedTypes = comp.kpi_config.map((k) => k.activity_type)
+
+        let query = supabase
           .from('activities')
           .select('user_id, type, created_at, users!activities_user_id_fkey(display_name)')
           .gte('created_at', comp.start_date)
           .lte('created_at', comp.end_date)
           .order('created_at', { ascending: false })
 
+        // Filter by tracked activity types if we have KPI config
+        if (trackedTypes.length > 0) {
+          query = query.in('type', trackedTypes)
+        }
+
+        // Filter by participant IDs if set
+        if (comp.participant_ids.length > 0) {
+          query = query.in('user_id', comp.participant_ids)
+        }
+
+        const { data: activities, error: queryError } = await query
+
         if (queryError) throw queryError
+
+        // Build a map of activity_type -> points_per_unit from kpi_config
+        const kpiLookup = new Map<string, { kpi_id: string; points_per_unit: number }>()
+        for (const kpi of comp.kpi_config) {
+          kpiLookup.set(kpi.activity_type, { kpi_id: kpi.kpi_id, points_per_unit: kpi.points_per_unit })
+        }
 
         const userMap = new Map<string, ArenaParticipant>()
 
@@ -201,12 +274,15 @@ export function useArena() {
           const userName = users?.display_name || 'Unknown'
 
           if (!userMap.has(userId)) {
+            // Initialize kpi_scores with zeros for all tracked KPIs
+            const kpiScores: Record<string, number> = {}
+            for (const kpi of comp.kpi_config) {
+              kpiScores[kpi.kpi_id] = 0
+            }
             userMap.set(userId, {
               user_id: userId,
               user_name: userName,
-              calls_made: 0,
-              emails_sent: 0,
-              deals_moved: 0,
+              kpi_scores: kpiScores,
               total_score: 0,
               rank: 0,
               trend: 'stable',
@@ -215,11 +291,22 @@ export function useArena() {
 
           const entry = userMap.get(userId)!
           const activityType = a.type as string
-          if (activityType === 'call') entry.calls_made++
-          if (activityType === 'email') entry.emails_sent++
-          if (activityType === 'pipeline_move') entry.deals_moved++
-          entry.total_score = entry.calls_made + entry.emails_sent + entry.deals_moved * 3
+          const kpiInfo = kpiLookup.get(activityType)
+
+          if (kpiInfo) {
+            entry.kpi_scores[kpiInfo.kpi_id] = (entry.kpi_scores[kpiInfo.kpi_id] || 0) + 1
+          }
         })
+
+        // Calculate total scores
+        for (const participant of userMap.values()) {
+          let total = 0
+          for (const kpi of comp.kpi_config) {
+            const count = participant.kpi_scores[kpi.kpi_id] || 0
+            total += count * kpi.points_per_unit
+          }
+          participant.total_score = total
+        }
 
         const sorted = Array.from(userMap.values())
           .sort((a, b) => b.total_score - a.total_score)
@@ -227,12 +314,13 @@ export function useArena() {
 
         setLeaderboard(sorted)
 
-        // Aggregates
-        const totalCalls = sorted.reduce((s, p) => s + p.calls_made, 0)
-        const totalEmails = sorted.reduce((s, p) => s + p.emails_sent, 0)
-        const totalDeals = sorted.reduce((s, p) => s + p.deals_moved, 0)
+        // Aggregates -- totals per KPI
+        const kpiTotals: Record<string, number> = {}
+        for (const kpi of comp.kpi_config) {
+          kpiTotals[kpi.kpi_id] = sorted.reduce((s, p) => s + (p.kpi_scores[kpi.kpi_id] || 0), 0)
+        }
         const avgScore = sorted.length > 0 ? Math.round(sorted.reduce((s, p) => s + p.total_score, 0) / sorted.length) : 0
-        setAggregates({ total_calls: totalCalls, total_emails: totalEmails, total_deals: totalDeals, avg_score: avgScore })
+        setAggregates({ kpi_totals: kpiTotals, avg_score: avgScore })
 
         // Personal stats
         if (user) {
@@ -240,24 +328,23 @@ export function useArena() {
           if (me) {
             const nextRankScore = me.rank > 1 ? sorted[me.rank - 2].total_score : me.total_score
             const pointsToNext = me.rank > 1 ? nextRankScore - me.total_score : 0
-            const totalWins = 0 // placeholder -- would need duel data
             setPersonalStats({
               rank: me.rank,
               total_participants: sorted.length,
-              calls_made: me.calls_made,
-              emails_sent: me.emails_sent,
-              deals_moved: me.deals_moved,
+              kpi_scores: me.kpi_scores,
               total_score: me.total_score,
               points_to_next_rank: pointsToNext,
-              win_rate: totalWins,
+              win_rate: 0,
             })
           } else {
+            const emptyScores: Record<string, number> = {}
+            for (const kpi of comp.kpi_config) {
+              emptyScores[kpi.kpi_id] = 0
+            }
             setPersonalStats({
               rank: sorted.length + 1,
               total_participants: sorted.length,
-              calls_made: 0,
-              emails_sent: 0,
-              deals_moved: 0,
+              kpi_scores: emptyScores,
               total_score: 0,
               points_to_next_rank: sorted.length > 0 ? sorted[sorted.length - 1].total_score : 0,
               win_rate: 0,
@@ -276,17 +363,31 @@ export function useArena() {
 
   // ------- create competition -------
   const createCompetition = useCallback(
-    async (name: string, period: CompetitionPeriod, startDate?: string, endDate?: string) => {
+    async (
+      name: string,
+      period: CompetitionPeriod,
+      startDate?: string,
+      endDate?: string,
+      description?: string,
+      kpiConfig?: CompetitionKPI[],
+      participantIds?: string[],
+    ) => {
       if (!user) return
 
       const range = computeDateRange(period)
-      const newComp: Omit<Competition, 'id'> & { id?: string } = {
+      const resolvedKpiConfig = kpiConfig && kpiConfig.length > 0 ? kpiConfig : defaultKPIConfig()
+      const resolvedParticipantIds = participantIds && participantIds.length > 0 ? participantIds : [user.id]
+
+      const newComp: Record<string, unknown> = {
         name,
         period,
         start_date: startDate || range.start,
         end_date: endDate || range.end,
         created_by: user.id,
         is_active: true,
+        description: description || null,
+        kpi_config: JSON.stringify(resolvedKpiConfig),
+        participant_ids: JSON.stringify(resolvedParticipantIds),
       }
 
       try {
@@ -299,14 +400,18 @@ export function useArena() {
         if (insertError) throw insertError
 
         if (data) {
+          const row = data as Record<string, unknown>
           const created: Competition = {
-            id: data.id as string,
-            name: data.name as string,
-            period: data.period as CompetitionPeriod,
-            start_date: data.start_date as string,
-            end_date: data.end_date as string,
-            created_by: data.created_by as string,
-            is_active: data.is_active as boolean,
+            id: row.id as string,
+            name: row.name as string,
+            period: row.period as CompetitionPeriod,
+            start_date: row.start_date as string,
+            end_date: row.end_date as string,
+            created_by: row.created_by as string,
+            is_active: row.is_active as boolean,
+            description: (row.description as string) || undefined,
+            kpi_config: resolvedKpiConfig,
+            participant_ids: resolvedParticipantIds,
           }
           setCompetition(created)
           setCompetitions((prev) => [created, ...prev])
@@ -321,6 +426,9 @@ export function useArena() {
           end_date: endDate || range.end,
           created_by: user.id,
           is_active: true,
+          description,
+          kpi_config: resolvedKpiConfig,
+          participant_ids: resolvedParticipantIds,
         }
         setCompetition(localComp)
         setCompetitions((prev) => [localComp, ...prev])
