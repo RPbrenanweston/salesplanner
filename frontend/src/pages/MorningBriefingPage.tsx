@@ -10,6 +10,11 @@ import {
   Clock,
   AlertTriangle,
   Sparkles,
+  Trophy,
+  TrendingUp,
+  Target,
+  MessageSquare,
+  BarChart3,
 } from 'lucide-react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { useAuth } from '../hooks/useAuth'
@@ -105,6 +110,7 @@ export default function MorningBriefingPage() {
     commitPlan,
     skipBriefing,
     isCommitting,
+    yesterdayDebrief,
   } = useMorningBriefing()
 
   const currentStepIdx = STEP_MAP[step]
@@ -156,12 +162,12 @@ export default function MorningBriefingPage() {
 
   const handleCommit = useCallback(async () => {
     await commitPlan()
-    navigate('/day-planner')
+    navigate('/planner')
   }, [commitPlan, navigate])
 
   const handleSkip = useCallback(() => {
     skipBriefing()
-    navigate('/day-planner')
+    navigate('/planner')
   }, [skipBriefing, navigate])
 
   // ---------- Render ----------
@@ -194,6 +200,116 @@ export default function MorningBriefingPage() {
               <p className="text-sm text-gray-500 dark:text-white/50">
                 Review what needs your attention today. Select the blocks you want to carry forward.
               </p>
+            </div>
+
+            {/* Yesterday's Debrief — Feedback Loop */}
+            <div className="glass-card p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-5 h-5 text-indigo-electric" />
+                <h3 className="font-display font-semibold text-gray-900 dark:text-white text-sm">
+                  Yesterday's Reflections
+                </h3>
+              </div>
+
+              {yesterdayDebrief ? (
+                <>
+                  {/* Completion stats mini-bar */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10">
+                    <BarChart3 className="w-4 h-4 text-gray-400 dark:text-white/30 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-500 dark:text-white/40">
+                          {yesterdayDebrief.blocks_completed}/{yesterdayDebrief.blocks_planned} blocks completed
+                        </span>
+                        <span className="text-xs font-mono font-semibold text-gray-900 dark:text-white">
+                          {yesterdayDebrief.completion_rate}%
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            yesterdayDebrief.completion_rate >= 80
+                              ? 'bg-emerald-500'
+                              : yesterdayDebrief.completion_rate >= 50
+                                ? 'bg-amber-400'
+                                : 'bg-red-400'
+                          }`}
+                          style={{ width: `${yesterdayDebrief.completion_rate}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Wins */}
+                  {yesterdayDebrief.wins && (
+                    <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+                      <div className="flex items-start gap-2">
+                        <Trophy className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                            Wins
+                          </span>
+                          <p className="text-sm text-emerald-800 dark:text-emerald-300 mt-1 whitespace-pre-line">
+                            {yesterdayDebrief.wins}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Improvements */}
+                  {yesterdayDebrief.improvements && (
+                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                      <div className="flex items-start gap-2">
+                        <TrendingUp className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                            To Improve
+                          </span>
+                          <p className="text-sm text-amber-800 dark:text-amber-300 mt-1 whitespace-pre-line">
+                            {yesterdayDebrief.improvements}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tomorrow's Priorities (yesterday's "tomorrow" = today) */}
+                  {yesterdayDebrief.tomorrow_priorities && (
+                    <div className="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20">
+                      <div className="flex items-start gap-2">
+                        <Target className="w-4 h-4 text-indigo-electric mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+                            Today's Focus (from yesterday's plan)
+                          </span>
+                          <p className="text-sm text-indigo-800 dark:text-indigo-300 mt-1 whitespace-pre-line">
+                            {yesterdayDebrief.tomorrow_priorities}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No reflections recorded */}
+                  {!yesterdayDebrief.wins && !yesterdayDebrief.improvements && !yesterdayDebrief.tomorrow_priorities && (
+                    <p className="text-xs text-gray-400 dark:text-white/30 italic">
+                      Debrief was completed but no reflection notes were recorded.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="p-4 rounded-lg bg-white dark:bg-white/5 border border-dashed border-gray-300 dark:border-white/15 text-center">
+                  <MessageSquare className="w-6 h-6 text-gray-300 dark:text-white/20 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-white/40">
+                    No debrief from yesterday yet.
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-white/30 mt-1">
+                    Complete your <a href="/debrief" className="text-indigo-electric hover:underline">Daily Debrief</a> each
+                    evening to see your wins, improvements, and focus areas here every morning.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Overdue blocks */}

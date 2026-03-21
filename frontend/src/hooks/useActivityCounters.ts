@@ -61,15 +61,23 @@ export function useActivityCounters(dateStr?: string) {
     queryFn: async () => {
       if (!userId) return null
 
-      const { data, error } = await supabase
-        .from('activity_counters')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('counter_date', resolvedDate)
-        .maybeSingle()
+      try {
+        const { data, error } = await supabase
+          .from('activity_counters')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('counter_date', resolvedDate)
+          .maybeSingle()
 
-      if (error) throw error
-      return (data as ActivityCounter) ?? null
+        if (error) {
+          console.warn('[useActivityCounters] activity_counters query failed (table may not exist):', error.message)
+          return null
+        }
+        return (data as ActivityCounter) ?? null
+      } catch {
+        console.warn('[useActivityCounters] activity_counters query threw unexpectedly')
+        return null
+      }
     },
     enabled: !!userId,
     staleTime: 30 * 1000,

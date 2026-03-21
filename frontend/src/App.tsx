@@ -27,6 +27,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const SalesBlocks = lazy(() => import('./pages/SalesBlocks'))
 const Lists = lazy(() => import('./pages/Lists'))
 const ListDetailPage = lazy(() => import('./pages/ListDetailPage'))
+const ContactsPage = lazy(() => import('./pages/ContactsPage'))
 const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage'))
 const Email = lazy(() => import('./pages/Email'))
 const Social = lazy(() => import('./pages/Social'))
@@ -146,6 +147,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <ListDetailPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contacts"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ContactsPage />
                   </AppLayout>
                 </ProtectedRoute>
               }

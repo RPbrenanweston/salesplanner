@@ -49,6 +49,10 @@ export const ROUTES = {
   MORNING_BRIEFING: '/briefing',
   DAILY_DEBRIEF: '/debrief',
 
+  // Arena & Content
+  ARENA: '/arena',
+  CONTENT_LIBRARY: '/content-library',
+
   // Analytics & Reporting
   ANALYTICS: '/analytics',
 

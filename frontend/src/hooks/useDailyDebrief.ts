@@ -70,14 +70,22 @@ export function useDailyDebrief(): UseDailyDebriefReturn {
     queryKey: ['day-plan', userId, today],
     queryFn: async () => {
       if (!userId) return null
-      const { data, error } = await supabase
-        .from('day_plans')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('plan_date', today)
-        .maybeSingle()
-      if (error) throw error
-      return data as DayPlan | null
+      try {
+        const { data, error } = await supabase
+          .from('day_plans')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('plan_date', today)
+          .maybeSingle()
+        if (error) {
+          console.warn('[useDailyDebrief] day_plans query failed (table may not exist):', error.message)
+          return null
+        }
+        return data as DayPlan | null
+      } catch {
+        console.warn('[useDailyDebrief] day_plans query threw unexpectedly')
+        return null
+      }
     },
     enabled: !!userId,
     staleTime: 2 * 60 * 1000,
@@ -125,17 +133,24 @@ export function useDailyDebrief(): UseDailyDebriefReturn {
     queryKey: ['today-focus-sessions', userId, today],
     queryFn: async () => {
       if (!userId) return []
-      // Focus sessions don't have a date column, so filter by started_at within today
-      const dayStart = `${today}T00:00:00.000Z`
-      const dayEnd = `${today}T23:59:59.999Z`
-      const { data, error } = await supabase
-        .from('focus_sessions')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('started_at', dayStart)
-        .lte('started_at', dayEnd)
-      if (error) throw error
-      return (data ?? []) as FocusSession[]
+      try {
+        const dayStart = `${today}T00:00:00.000Z`
+        const dayEnd = `${today}T23:59:59.999Z`
+        const { data, error } = await supabase
+          .from('focus_sessions')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('started_at', dayStart)
+          .lte('started_at', dayEnd)
+        if (error) {
+          console.warn('[useDailyDebrief] focus_sessions query failed (table may not exist):', error.message)
+          return []
+        }
+        return (data ?? []) as FocusSession[]
+      } catch {
+        console.warn('[useDailyDebrief] focus_sessions query threw unexpectedly')
+        return []
+      }
     },
     enabled: !!userId,
     staleTime: 1 * 60 * 1000,
@@ -179,33 +194,41 @@ export function useDailyDebrief(): UseDailyDebriefReturn {
     mutationFn: async () => {
       if (!userId) throw new Error('Not authenticated')
 
-      // Insert session_debriefs record
-      const { error: debriefError } = await supabase
-        .from('session_debriefs')
-        .insert({
-          user_id: userId,
-          debrief_date: today,
-          blocks_planned: stats.blocksPlanned,
-          blocks_completed: stats.blocksCompleted,
-          blocks_skipped: stats.blocksSkipped,
-          total_focus_ms: stats.totalFocusMs,
-          total_break_ms: stats.totalBreakMs,
-          wins: wins || null,
-          improvements: improvements || null,
-          tomorrow_priorities: tomorrowPriorities || null,
-        })
-      if (debriefError) throw debriefError
-
-      // Mark day_plan as debriefed
-      if (todayPlan?.id) {
-        const { error: planError } = await supabase
-          .from('day_plans')
-          .update({
-            debrief_completed: true,
-            updated_at: new Date().toISOString(),
+      // Insert session_debriefs record — skip gracefully if table doesn't exist
+      try {
+        const { error: debriefError } = await supabase
+          .from('session_debriefs')
+          .insert({
+            user_id: userId,
+            debrief_date: today,
+            blocks_planned: stats.blocksPlanned,
+            blocks_completed: stats.blocksCompleted,
+            blocks_skipped: stats.blocksSkipped,
+            total_focus_ms: stats.totalFocusMs,
+            total_break_ms: stats.totalBreakMs,
+            wins: wins || null,
+            improvements: improvements || null,
+            tomorrow_priorities: tomorrowPriorities || null,
           })
-          .eq('id', todayPlan.id)
-        if (planError) throw planError
+        if (debriefError) console.warn('[useDailyDebrief] session_debriefs insert failed:', debriefError.message)
+      } catch {
+        console.warn('[useDailyDebrief] session_debriefs insert threw unexpectedly')
+      }
+
+      // Mark day_plan as debriefed — skip gracefully if table doesn't exist
+      if (todayPlan?.id) {
+        try {
+          const { error: planError } = await supabase
+            .from('day_plans')
+            .update({
+              debrief_completed: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', todayPlan.id)
+          if (planError) console.warn('[useDailyDebrief] day_plans update failed:', planError.message)
+        } catch {
+          console.warn('[useDailyDebrief] day_plans update threw unexpectedly')
+        }
       }
     },
     onSuccess: () => {
@@ -220,14 +243,18 @@ export function useDailyDebrief(): UseDailyDebriefReturn {
       if (!userId) throw new Error('Not authenticated')
       if (!todayPlan?.id) return
 
-      const { error } = await supabase
-        .from('day_plans')
-        .update({
-          debrief_completed: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', todayPlan.id)
-      if (error) throw error
+      try {
+        const { error } = await supabase
+          .from('day_plans')
+          .update({
+            debrief_completed: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', todayPlan.id)
+        if (error) console.warn('[useDailyDebrief] skip day_plans update failed:', error.message)
+      } catch {
+        console.warn('[useDailyDebrief] skip day_plans update threw unexpectedly')
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['day-plan', userId, today] })
