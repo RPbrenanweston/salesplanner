@@ -646,12 +646,36 @@ export default function Arena() {
                   Live
                 </span>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {competition.name} &middot; {periodLabel(competition.period)}
-                {competition.description && (
-                  <span className="ml-2 italic">-- {competition.description}</span>
-                )}
-              </p>
+              {competitions.length > 1 ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <select
+                    value={competition.id}
+                    onChange={(e) => {
+                      const selected = competitions.find((c) => c.id === e.target.value)
+                      if (selected) switchCompetition(selected)
+                    }}
+                    className="text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 cursor-pointer max-w-xs"
+                  >
+                    {competitions.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} · {periodLabel(c.period)}{c.is_active ? ' (Active)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {competition.description && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500 italic truncate max-w-xs">
+                      {competition.description}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {competition.name} &middot; {periodLabel(competition.period)}
+                  {competition.description && (
+                    <span className="ml-2 italic">-- {competition.description}</span>
+                  )}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-4">
