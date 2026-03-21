@@ -67,14 +67,22 @@ export function useMorningBriefing(): UseMorningBriefingReturn {
     queryKey: ['day-plan', userId, today],
     queryFn: async () => {
       if (!userId) return null
-      const { data, error } = await supabase
-        .from('day_plans')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('plan_date', today)
-        .maybeSingle()
-      if (error) throw error
-      return data as DayPlan | null
+      try {
+        const { data, error } = await supabase
+          .from('day_plans')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('plan_date', today)
+          .maybeSingle()
+        if (error) {
+          console.warn('[useMorningBriefing] day_plans query failed (table may not exist):', error.message)
+          return null
+        }
+        return data as DayPlan | null
+      } catch {
+        console.warn('[useMorningBriefing] day_plans query threw unexpectedly')
+        return null
+      }
     },
     enabled: !!userId,
     staleTime: 2 * 60 * 1000,
@@ -106,14 +114,22 @@ export function useMorningBriefing(): UseMorningBriefingReturn {
     queryKey: ['day-plan', userId, yesterday],
     queryFn: async () => {
       if (!userId) return null
-      const { data, error } = await supabase
-        .from('day_plans')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('plan_date', yesterday)
-        .maybeSingle()
-      if (error) throw error
-      return data as DayPlan | null
+      try {
+        const { data, error } = await supabase
+          .from('day_plans')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('plan_date', yesterday)
+          .maybeSingle()
+        if (error) {
+          console.warn('[useMorningBriefing] day_plans (yesterday) query failed (table may not exist):', error.message)
+          return null
+        }
+        return data as DayPlan | null
+      } catch {
+        console.warn('[useMorningBriefing] day_plans (yesterday) query threw unexpectedly')
+        return null
+      }
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
@@ -212,30 +228,34 @@ export function useMorningBriefing(): UseMorningBriefingReturn {
         if (updateError) throw updateError
       }
 
-      // Upsert today's day_plan
-      const planPayload = {
-        user_id: userId,
-        plan_date: today,
-        block_order: selectedBlockIds,
-        briefing_completed: true,
-        updated_at: new Date().toISOString(),
-      }
+      // Upsert today's day_plan — skip gracefully if table doesn't exist
+      try {
+        const planPayload = {
+          user_id: userId,
+          plan_date: today,
+          block_order: selectedBlockIds,
+          briefing_completed: true,
+          updated_at: new Date().toISOString(),
+        }
 
-      if (todayPlan?.id) {
-        const { error } = await supabase
-          .from('day_plans')
-          .update({
-            block_order: selectedBlockIds,
-            briefing_completed: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', todayPlan.id)
-        if (error) throw error
-      } else {
-        const { error } = await supabase
-          .from('day_plans')
-          .insert(planPayload)
-        if (error) throw error
+        if (todayPlan?.id) {
+          const { error } = await supabase
+            .from('day_plans')
+            .update({
+              block_order: selectedBlockIds,
+              briefing_completed: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', todayPlan.id)
+          if (error) console.warn('[useMorningBriefing] day_plans update failed:', error.message)
+        } else {
+          const { error } = await supabase
+            .from('day_plans')
+            .insert(planPayload)
+          if (error) console.warn('[useMorningBriefing] day_plans insert failed:', error.message)
+        }
+      } catch {
+        console.warn('[useMorningBriefing] day_plans upsert threw unexpectedly')
       }
     },
     onSuccess: () => {
@@ -250,26 +270,30 @@ export function useMorningBriefing(): UseMorningBriefingReturn {
     mutationFn: async () => {
       if (!userId) throw new Error('Not authenticated')
 
-      if (todayPlan?.id) {
-        const { error } = await supabase
-          .from('day_plans')
-          .update({
-            briefing_completed: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', todayPlan.id)
-        if (error) throw error
-      } else {
-        const { error } = await supabase
-          .from('day_plans')
-          .insert({
-            user_id: userId,
-            plan_date: today,
-            block_order: [],
-            briefing_completed: true,
-            updated_at: new Date().toISOString(),
-          })
-        if (error) throw error
+      try {
+        if (todayPlan?.id) {
+          const { error } = await supabase
+            .from('day_plans')
+            .update({
+              briefing_completed: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', todayPlan.id)
+          if (error) console.warn('[useMorningBriefing] skip day_plans update failed:', error.message)
+        } else {
+          const { error } = await supabase
+            .from('day_plans')
+            .insert({
+              user_id: userId,
+              plan_date: today,
+              block_order: [],
+              briefing_completed: true,
+              updated_at: new Date().toISOString(),
+            })
+          if (error) console.warn('[useMorningBriefing] skip day_plans insert failed:', error.message)
+        }
+      } catch {
+        console.warn('[useMorningBriefing] skip day_plans threw unexpectedly')
       }
     },
     onSuccess: () => {

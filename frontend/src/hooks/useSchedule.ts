@@ -67,16 +67,36 @@ export function useScheduleConfig() {
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated')
 
-      const { data, error } = await supabase
-        .from('user_schedule_config')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle()
+      try {
+        const { data, error } = await supabase
+          .from('user_schedule_config')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle()
 
-      if (error) throw error
+        if (error) {
+          // Table may not exist yet — return defaults
+          console.warn('user_schedule_config query failed, using defaults:', error.message)
+          return {
+            ...DEFAULT_SCHEDULE_CONFIG,
+            user_id: userId,
+            org_id: '',
+            updated_at: new Date().toISOString(),
+          } as UserScheduleConfig
+        }
 
-      if (!data) {
-        // Return defaults merged with user identity
+        if (!data) {
+          return {
+            ...DEFAULT_SCHEDULE_CONFIG,
+            user_id: userId,
+            org_id: '',
+            updated_at: new Date().toISOString(),
+          } as UserScheduleConfig
+        }
+
+        return data as UserScheduleConfig
+      } catch {
+        // Graceful fallback
         return {
           ...DEFAULT_SCHEDULE_CONFIG,
           user_id: userId,
@@ -84,8 +104,6 @@ export function useScheduleConfig() {
           updated_at: new Date().toISOString(),
         } as UserScheduleConfig
       }
-
-      return data as UserScheduleConfig
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes — config changes rarely
@@ -108,16 +126,23 @@ function useCalendarEvents(dateStr: string | undefined) {
       const dayStart = `${dateStr}T00:00:00`
       const dayEnd = `${dateStr}T23:59:59`
 
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('start_time', dayStart)
-        .lte('start_time', dayEnd)
-        .order('start_time', { ascending: true })
+      try {
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('start_time', dayStart)
+          .lte('start_time', dayEnd)
+          .order('start_time', { ascending: true })
 
-      if (error) throw error
-      return (data ?? []) as CalendarEvent[]
+        if (error) {
+          console.warn('calendar_events query failed:', error.message)
+          return []
+        }
+        return (data ?? []) as CalendarEvent[]
+      } catch {
+        return []
+      }
     },
     enabled: !!userId && !!dateStr,
     staleTime: 1 * 60 * 1000,

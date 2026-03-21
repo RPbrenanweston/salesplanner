@@ -34,31 +34,40 @@ export interface DayPlanData {
 // ---------------------------------------------------------------------------
 
 async function fetchDayPlan(userId: string, dateStr: string): Promise<DayPlanData> {
-  // Fetch the plan row
-  const { data: plan, error: planError } = await supabase
-    .from('day_plans')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('plan_date', dateStr)
-    .maybeSingle()
+  // Fetch the plan row — graceful fallback if day_plans table doesn't exist yet
+  let plan: DayPlan | null = null
+  try {
+    const { data, error: planError } = await supabase
+      .from('day_plans')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('plan_date', dateStr)
+      .maybeSingle()
 
-  if (planError) throw planError
+    if (planError) {
+      console.warn('[useDayPlan] day_plans query failed (table may not exist):', planError.message)
+      return { plan: null, blocks: [] }
+    }
+
+    plan = (data as DayPlan) ?? null
+  } catch {
+    console.warn('[useDayPlan] day_plans query threw unexpectedly')
+    return { plan: null, blocks: [] }
+  }
 
   if (!plan) {
     return { plan: null, blocks: [] }
   }
 
-  const typedPlan = plan as DayPlan
-
   // Fetch blocks referenced in block_order
-  if (typedPlan.block_order.length === 0) {
-    return { plan: typedPlan, blocks: [] }
+  if (plan.block_order.length === 0) {
+    return { plan, blocks: [] }
   }
 
   const { data: blocks, error: blocksError } = await supabase
     .from('salesblocks')
     .select('*')
-    .in('id', typedPlan.block_order)
+    .in('id', plan.block_order)
 
   if (blocksError) throw blocksError
 
@@ -67,11 +76,11 @@ async function fetchDayPlan(userId: string, dateStr: string): Promise<DayPlanDat
     mapSalesblockToProductivityBlock(b as unknown as LegacySalesblock, i),
   )
   const blockMap = new Map(mapped.map((b) => [b.id, b]))
-  const orderedBlocks = typedPlan.block_order
+  const orderedBlocks = plan.block_order
     .map((id) => blockMap.get(id))
     .filter((b): b is ProductivityBlock => b !== undefined)
 
-  return { plan: typedPlan, blocks: orderedBlocks }
+  return { plan, blocks: orderedBlocks }
 }
 
 // ---------------------------------------------------------------------------
@@ -83,23 +92,31 @@ async function upsertDayPlan(
   orgId: string,
   dateStr: string,
   blockOrder: string[],
-): Promise<DayPlan> {
-  const { data, error } = await supabase
-    .from('day_plans')
-    .upsert(
-      {
-        user_id: userId,
-        org_id: orgId,
-        plan_date: dateStr,
-        block_order: blockOrder,
-      },
-      { onConflict: 'user_id,plan_date' },
-    )
-    .select()
-    .single()
+): Promise<DayPlan | null> {
+  try {
+    const { data, error } = await supabase
+      .from('day_plans')
+      .upsert(
+        {
+          user_id: userId,
+          org_id: orgId,
+          plan_date: dateStr,
+          block_order: blockOrder,
+        },
+        { onConflict: 'user_id,plan_date' },
+      )
+      .select()
+      .single()
 
-  if (error) throw error
-  return data as DayPlan
+    if (error) {
+      console.warn('[useDayPlan] day_plans upsert failed (table may not exist):', error.message)
+      return null
+    }
+    return data as DayPlan
+  } catch {
+    console.warn('[useDayPlan] day_plans upsert threw unexpectedly')
+    return null
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -331,13 +348,17 @@ export function useDayPlan(dateStr: string | undefined) {
     mutationFn: async () => {
       if (!userId || !dateStr) throw new Error('Not authenticated')
 
-      const { error } = await supabase
-        .from('day_plans')
-        .update({ briefing_completed: true })
-        .eq('user_id', userId)
-        .eq('plan_date', dateStr)
+      try {
+        const { error } = await supabase
+          .from('day_plans')
+          .update({ briefing_completed: true })
+          .eq('user_id', userId)
+          .eq('plan_date', dateStr)
 
-      if (error) throw error
+        if (error) console.warn('[useDayPlan] completeBriefing failed (table may not exist):', error.message)
+      } catch {
+        console.warn('[useDayPlan] completeBriefing threw unexpectedly')
+      }
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey })
@@ -366,13 +387,17 @@ export function useDayPlan(dateStr: string | undefined) {
     mutationFn: async () => {
       if (!userId || !dateStr) throw new Error('Not authenticated')
 
-      const { error } = await supabase
-        .from('day_plans')
-        .update({ debrief_completed: true })
-        .eq('user_id', userId)
-        .eq('plan_date', dateStr)
+      try {
+        const { error } = await supabase
+          .from('day_plans')
+          .update({ debrief_completed: true })
+          .eq('user_id', userId)
+          .eq('plan_date', dateStr)
 
-      if (error) throw error
+        if (error) console.warn('[useDayPlan] completeDebrief failed (table may not exist):', error.message)
+      } catch {
+        console.warn('[useDayPlan] completeDebrief threw unexpectedly')
+      }
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey })

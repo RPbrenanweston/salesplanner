@@ -31,48 +31,53 @@ async function persistSession(
   userId: string,
   orgId: string,
 ): Promise<string | null> {
-  const row = {
-    id: store.sessionId ?? undefined,
-    user_id: userId,
-    org_id: orgId,
-    sales_block_id: store.blockId,
-    mode: store.mode,
-    state: store.state,
-    duration_target_ms: store.targetMs || null,
-    duration_actual_ms: store.elapsedMs,
-    cycle_number: store.cycleNumber,
-    started_at: store.startedAt,
-    ended_at: store.state === 'completed' ? new Date().toISOString() : null,
-    break_count: store.breakCount,
-    break_time_ms: store.breakTimeMs,
-  }
+  try {
+    const row = {
+      id: store.sessionId ?? undefined,
+      user_id: userId,
+      org_id: orgId,
+      sales_block_id: store.blockId,
+      mode: store.mode,
+      state: store.state,
+      duration_target_ms: store.targetMs || null,
+      duration_actual_ms: store.elapsedMs,
+      cycle_number: store.cycleNumber,
+      started_at: store.startedAt,
+      ended_at: store.state === 'completed' ? new Date().toISOString() : null,
+      break_count: store.breakCount,
+      break_time_ms: store.breakTimeMs,
+    }
 
-  if (store.sessionId) {
-    // Update existing row
-    const { error } = await supabase
+    if (store.sessionId) {
+      // Update existing row
+      const { error } = await supabase
+        .from('focus_sessions')
+        .update(row)
+        .eq('id', store.sessionId)
+
+      if (error) {
+        console.warn('[useTimer] Failed to update focus_session (table may not exist):', error.message)
+      }
+      return store.sessionId
+    }
+
+    // Insert new row
+    const { data, error } = await supabase
       .from('focus_sessions')
-      .update(row)
-      .eq('id', store.sessionId)
+      .insert(row)
+      .select('id')
+      .single()
 
     if (error) {
-      console.error('[useTimer] Failed to update focus_session:', error.message)
+      console.warn('[useTimer] Failed to insert focus_session (table may not exist):', error.message)
+      return null
     }
-    return store.sessionId
-  }
 
-  // Insert new row
-  const { data, error } = await supabase
-    .from('focus_sessions')
-    .insert(row)
-    .select('id')
-    .single()
-
-  if (error) {
-    console.error('[useTimer] Failed to insert focus_session:', error.message)
+    return data?.id ?? null
+  } catch {
+    console.warn('[useTimer] persistSession threw unexpectedly — skipping persistence')
     return null
   }
-
-  return data?.id ?? null
 }
 
 export function useTimer() {
