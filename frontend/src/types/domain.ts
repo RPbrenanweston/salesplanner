@@ -42,6 +42,19 @@ export interface Contact {
   updated_at?: string
 }
 
+export interface Account {
+  id: string
+  org_id: string
+  name: string
+  domain: string | null
+  industry: string | null
+  employee_count_range: string | null
+  notes: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ContactList {
   id: string
   org_id: string

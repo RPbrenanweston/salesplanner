@@ -28,6 +28,8 @@ export const ROUTES = {
   SALESBLOCKS: '/salesblocks',
   LISTS: '/lists',
   CONTACTS: '/contacts',
+  ACCOUNTS: '/accounts',
+  ACCOUNT_DETAIL: (accountId: string) => `/accounts/${accountId}`,
 
   // Scripts & Templates
   SCRIPTS: '/scripts',
@@ -41,6 +43,11 @@ export const ROUTES = {
   // Sales Pipeline & Goals
   PIPELINE: '/pipeline',
   GOALS: '/goals',
+
+  // Productivity (Super Productivity integration)
+  DAY_PLANNER: '/planner',
+  MORNING_BRIEFING: '/briefing',
+  DAILY_DEBRIEF: '/debrief',
 
   // Analytics & Reporting
   ANALYTICS: '/analytics',
