@@ -1,17 +1,32 @@
 /** @id salesblock.pages.contacts.contacts-list */
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Search, User, Building2, Mail, Phone, ChevronRight } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  Search,
+  User,
+  Building2,
+  Mail,
+  Phone,
+  ChevronRight,
+  Plus,
+  Upload,
+  UserPlus,
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ROUTES } from '../lib/routes'
+import { AddContactModal } from '../components/AddContactModal'
+import ImportCSVModal from '../components/ImportCSVModal'
 import type { Contact } from '../types/domain'
 
 export default function ContactsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
 
   const { data: contacts = [], isLoading } = useQuery<Contact[]>({
     queryKey: ['all-contacts', user?.id],
@@ -53,6 +68,16 @@ export default function ContactsPage() {
     )
   }, [contacts, search])
 
+  const handleContactAdded = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['all-contacts'] })
+    setShowAddModal(false)
+  }, [queryClient])
+
+  const handleImportComplete = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['all-contacts'] })
+    setShowImportModal(false)
+  }, [queryClient])
+
   return (
     <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
       {/* Header */}
@@ -63,8 +88,24 @@ export default function ContactsPage() {
             Contacts
           </h1>
         </div>
-        <div className="text-sm font-mono text-gray-500 dark:text-white/40">
-          {contacts.length} total
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-mono text-gray-500 dark:text-white/40">
+            {contacts.length} total
+          </span>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/60 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors duration-150 text-sm"
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-electric text-white font-semibold rounded-lg hover:bg-indigo-electric/80 transition-colors duration-150 ease-snappy text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Contact
+          </button>
         </div>
       </div>
 
@@ -73,7 +114,7 @@ export default function ContactsPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-white/30" />
         <input
           type="text"
-          placeholder="Search contacts..."
+          placeholder="Search by name, email, company, or title..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-electric/40"
@@ -96,11 +137,38 @@ export default function ContactsPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <User className="w-10 h-10 text-gray-300 dark:text-white/20 mx-auto mb-3" />
-          <p className="text-gray-500 dark:text-white/40 text-sm">
-            {search ? 'No contacts match your search.' : 'No contacts yet. Import or add contacts from your lists.'}
-          </p>
+        <div className="glass-card p-12 text-center space-y-4">
+          <User className="w-10 h-10 text-gray-300 dark:text-white/20 mx-auto" />
+          {search ? (
+            <p className="text-gray-500 dark:text-white/40 text-sm">
+              No contacts match "<span className="font-medium">{search}</span>"
+            </p>
+          ) : (
+            <>
+              <p className="text-gray-900 dark:text-white font-semibold">
+                No contacts yet
+              </p>
+              <p className="text-gray-500 dark:text-white/40 text-sm max-w-md mx-auto">
+                Get started by adding contacts manually or importing a CSV file.
+              </p>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-electric text-white font-semibold rounded-lg hover:bg-indigo-electric/80 transition-colors duration-150 ease-snappy text-sm"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add Contact
+                </button>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/60 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-white/10 transition-colors duration-150 text-sm"
+                >
+                  <Upload className="w-4 h-4" />
+                  Import CSV
+                </button>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -150,12 +218,31 @@ export default function ContactsPage() {
                 </div>
               </div>
 
+              {/* Source badge */}
+              {contact.source && (
+                <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-white/30 hidden sm:inline-block flex-shrink-0">
+                  {contact.source}
+                </span>
+              )}
+
               {/* Arrow */}
               <ChevronRight className="w-4 h-4 text-gray-300 dark:text-white/20 group-hover:text-indigo-electric transition-colors duration-150 flex-shrink-0" />
             </button>
           ))}
         </div>
       )}
+
+      {/* Modals */}
+      <AddContactModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={handleContactAdded}
+      />
+      <ImportCSVModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={handleImportComplete}
+      />
     </div>
   )
 }
