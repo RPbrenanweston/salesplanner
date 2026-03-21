@@ -32,24 +32,56 @@ export default function ContactsPage() {
     queryKey: ['all-contacts', user?.id],
     queryFn: async () => {
       if (!user?.id) return []
-      // Get user's org_id from profile
-      const { data: profile } = await supabase
-        .from('user_profiles')
+
+      // Strategy 1: Get contacts by org_id (via users table, matching AddContactModal pattern)
+      const { data: userRow } = await supabase
+        .from('users')
         .select('org_id')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .maybeSingle()
 
-      if (!profile?.org_id) return []
+      if (userRow?.org_id) {
+        const { data, error } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('org_id', userRow.org_id)
+          .order('created_at', { ascending: false })
+          .limit(500)
 
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('org_id', profile.org_id)
-        .order('created_at', { ascending: false })
-        .limit(500)
+        if (!error && data && data.length > 0) {
+          return data as Contact[]
+        }
+      }
 
-      if (error) throw error
-      return (data ?? []) as Contact[]
+      // Strategy 2: Fallback — get contacts through user's lists
+      // This catches contacts that are in lists but may not match via org_id
+      const { data: userLists } = await supabase
+        .from('lists')
+        .select('id')
+        .eq('owner_id', user.id)
+
+      if (!userLists || userLists.length === 0) return []
+
+      const listIds = userLists.map((l) => l.id)
+      const { data: listContacts, error: lcError } = await supabase
+        .from('list_contacts')
+        .select('contact:contacts(*)')
+        .in('list_id', listIds)
+
+      if (lcError || !listContacts) return []
+
+      // Deduplicate contacts (a contact may be on multiple lists)
+      const seen = new Set<string>()
+      const deduped: Contact[] = []
+      for (const row of listContacts) {
+        const contact = (row as any).contact as Contact | null
+        if (contact && !seen.has(contact.id)) {
+          seen.add(contact.id)
+          deduped.push(contact)
+        }
+      }
+
+      return deduped
     },
     enabled: !!user?.id,
     staleTime: 30 * 1000,
