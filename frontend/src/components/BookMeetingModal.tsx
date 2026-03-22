@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { createCalendarEvent } from '../lib/calendar';
+import { createCalendarEvent, checkCalendarConnection } from '../lib/calendar';
 import { markActivityForSync } from '../lib/salesforce';
 import { DURATION, ACTIVITY_OUTCOME } from '../lib/constants';
 import { logError } from '../lib/error-logger';
@@ -45,6 +45,8 @@ export default function BookMeetingModal({
   const [description, setDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [calendarDisconnected, setCalendarDisconnected] = useState(false);
+  const [checkingCalendar, setCheckingCalendar] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -59,6 +61,22 @@ export default function BookMeetingModal({
 
       // Set default time to 10:00 AM
       setTime('10:00');
+
+      // Pre-check calendar connection
+      setCheckingCalendar(true);
+      setCalendarDisconnected(false);
+      checkCalendarConnection()
+        .then((provider) => {
+          if (!provider) {
+            setCalendarDisconnected(true);
+          }
+        })
+        .catch(() => {
+          setCalendarDisconnected(true);
+        })
+        .finally(() => {
+          setCheckingCalendar(false);
+        });
     }
   }, [isOpen, contact]);
 
@@ -77,13 +95,20 @@ export default function BookMeetingModal({
       const scheduledStart = new Date(`${date}T${time}`);
       const scheduledEnd = new Date(scheduledStart.getTime() + parseInt(duration) * 60000);
 
-      // Create calendar event
-      await createCalendarEvent({
+      // Create calendar event — check for expired/missing connection
+      const calendarResult = await createCalendarEvent({
         title,
         description: description || `Meeting with ${contact.first_name} ${contact.last_name} (${contact.email})`,
         start: scheduledStart.toISOString(),
         end: scheduledEnd.toISOString(),
       });
+
+      if (!calendarResult) {
+        setCalendarDisconnected(true);
+        setError('Calendar disconnected — reconnect in Settings to book meetings.');
+        setIsSaving(false);
+        return;
+      }
 
       // Log meeting activity
       const { data: userData } = await supabase.auth.getUser();
@@ -152,7 +177,13 @@ export default function BookMeetingModal({
         </div>
 
         <div className="p-6 space-y-4">
-          {error && (
+          {calendarDisconnected && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-400 text-sm">
+              Calendar disconnected &mdash; <a href="/settings" className="underline font-medium hover:text-amber-800 dark:hover:text-amber-300">reconnect in Settings</a> to book meetings.
+            </div>
+          )}
+
+          {error && !calendarDisconnected && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
               {error}
             </div>
@@ -244,11 +275,11 @@ export default function BookMeetingModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || calendarDisconnected || checkingCalendar}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Calendar className="w-4 h-4" />
-            {isSaving ? 'Booking...' : 'Book Meeting'}
+            {checkingCalendar ? 'Checking calendar...' : isSaving ? 'Booking...' : calendarDisconnected ? 'Calendar Disconnected' : 'Book Meeting'}
           </button>
         </div>
       </div>
