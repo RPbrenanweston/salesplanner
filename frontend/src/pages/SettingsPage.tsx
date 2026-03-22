@@ -18,9 +18,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import GmailOAuthButton from '../components/GmailOAuthButton'
-import OutlookOAuthButton from '../components/OutlookOAuthButton'
+import MicrosoftOAuthButton from '../components/MicrosoftOAuthButton'
 import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
-import OutlookCalendarOAuthButton from '../components/OutlookCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
 
 type Tab = 'profile' | 'organization' | 'team' | 'integrations' | 'pipeline' | 'billing'
@@ -1669,7 +1668,7 @@ export default function SettingsPage() {
             </h3>
             <div className="space-y-4">
               <GmailOAuthButton />
-              <OutlookOAuthButton />
+              <MicrosoftOAuthButton integrationType="mail" />
             </div>
           </div>
 
@@ -1680,7 +1679,7 @@ export default function SettingsPage() {
             </h3>
             <div className="space-y-4">
               <GoogleCalendarOAuthButton />
-              <OutlookCalendarOAuthButton />
+              <MicrosoftOAuthButton integrationType="calendar" />
             </div>
           </div>
 
