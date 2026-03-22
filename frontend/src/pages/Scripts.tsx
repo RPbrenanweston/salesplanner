@@ -9,8 +9,8 @@
 // edge:frontend/src/App.tsx -> RELATES
 // edge:scripts#1 -> STEP_IN
 // prompt: Add delete confirmation. Verify RLS on call_scripts. Add script categories/tags. Add search. Link scripts to SalesBlock session.
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Share2, Lock } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Share2, Lock, Search, Tag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ScriptModal } from '../components/ScriptModal';
 import DOMPurify from 'dompurify';
@@ -23,6 +23,7 @@ interface CallScript {
   is_shared: boolean;
   owner_id: string;
   created_at: string;
+  category?: string | null;
 }
 
 export default function Scripts() {
@@ -32,10 +33,26 @@ export default function Scripts() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingScriptId, setEditingScriptId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     loadScripts();
   }, []);
+
+  const categories = useMemo(() => {
+    const cats = scripts.map(s => s.category).filter((c): c is string => !!c);
+    return Array.from(new Set(cats)).sort();
+  }, [scripts]);
+
+  const filteredScripts = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return scripts.filter(s => {
+      const matchesSearch = !q || s.name.toLowerCase().includes(q) || s.content.toLowerCase().includes(q);
+      const matchesCategory = !selectedCategory || s.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [scripts, searchQuery, selectedCategory]);
 
   async function loadScripts() {
     try {
@@ -130,6 +147,49 @@ export default function Scripts() {
         </button>
       </div>
 
+      {/* Search + Category filters */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-white/30 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search scripts by title or content..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/40"
+          />
+        </div>
+
+        {categories.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Tag className="w-3.5 h-3.5 text-gray-400 dark:text-white/30" />
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                !selectedCategory
+                  ? 'bg-indigo-electric text-white'
+                  : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
+              }`}
+            >
+              All
+            </button>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedCategory === cat
+                    ? 'bg-indigo-electric text-white'
+                    : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {loadError && (
         <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
           <p className="text-sm text-red-alert">{loadError}</p>
@@ -148,9 +208,16 @@ export default function Scripts() {
             Create Your First Script
           </button>
         </div>
+      ) : filteredScripts.length === 0 ? (
+        <div className="glass-card text-center py-12">
+          <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">No scripts match your search</p>
+          <button onClick={() => { setSearchQuery(''); setSelectedCategory(null); }} className="text-indigo-electric hover:text-indigo-electric/70 text-sm transition-colors">
+            Clear filters
+          </button>
+        </div>
       ) : (
         <div className="grid gap-4">
-          {scripts.map((script) => {
+          {filteredScripts.map((script) => {
             const isOwner = script.owner_id === currentUserId;
             const contentPreview = stripHtml(script.content).slice(0, 120);
 
@@ -162,7 +229,7 @@ export default function Scripts() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     {/* Name and sharing indicator */}
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h3 className="font-display font-semibold text-gray-900 dark:text-white">
                         {script.name}
                       </h3>
@@ -175,6 +242,12 @@ export default function Scripts() {
                         <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-white/40 bg-gray-100 dark:bg-white/10 px-2 py-1 rounded">
                           <Lock className="w-3 h-3" />
                           Private
+                        </span>
+                      )}
+                      {script.category && (
+                        <span className="flex items-center gap-1 text-xs text-emerald-signal bg-emerald-signal/15 px-2 py-1 rounded">
+                          <Tag className="w-3 h-3" />
+                          {script.category}
                         </span>
                       )}
                     </div>
