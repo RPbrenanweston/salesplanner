@@ -21,29 +21,27 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // User-scoped client for auth verification
+    const userClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+    )
+
+    // Service role client for admin operations (invite + rollback deletion)
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     // Get the authenticated user
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser()
-
-    if (!user) {
-      throw new Error('Not authenticated')
-    }
+    const { data: { user } } = await userClient.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
 
     const { invitation_id, email, org_id, team_id, role } = await req.json()
 
     // Verify the user is a manager in the org
-    const { data: userData } = await supabaseClient
+    const { data: userData } = await userClient
       .from('users')
       .select('role, org_id')
       .eq('id', user.id)
@@ -54,57 +52,45 @@ serve(async (req) => {
     }
 
     // Get org name for the email
-    const { data: orgData } = await supabaseClient
+    const { data: orgData } = await userClient
       .from('organizations')
       .select('name')
       .eq('id', org_id)
       .single()
 
     const orgName = orgData?.name || 'SalesBlock.io'
+    const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('VITE_SITE_URL') || 'https://salesblock.io'
+    const invitationUrl = `${siteUrl}/signup?invitation_id=${invitation_id}&email=${encodeURIComponent(email)}`
 
-    // Generate invitation URL with metadata
-    // The invited user will sign up via this magic link with pre-filled org/team assignment
-    const invitationUrl = `${Deno.env.get('SITE_URL')}/signup?invitation_id=${invitation_id}&email=${encodeURIComponent(email)}`
-
-    // Send invitation email via Supabase Auth Admin API
-    const { error: inviteError } = await supabaseClient.auth.admin.inviteUserByEmail(
+    // Send invitation email via Supabase Auth Admin API (requires service role)
+    const { error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
       email,
       {
         redirectTo: invitationUrl,
-        data: {
-          invitation_id,
-          org_id,
-          team_id,
-          role,
-          display_name: email.split('@')[0], // Default display name from email
-        },
+        data: { invitation_id, org_id, team_id, role, org_name: orgName },
       }
     )
 
     if (inviteError) {
+      // Transactional rollback: delete orphaned invitation row so the invitee can be re-invited
+      await adminClient
+        .from('team_invitations')
+        .delete()
+        .eq('id', invitation_id)
+
+      console.error(`Invitation email failed for ${email}; rolled back row ${invitation_id}:`, inviteError.message)
       throw new Error(`Failed to send invitation: ${inviteError.message}`)
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Invitation sent to ${email}`,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      JSON.stringify({ success: true, message: `Invitation sent to ${email}` }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error) {
     console.error('Error sending invitation:', error)
     return new Response(
-      JSON.stringify({
-        error: error.message,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      }
+      JSON.stringify({ error: (error as Error).message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
   }
 })
