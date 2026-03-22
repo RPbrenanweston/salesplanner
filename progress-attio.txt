@@ -64,3 +64,12 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - Insert-before-process pattern: insert the event_id first, then process. If insert fails with 23505 (unique violation), another instance is handling it
   - Stripe retries for 5 days — idempotency is critical for all webhook handlers
 ---
+
+## 2026-03-22 - P0-006 - Add ON CONFLICT guards to Salesforce sync and email reply tracker
+- **Implemented:** sync-activities-to-salesforce uses claim-then-process with sync_status='syncing' intermediate state. track-email-replies uses conditional update with .is("replied_at", null) for idempotent reply detection.
+- **Files changed:** supabase/functions/sync-activities-to-salesforce/index.ts, supabase/functions/track-email-replies/index.ts
+- **Learnings:**
+  - Claim-then-process pattern: update sync_status from 'pending' to 'syncing' with conditional eq, only succeeds for one instance
+  - Conditional update (.eq + .is) is Supabase's idiomatic ON CONFLICT alternative for updates
+  - Edge functions may run concurrently — always guard against race conditions
+---

@@ -92,7 +92,7 @@
       ],
       "priority": 1,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["supabase/functions/sync-activities-to-salesforce/index.ts", "supabase/functions/check-email-replies/index.ts"],
       "notes": "Both edge functions insert records on retry without checking for duplicates."
     },
