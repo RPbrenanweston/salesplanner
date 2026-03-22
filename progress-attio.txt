@@ -37,3 +37,12 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - Optimistic rollback should snapshot state before mutation, not refetch (faster UX, no network dependency)
   - Pre-existing typecheck requires npm install in worktrees — node_modules are not shared across git worktrees
 ---
+
+## 2026-03-22 - P0-003 - Fix BookMeetingModal silent failure on expired calendar token
+- **Implemented:** Added checkCalendarConnection() export to calendar.ts. BookMeetingModal pre-checks on open, shows amber warning with Settings link, checks createCalendarEvent return, disables button when disconnected.
+- **Files changed:** frontend/src/components/BookMeetingModal.tsx, frontend/src/lib/calendar.ts
+- **Learnings:**
+  - calendar.ts getCalendarConnection was private — needed public checkCalendarConnection wrapper
+  - createCalendarEvent returns null on failure but callers weren't checking the return value
+  - Pattern: pre-check on modal open + guard on submit = belt-and-suspenders for OAuth flows
+---

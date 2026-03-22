@@ -43,7 +43,7 @@
       ],
       "priority": 1,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/components/BookMeetingModal.tsx", "frontend/src/lib/calendar.ts"],
       "notes": "Currently fails silently — user thinks meeting was booked but it wasn't."
     },
