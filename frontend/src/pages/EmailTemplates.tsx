@@ -14,6 +14,7 @@ import { Plus, Pencil, Trash2, Share2, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { TemplateModal } from '../components/TemplateModal'
 import DOMPurify from 'dompurify'
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 
 interface EmailTemplate {
   id: string
@@ -33,7 +34,7 @@ export default function EmailTemplates() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -65,7 +66,8 @@ export default function EmailTemplates() {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteConfirmed = async (id: string) => {
+    setDeleteTarget(null)
     try {
       const { error } = await supabase
         .from('email_templates')
@@ -73,7 +75,6 @@ export default function EmailTemplates() {
         .eq('id', id)
 
       if (error) throw error
-      setDeleteConfirm(null)
       loadTemplates()
     } catch (err) {
       console.error('Error deleting template:', err)
@@ -196,7 +197,7 @@ export default function EmailTemplates() {
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => setDeleteConfirm(template.id)}
+                        onClick={() => setDeleteTarget({ id: template.id, name: template.name })}
                         className="p-2 text-gray-400 dark:text-white/30 hover:text-red-alert dark:hover:text-red-alert hover:bg-red-alert/10 rounded transition-colors duration-150 ease-snappy"
                         title="Delete"
                       >
@@ -233,33 +234,13 @@ export default function EmailTemplates() {
         template={editingTemplate}
       />
 
-      {/* Delete Confirmation Dialog */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="glass-card p-6 max-w-md w-full mx-4">
-            <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-3">
-              Delete Template
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-white/50 mb-6">
-              Are you sure you want to delete this email template? This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/10 rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 bg-red-alert hover:bg-red-alert/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDeleteDialog
+        isOpen={deleteTarget !== null}
+        itemType="Email Template"
+        itemName={deleteTarget?.name ?? ''}
+        onConfirm={() => deleteTarget && handleDeleteConfirmed(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

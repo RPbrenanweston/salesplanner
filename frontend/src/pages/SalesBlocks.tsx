@@ -17,6 +17,7 @@ import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { deleteCalendarEvent } from '../lib/calendar'
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 
 type TabType = 'upcoming' | 'in_progress' | 'completed' | 'all'
 type ViewType = 'my' | 'team'
@@ -172,6 +173,7 @@ export default function SalesBlocks() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('list')
   const [isManager, setIsManager] = useState(false)
   const [teamId, setTeamId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -312,9 +314,8 @@ export default function SalesBlocks() {
     }
   }
 
-  const handleCancel = async (salesblockId: string) => {
-    if (!confirm('Are you sure you want to cancel this salesblock?')) return
-
+  const handleCancelConfirmed = async (salesblockId: string) => {
+    setDeleteTarget(null)
     try {
       // Fetch salesblock to get calendar_event_id and provider
       const { data: salesblock } = await supabase
@@ -616,7 +617,7 @@ export default function SalesBlocks() {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleCancel(sb.id)}
+                        onClick={() => setDeleteTarget({ id: sb.id, title: sb.title })}
                         className="flex items-center gap-2 px-4 py-2 bg-red-alert/10 text-red-alert rounded-lg hover:bg-red-alert/20 text-sm font-semibold transition-all duration-150 ease-snappy"
                       >
                         <X className="w-4 h-4" />
@@ -659,6 +660,14 @@ export default function SalesBlocks() {
           }}
         />
       )}
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTarget !== null}
+        itemType="SalesBlock"
+        itemName={deleteTarget?.title ?? ''}
+        onConfirm={() => deleteTarget && handleCancelConfirmed(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

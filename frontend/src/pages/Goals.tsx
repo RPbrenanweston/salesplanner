@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Target, Trash2, TrendingUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 
 interface Goal {
   id: string
@@ -42,6 +43,7 @@ export default function Goals() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('daily')
   const [customMetricName, setCustomMetricName] = useState<string>('')
   const [saving, setSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     loadGoals()
@@ -220,9 +222,8 @@ export default function Goals() {
     }
   }
 
-  async function handleDeleteGoal(goalId: string) {
-    if (!confirm('Are you sure you want to delete this goal?')) return
-
+  async function handleDeleteGoalConfirmed(goalId: string) {
+    setDeleteTarget(null)
     try {
       const { error } = await supabase
         .from('goals')
@@ -327,7 +328,7 @@ export default function Goals() {
                 </div>
               </div>
               <button
-                onClick={() => handleDeleteGoal(goal.id)}
+                onClick={() => setDeleteTarget({ id: goal.id, name: getMetricLabel(goal.metric, goal.custom_metric_name) })}
                 className="text-gray-400 dark:text-white/30 hover:text-red-600 dark:hover:text-red-alert transition-colors duration-150 ease-snappy"
               >
                 <Trash2 className="w-4 h-4" />
@@ -481,6 +482,14 @@ export default function Goals() {
           </div>
         </div>
       )}
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTarget !== null}
+        itemType="Goal"
+        itemName={deleteTarget?.name ?? ''}
+        onConfirm={() => deleteTarget && handleDeleteGoalConfirmed(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
