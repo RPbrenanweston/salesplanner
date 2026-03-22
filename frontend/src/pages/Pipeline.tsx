@@ -317,6 +317,21 @@ export default function Pipeline() {
         </div>
       </div>
 
+      {totalPipelineValue === 0 && columns.every((c) => c.count === 0) && (
+        <div className="glass-card p-12 text-center">
+          <DollarSign className="w-12 h-12 text-indigo-electric/40 mx-auto mb-4" />
+          <h3 className="font-display text-lg font-semibold text-gray-900 dark:text-white mb-2">No deals yet</h3>
+          <p className="text-sm text-gray-500 dark:text-white/40 mb-6">Track your opportunities through each stage of the pipeline.</p>
+          <button
+            onClick={() => openAddDealModal()}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
+          >
+            <Plus className="w-4 h-4" />
+            Create Your First Deal
+          </button>
+        </div>
+      )}
+
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {columns.map((column) => (

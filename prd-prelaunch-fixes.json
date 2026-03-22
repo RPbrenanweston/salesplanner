@@ -461,7 +461,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/Pipeline.tsx \u2014 Add deal value total in column header. Add optimistic rollback for failed stage updates. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
