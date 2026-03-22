@@ -9,7 +9,7 @@
 // edge:frontend/src/App.tsx -> RELATES
 // edge:pipeline#1 -> STEP_IN
 // prompt: Add optimistic rollback for failed stage updates. Investigate StrictMode double-fire. Add deal value total in column header. Verify org_id scoping.
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Plus, DollarSign, Calendar, User } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -53,6 +53,9 @@ export default function Pipeline() {
   const [selectedStageId, setSelectedStageId] = useState<string | undefined>()
   const [isDealDetailModalOpen, setIsDealDetailModalOpen] = useState(false)
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
+
+  // StrictMode double-fire guard: tracks in-flight drag operations by draggableId
+  const dragInFlightRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     loadPipeline()
@@ -125,19 +128,32 @@ export default function Pipeline() {
     }
   }
 
-  async function handleDragEnd(result: DropResult) {
+  const handleDragEnd = useCallback(async function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result
 
     if (!destination) return
     if (destination.droppableId === source.droppableId && destination.index === source.index) return
 
+    // StrictMode double-fire guard: skip if this drag is already in-flight
+    if (dragInFlightRef.current.has(draggableId)) return
+    dragInFlightRef.current.add(draggableId)
+
     const sourceColumn = columns.find(col => col.stage.id === source.droppableId)
     const destColumn = columns.find(col => col.stage.id === destination.droppableId)
 
-    if (!sourceColumn || !destColumn) return
+    if (!sourceColumn || !destColumn) {
+      dragInFlightRef.current.delete(draggableId)
+      return
+    }
 
     const deal = sourceColumn.deals.find(d => d.id === draggableId)
-    if (!deal) return
+    if (!deal) {
+      dragInFlightRef.current.delete(draggableId)
+      return
+    }
+
+    // Snapshot previous state for rollback
+    const previousColumns = columns
 
     // Optimistically update UI
     const newColumns = columns.map(col => {
@@ -174,14 +190,16 @@ export default function Pipeline() {
 
       if (error) {
         console.error('Error updating deal stage:', error)
-        // Revert on error
-        loadPipeline()
+        // Rollback to snapshot instead of refetching
+        setColumns(previousColumns)
       }
     } catch (error) {
       console.error('Error updating deal:', error)
-      loadPipeline()
+      setColumns(previousColumns)
+    } finally {
+      dragInFlightRef.current.delete(draggableId)
     }
-  }
+  }, [columns])
 
   function openAddDealModal(stageId?: string) {
     setSelectedStageId(stageId)
