@@ -394,7 +394,9 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
             position: 0,
           }));
 
-          const { error: batchError } = await supabase.from('list_contacts').insert(listContactsToInsert);
+          const { error: batchError } = await supabase
+            .from('list_contacts')
+            .upsert(listContactsToInsert, { onConflict: 'list_id,contact_id', ignoreDuplicates: true });
           if (batchError) {
             console.error(`Batch ${i / BATCH_SIZE + 1} list assignment error:`, batchError);
             listAssignmentErrors += batch.length;
