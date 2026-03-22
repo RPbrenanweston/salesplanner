@@ -210,16 +210,18 @@ async function checkGmailReplies(
           const replyTimestamp = new Date(parseInt(msg.internalDate));
           console.log(`Found reply from ${contact.email} in thread ${activity.thread_id} at ${replyTimestamp.toISOString()}`);
 
-          // Update activity with replied_at timestamp
-          await supabaseClient
+          // Update activity with replied_at timestamp (idempotent: only update if replied_at is still null)
+          const { data: updated } = await supabaseClient
             .from("activities")
             .update({ replied_at: replyTimestamp.toISOString() })
-            .eq("id", activity.id);
+            .eq("id", activity.id)
+            .is("replied_at", null)
+            .select("id")
+            .maybeSingle();
 
-          // TODO: Increment email_templates.reply_count if template was used
-          // This requires storing template_id on activities table (future enhancement)
-
-          repliesFound++;
+          if (updated) {
+            repliesFound++;
+          }
           replyFound = true;
           break;
         }
@@ -289,18 +291,20 @@ async function checkOutlookReplies(
         const reply = outlookData.value[0];
         console.log(`Found reply in conversation ${activity.conversation_id} at ${reply.receivedDateTime}`);
 
-        // Update activity with replied_at timestamp
-        await supabaseClient
+        // Update activity with replied_at timestamp (idempotent: only update if replied_at is still null)
+        const { data: updated } = await supabaseClient
           .from("activities")
           .update({
             replied_at: reply.receivedDateTime,
           })
-          .eq("id", activity.id);
+          .eq("id", activity.id)
+          .is("replied_at", null)
+          .select("id")
+          .maybeSingle();
 
-        // TODO: Increment email_templates.reply_count if template was used
-        // This requires storing template_id on activities table (future enhancement)
-
-        repliesFound++;
+        if (updated) {
+          repliesFound++;
+        }
       }
     } catch (error) {
       console.error(`Error checking Outlook reply for activity ${activity.id}:`, error);

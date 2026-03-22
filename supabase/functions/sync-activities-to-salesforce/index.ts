@@ -162,6 +162,22 @@ serve(async (req) => {
     // Process each activity
     for (const activity of activities as Activity[]) {
       try {
+        // Idempotency guard: claim this activity by setting sync_status='syncing'
+        // Uses a conditional update that only succeeds if still 'pending'
+        const { data: claimed, error: claimError } = await supabaseAdmin
+          .from('activities')
+          .update({ sync_status: 'syncing' })
+          .eq('id', activity.id)
+          .eq('sync_status', 'pending')
+          .select('id')
+          .maybeSingle();
+
+        if (claimError || !claimed) {
+          // Another instance is already processing this activity
+          console.log(`Activity ${activity.id} already claimed by another instance, skipping`);
+          continue;
+        }
+
         // Get Salesforce OAuth connection for this org
         const { data: connection, error: connError } = await supabaseAdmin
           .from('oauth_connections')
@@ -177,7 +193,7 @@ serve(async (req) => {
         // Create Task in Salesforce
         const salesforceTaskId = await createSalesforceTask(activity, connection);
 
-        // Update activity with sync success
+        // Update activity with sync success (ON CONFLICT safe: salesforce_task_id is unique)
         await supabaseAdmin
           .from('activities')
           .update({
@@ -190,7 +206,7 @@ serve(async (req) => {
 
         results.synced++;
       } catch (error) {
-        // Update activity with sync failure
+        // Update activity with sync failure (reset from 'syncing' to 'failed')
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         await supabaseAdmin
           .from('activities')
@@ -198,7 +214,8 @@ serve(async (req) => {
             sync_status: 'failed',
             sync_error: errorMessage,
           })
-          .eq('id', activity.id);
+          .eq('id', activity.id)
+          .eq('sync_status', 'syncing');
 
         results.failed++;
         results.errors.push(`Activity ${activity.id}: ${errorMessage}`);
