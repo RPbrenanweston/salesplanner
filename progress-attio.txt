@@ -55,3 +55,12 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - Race condition: orgId loaded in separate useEffect — contact fetch needs to depend on orgId state
   - Pattern: when function needs org context, add orgId as parameter rather than relying on stale closure
 ---
+
+## 2026-03-22 - P0-005 - Add idempotency key to Stripe webhook handler
+- **Implemented:** Created stripe_webhook_events table with event_id PK. Added idempotency guard in handle-stripe-webhook: check-then-insert pattern with unique constraint fallback for concurrent processing.
+- **Files changed:** supabase/functions/handle-stripe-webhook/index.ts, supabase/migrations/20260322000000_stripe_webhook_events.sql
+- **Learnings:**
+  - Edge functions (Deno) are NOT in frontend typecheck scope — they have their own type system
+  - Insert-before-process pattern: insert the event_id first, then process. If insert fails with 23505 (unique violation), another instance is handling it
+  - Stripe retries for 5 days — idempotency is critical for all webhook handlers
+---

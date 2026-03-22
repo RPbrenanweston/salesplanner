@@ -76,7 +76,7 @@
       ],
       "priority": 1,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["supabase/functions/stripe-webhook/index.ts"],
       "notes": "Stripe retries webhooks on timeout. Create stripe_webhook_events(event_id PRIMARY KEY, processed_at) and check before processing."
     },
