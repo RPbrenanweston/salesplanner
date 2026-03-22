@@ -50,6 +50,22 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
   try {
+    // Idempotency check: skip if this event has already been processed
+    const { error: idempotencyError } = await supabase
+      .from('stripe_webhook_events')
+      .insert({ event_id: event.id, event_type: event.type })
+
+    if (idempotencyError) {
+      // Unique constraint violation = duplicate event — return 200 so Stripe stops retrying
+      if (idempotencyError.code === '23505') {
+        console.log(`Skipping duplicate Stripe event ${event.id}`)
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      console.error('Failed to record webhook event:', idempotencyError)
+    }
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session

@@ -75,8 +75,7 @@ export default function ContactDetailPage() {
   const [editableNotes, setEditableNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-  // Get return path from location state (fallback to /lists)
-  const returnPath = (location.state as any)?.returnPath || '/lists';
+  const returnPath = (location.state as { from?: string } | null)?.from ?? '/lists';
 
   useEffect(() => {
     if (!user) return;

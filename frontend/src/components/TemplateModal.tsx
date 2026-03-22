@@ -9,9 +9,22 @@
 // edge:template-edit#1 -> STEP_IN
 // prompt: Validate merge tags at save time against a known variable list. Add send-time preview with variable substitution. Enforce subject line and body character limits.
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, AlertTriangle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { logError } from '../lib/error-logger'
+
+const SUBJECT_MAX = 200
+const BODY_MAX = 50_000
+const KNOWN_MERGE_TAGS = new Set(['first_name', 'last_name', 'company', 'title', 'email'])
+
+function extractMergeTags(text: string): string[] {
+  const matches = text.match(/\{\{(\w+)\}\}/g) || []
+  return [...new Set(matches.map((m) => m.slice(2, -2)))]
+}
+
+function unknownMergeTags(text: string): string[] {
+  return extractMergeTags(text).filter((tag) => !KNOWN_MERGE_TAGS.has(tag))
+}
 
 interface TemplateModalProps {
   isOpen: boolean
@@ -33,6 +46,7 @@ export function TemplateModal({ isOpen, onClose, onSuccess, template }: Template
   const [isShared, setIsShared] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mergeTagWarning, setMergeTagWarning] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   // Pre-populate fields when editing
@@ -54,6 +68,7 @@ export function TemplateModal({ isOpen, onClose, onSuccess, template }: Template
     setIsShared(false)
     setShowPreview(false)
     setError(null)
+    setMergeTagWarning(null)
   }
 
   const resetAndClose = () => {
@@ -65,6 +80,24 @@ export function TemplateModal({ isOpen, onClose, onSuccess, template }: Template
     if (!name.trim() || !subject.trim() || !body.trim()) {
       setError('Name, subject, and body are required')
       return
+    }
+
+    if (subject.trim().length > SUBJECT_MAX) {
+      setError(`Subject line must be ${SUBJECT_MAX} characters or fewer`)
+      return
+    }
+
+    if (body.trim().length > BODY_MAX) {
+      setError(`Email body must be ${BODY_MAX.toLocaleString()} characters or fewer`)
+      return
+    }
+
+    // Non-blocking merge tag warning
+    const unknown = unknownMergeTags(`${subject} ${body}`)
+    if (unknown.length > 0) {
+      setMergeTagWarning(`Unknown merge tags: ${unknown.map((t) => `{{${t}}}`).join(', ')} — these will not be substituted at send time`)
+    } else {
+      setMergeTagWarning(null)
     }
 
     setLoading(true)
@@ -186,6 +219,13 @@ export function TemplateModal({ isOpen, onClose, onSuccess, template }: Template
             </div>
           )}
 
+          {mergeTagWarning && (
+            <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-yellow-700 dark:text-yellow-400 text-sm">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{mergeTagWarning}</span>
+            </div>
+          )}
+
           {/* Toggle between Edit and Preview */}
           <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
             <button
@@ -228,9 +268,14 @@ export function TemplateModal({ isOpen, onClose, onSuccess, template }: Template
               </div>
 
               <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Subject Line
-                </label>
+                <div className="flex justify-between items-baseline mb-1">
+                  <label htmlFor="subject" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Subject Line
+                  </label>
+                  <span className={`text-xs ${subject.length > SUBJECT_MAX ? 'text-red-500' : 'text-gray-400 dark:text-gray-500'}`}>
+                    {subject.length}/{SUBJECT_MAX}
+                  </span>
+                </div>
                 <input
                   type="text"
                   id="subject"
