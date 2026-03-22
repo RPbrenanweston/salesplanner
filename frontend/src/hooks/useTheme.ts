@@ -11,6 +11,7 @@
 // prompt: Add matchMedia listener cleanup in useEffect return. Show error if Supabase write fails (preference not saved warning). Consider localStorage fallback for unauthenticated users.
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { toast } from './use-toast';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -92,6 +93,7 @@ export function useTheme() {
 
   // Change theme and save to both localStorage and Supabase
   const changeTheme = async (newTheme: Theme) => {
+    const previousTheme = theme;
     setTheme(newTheme);
     const resolved = resolveTheme(newTheme);
     applyTheme(resolved);
@@ -99,7 +101,7 @@ export function useTheme() {
     // Save to localStorage for flash prevention
     localStorage.setItem('theme', newTheme);
 
-    // Save to Supabase
+    // Save to Supabase — revert and warn on failure
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: userData } = await supabase
@@ -108,7 +110,7 @@ export function useTheme() {
         .eq('id', user.id)
         .single();
 
-      await supabase
+      const { error: writeError } = await supabase
         .from('users')
         .update({
           preferences: {
@@ -117,6 +119,14 @@ export function useTheme() {
           }
         })
         .eq('id', user.id);
+
+      if (writeError) {
+        // Revert to previous theme — UI and localStorage stay in sync with stored preference
+        setTheme(previousTheme);
+        applyTheme(resolveTheme(previousTheme));
+        localStorage.setItem('theme', previousTheme);
+        toast({ variant: 'destructive', title: 'Theme preference not saved', description: 'Could not save your theme preference. Please try again.' });
+      }
     }
   };
 

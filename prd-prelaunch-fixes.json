@@ -270,7 +270,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazards: frontend/src/hooks/useTheme.ts \u2014 system theme listener not cleaned up on unmount; write fails silently while UI shows new theme."
     },
     {
