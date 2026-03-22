@@ -124,7 +124,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/components/ImportCSVModal.tsx \u2014 list_contacts batch insert lacks ON CONFLICT; per-row duplicate check is N queries for N rows."
     },
     {
@@ -139,7 +139,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/pages/Pipeline.tsx \u2014 @hello-pangea/dnd StrictMode double-invocation; no optimistic rollback on failed stage update."
     },
     {
@@ -154,7 +154,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/components/BookMeetingModal.tsx \u2014 createCalendarEvent silently fails if no calendar connected; user thinks meeting booked but no event exists."
     },
     {
@@ -168,7 +168,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/pages/ContactDetailPage.tsx \u2014 useLocation back navigation depends on location.state.from; if navigated directly, state is null."
     },
     {
@@ -182,7 +182,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: supabase/functions/handle-stripe-webhook/index.ts \u2014 no idempotency guard; duplicate webhook fires create duplicate state updates; missing org_id silently breaks."
     },
     {
@@ -197,7 +197,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazards: sync-activities-to-salesforce \u2014 no idempotency, no partial failure recovery, token not checked; track-email-replies \u2014 same patterns."
     },
     {
@@ -211,7 +211,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: supabase/functions/send-team-invitation/index.ts \u2014 email failure leaves invitation row in pending state with no email sent; stale links remain valid indefinitely."
     },
     {
@@ -226,8 +226,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Breadcrumb hazards: refresh-google-token \u2014 no lock on concurrent refresh calls; refresh-microsoft-token \u2014 same; token-refresh.ts \u2014 no retry on transient failures."
+      "passes": true,
+      "notes": "Breadcrumb hazards: refresh-google-token \u2014 no lock on concurrent refresh calls; refresh-microsoft-token \u2014 same; token-refresh.ts \u2014 no retry on transient failures. | Already implemented: refreshInFlight Map in token-refresh.ts lines 19-62"
     },
     {
       "id": "FIX-016",
@@ -240,7 +240,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazards: LogActivityModal, LogSocialActivityModal \u2014 markActivityForSync without connection check; salesforce.ts \u2014 SOQL injection on unguarded objectType."
     },
     {
@@ -256,7 +256,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazards: SalesBlocks.tsx \u2014 delete fires immediately; Scripts.tsx \u2014 no confirmation; Goals.tsx \u2014 single click permanently removes goal; ListDetailPage.tsx \u2014 uses browser confirm()."
     },
     {
