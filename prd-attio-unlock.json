@@ -60,7 +60,7 @@
       ],
       "priority": 1,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/pages/ContactDetailPage.tsx"],
       "notes": "Currently crashes with undefined error when navigated to directly."
     },

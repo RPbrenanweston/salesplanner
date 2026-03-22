@@ -46,3 +46,12 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - createCalendarEvent returns null on failure but callers weren't checking the return value
   - Pattern: pre-check on modal open + guard on submit = belt-and-suspenders for OAuth flows
 ---
+
+## 2026-03-22 - P0-004 - Fix ContactDetailPage crash on direct navigation
+- **Implemented:** Added org_id scoping to contact query, wait for orgId before fetching, loadContact accepts orgId param, back button falls back to /lists.
+- **Files changed:** frontend/src/pages/ContactDetailPage.tsx
+- **Learnings:**
+  - loadContact was fetching by id only — no org_id scoping (RLS handles it, but defense-in-depth is better)
+  - Race condition: orgId loaded in separate useEffect — contact fetch needs to depend on orgId state
+  - Pattern: when function needs org context, add orgId as parameter rather than relying on stale closure
+---
