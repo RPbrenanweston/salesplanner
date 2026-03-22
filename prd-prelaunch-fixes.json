@@ -354,7 +354,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/pages/Home.tsx \u2014 CreateSalesBlockModal launched from Home must re-fetch salesblocks after close; if callback not wired, new block won't appear."
     },
     {
@@ -368,7 +368,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/pages/ForgotPassword.tsx \u2014 window.location.origin used for redirectTo; in dev points to localhost; reset links expire if opened in different environment."
     },
     {
