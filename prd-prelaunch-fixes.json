@@ -733,7 +733,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/ContentLibrary.tsx \u2014 Merge with EmailTemplates and Scripts pages or remove redundancy. Verify org-scoped RLS. [UI feature \u2014 core UX work]",
       "deferrable": true
     },
@@ -748,7 +748,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: supabase/functions/send-team-invitation/index.ts \u2014 Add transactional rollback if email send fails. Add resend endpoint. Enforce invitation expiry at acceptance time. [UI feature \u2014 core UX work]",
       "deferrable": true
     }

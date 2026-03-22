@@ -1249,3 +1249,17 @@ Errors: 0 (All breadcrumbs Schema C compliant)
 - OAuth integration has consistent CSRF gap across all 5 providers — single fix pattern
 - XSS risk concentrated in 2 files that render user-provided HTML
 
+
+## 2026-03-22 - FEAT-025 - PAI Iteration Final
+- **Implemented:** Team invitation resend endpoint and expiry enforcement
+- **Files changed:** supabase/functions/send-team-invitation/index.ts, frontend/src/pages/SettingsPage.tsx
+- **ISC Status:**
+  - ✅ Edge function supports resend=true mode (deletes pending row, creates fresh row, sends email)
+  - ✅ Invitation expiry enforced at acceptance time via .gt('expires_at', ...) in SignUp.tsx (already in place)
+  - ✅ SettingsPage Invite tab shows Resend action on pending invitations
+  - ✅ Typecheck passes
+- **Learnings for future iterations:**
+  - SignUp.tsx already had expiry enforcement via .gt('expires_at', new Date().toISOString()) before this story
+  - Resend mode in edge function: delete→insert→send pattern keeps single responsibility; adminClient used for insert since service role bypasses RLS
+  - resendingInviteId state (string|null) provides per-row loading indicator without a full array
+---
