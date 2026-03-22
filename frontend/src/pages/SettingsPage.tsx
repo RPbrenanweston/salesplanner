@@ -89,6 +89,7 @@ export default function SettingsPage() {
   const [inviteTeamId, setInviteTeamId] = useState<string | null>(null)
   const [availableTeams, setAvailableTeams] = useState<{ id: string; name: string }[]>([])
   const [sendingInvite, setSendingInvite] = useState(false)
+  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null)
 
   // Profile state
   const [displayName, setDisplayName] = useState('')
@@ -720,6 +721,48 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Error cancelling invitation:', error)
       toast({ variant: 'destructive', title: 'Failed to cancel invitation', description: 'Please try again.' })
+    }
+  }
+
+  const handleResendInvite = async (invite: { id: string; email: string; role: string }) => {
+    if (!orgId || !user) return
+    setResendingInviteId(invite.id)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-team-invitation`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: invite.email,
+            org_id: orgId,
+            role: invite.role,
+            resend: true,
+          }),
+        }
+      )
+
+      if (!response.ok) throw new Error('Failed to resend invitation')
+
+      toast({ title: `Invitation resent to ${invite.email}` })
+
+      // Reload team data to get fresh invitation with new expires_at
+      const { data: invites } = await supabase
+        .from('team_invitations')
+        .select('id, email, role, status, invited_by, created_at, expires_at')
+        .eq('org_id', orgId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+
+      if (invites) setTeamInvitations(invites)
+    } catch (error) {
+      console.error('Error resending invitation:', error)
+      toast({ variant: 'destructive', title: 'Failed to resend invitation', description: 'Please try again.' })
+    } finally {
+      setResendingInviteId(null)
     }
   }
 
@@ -1652,12 +1695,21 @@ export default function SettingsPage() {
                               {new Date(invite.expires_at).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <button
-                                onClick={() => handleCancelInvite(invite.id)}
-                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                              >
-                                Cancel
-                              </button>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => handleResendInvite(invite)}
+                                  disabled={resendingInviteId === invite.id}
+                                  className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-50"
+                                >
+                                  {resendingInviteId === invite.id ? 'Sending...' : 'Resend'}
+                                </button>
+                                <button
+                                  onClick={() => handleCancelInvite(invite.id)}
+                                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}

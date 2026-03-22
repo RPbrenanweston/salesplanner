@@ -38,7 +38,7 @@ serve(async (req) => {
     const { data: { user } } = await userClient.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    const { invitation_id, email, org_id, team_id, role } = await req.json()
+    const { invitation_id, email, org_id, team_id, role, resend } = await req.json()
 
     // Verify the user is a manager in the org
     const { data: userData } = await userClient
@@ -60,14 +60,35 @@ serve(async (req) => {
 
     const orgName = orgData?.name || 'SalesBlock.io'
     const siteUrl = Deno.env.get('SITE_URL') || Deno.env.get('VITE_SITE_URL') || 'https://salesblock.io'
-    const invitationUrl = `${siteUrl}/signup?invitation_id=${invitation_id}&email=${encodeURIComponent(email)}`
+
+    // Resend mode: delete previous pending row and create a fresh invitation
+    let activeInvitationId = invitation_id
+    if (resend) {
+      await adminClient
+        .from('team_invitations')
+        .delete()
+        .eq('email', email)
+        .eq('org_id', org_id)
+        .eq('status', 'pending')
+
+      const { data: newInvite, error: insertError } = await adminClient
+        .from('team_invitations')
+        .insert({ org_id, team_id, email, role, invited_by: user.id })
+        .select('id')
+        .single()
+
+      if (insertError) throw new Error(`Failed to create invitation: ${insertError.message}`)
+      activeInvitationId = newInvite.id
+    }
+
+    const invitationUrl = `${siteUrl}/signup?invitation_id=${activeInvitationId}&email=${encodeURIComponent(email)}`
 
     // Send invitation email via Supabase Auth Admin API (requires service role)
     const { error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
       email,
       {
         redirectTo: invitationUrl,
-        data: { invitation_id, org_id, team_id, role, org_name: orgName },
+        data: { invitation_id: activeInvitationId, org_id, team_id, role, org_name: orgName },
       }
     )
 
@@ -76,9 +97,9 @@ serve(async (req) => {
       await adminClient
         .from('team_invitations')
         .delete()
-        .eq('id', invitation_id)
+        .eq('id', activeInvitationId)
 
-      console.error(`Invitation email failed for ${email}; rolled back row ${invitation_id}:`, inviteError.message)
+      console.error(`Invitation email failed for ${email}; rolled back row ${activeInvitationId}:`, inviteError.message)
       throw new Error(`Failed to send invitation: ${inviteError.message}`)
     }
 
