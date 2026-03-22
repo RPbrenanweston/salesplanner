@@ -476,7 +476,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/Goals.tsx \u2014 Fix time-zone boundary for daily/weekly aggregation. Add empty state. Add delete confirmation. [UI feature \u2014 core UX work]",
       "deferrable": false
     },

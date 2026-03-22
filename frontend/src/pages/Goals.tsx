@@ -105,13 +105,15 @@ export default function Goals() {
     const now = new Date()
     let startDate: Date
 
+    // Use UTC boundaries to avoid local-timezone day-boundary miscount
     if (goal.period === 'daily') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
     } else if (goal.period === 'weekly') {
-      const dayOfWeek = now.getDay()
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0)
+      const dayOfWeek = now.getUTCDay()
+      const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Monday = start of week
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysBack))
     } else { // monthly
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
     }
 
     // Calculate based on metric type
