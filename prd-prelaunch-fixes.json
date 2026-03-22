@@ -653,7 +653,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompts: ContactDetailPage \u2014 Add 404 state when contact not found. ListDetailPage \u2014 Move sort to server-side when list grows. [UI feature \u2014 core UX work]",
       "deferrable": false
     },

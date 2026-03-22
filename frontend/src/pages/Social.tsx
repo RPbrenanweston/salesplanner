@@ -24,7 +24,7 @@ interface SocialActivity {
     first_name: string;
     last_name: string;
     company: string;
-  };
+  } | null;
 }
 
 interface ParsedNotes {
@@ -121,14 +121,14 @@ export default function Social() {
       let startDate: Date;
 
       switch (dateRangeFilter) {
-        case 'today':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          break;
-        case 'week':
+        case '7':
           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           break;
-        case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        case '30':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        case '90':
+          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
           break;
         default:
           startDate = new Date(0);
@@ -195,17 +195,20 @@ export default function Social() {
     return labels[activityType] || activityType;
   };
 
-  const getContactName = (contact: any): string => {
+  const getContactName = (contact: SocialActivity['contact']): string => {
+    if (!contact) return 'Deleted Contact';
     if (Array.isArray(contact)) {
-      const c = contact[0];
+      const c = (contact as { first_name: string; last_name: string }[])[0];
+      if (!c) return 'Deleted Contact';
       return `${c.first_name} ${c.last_name}`;
     }
     return `${contact.first_name} ${contact.last_name}`;
   };
 
-  const getContactCompany = (contact: any): string => {
+  const getContactCompany = (contact: SocialActivity['contact']): string => {
+    if (!contact) return '';
     if (Array.isArray(contact)) {
-      return contact[0].company || '';
+      return (contact as { company: string }[])[0]?.company || '';
     }
     return contact.company || '';
   };
@@ -281,9 +284,9 @@ export default function Social() {
               className="w-full px-3 py-2 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-electric focus:outline-none bg-white dark:bg-white/5 text-gray-900 dark:text-white text-sm transition-colors duration-150"
             >
               <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">Last 7 Days</option>
-              <option value="month">This Month</option>
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="90">Last 90 Days</option>
             </select>
           </div>
         </div>
