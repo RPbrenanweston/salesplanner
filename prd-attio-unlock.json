@@ -27,7 +27,7 @@
       ],
       "priority": 1,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/pages/Pipeline.tsx"],
       "notes": "@dnd-kit onDragEnd fires twice in StrictMode dev. Guard with useRef(false) idempotency flag reset on each drag start."
     },

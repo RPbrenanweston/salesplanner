@@ -28,3 +28,12 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
 - supabase/migrations/ (find existing oauth_connections constraint name)
 
 ---
+
+## 2026-03-22 - P0-002 - Fix Pipeline drag StrictMode double-fire + optimistic rollback
+- **Implemented:** Added useRef-based idempotency guard (dragInFlightRef Set) to prevent StrictMode double-fire of onDragEnd. Replaced loadPipeline() refetch-on-error with direct state rollback using snapshotted previousColumns. Wrapped handleDragEnd in useCallback.
+- **Files changed:** frontend/src/pages/Pipeline.tsx
+- **Learnings:**
+  - @hello-pangea/dnd onDragEnd fires twice in React 18 StrictMode — useRef Set tracking draggableId is the clean guard
+  - Optimistic rollback should snapshot state before mutation, not refetch (faster UX, no network dependency)
+  - Pre-existing typecheck requires npm install in worktrees — node_modules are not shared across git worktrees
+---
