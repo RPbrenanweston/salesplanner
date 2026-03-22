@@ -326,7 +326,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/pages/Analytics.tsx \u2014 no time-range filter on activity aggregation; loads all-time counts growing unbounded."
     },
     {

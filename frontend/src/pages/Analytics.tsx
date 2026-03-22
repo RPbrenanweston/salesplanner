@@ -31,7 +31,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-type DateRange = 'today' | 'this_week' | 'this_month' | 'custom';
+type DateRange = 'last_7' | 'last_30' | 'last_90' | 'all_time';
 
 interface ActivityMetrics {
   totalCalls: number;
@@ -82,9 +82,7 @@ interface CustomKPI {
 
 export default function Analytics() {
   const { user } = useAuth();
-  const [dateRange, setDateRange] = useState<DateRange>('this_week');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange>('last_30');
   const [metrics, setMetrics] = useState<ActivityMetrics>({
     totalCalls: 0,
     totalEmails: 0,
@@ -117,56 +115,35 @@ export default function Analytics() {
       loadAnalytics();
       loadCustomKPIs();
     }
-  }, [user, dateRange, customStartDate, customEndDate]);
+  }, [user, dateRange]);
 
-  const getDateRangeBounds = (): { start: Date; end: Date } => {
+  const getDateRangeBounds = (): { start: Date | null; end: Date } => {
     const now = new Date();
     const end = new Date(now);
     end.setHours(23, 59, 59, 999);
 
-    let start: Date;
-
     switch (dateRange) {
-      case 'today':
-        start = new Date(now);
+      case 'last_7': {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 6);
         start.setHours(0, 0, 0, 0);
-        break;
-
-      case 'this_week':
-        start = new Date(now);
-        const dayOfWeek = start.getDay();
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Monday = 0
-        start.setDate(start.getDate() - diff);
+        return { start, end };
+      }
+      case 'last_30': {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 29);
         start.setHours(0, 0, 0, 0);
-        break;
-
-      case 'this_month':
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { start, end };
+      }
+      case 'last_90': {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 89);
         start.setHours(0, 0, 0, 0);
-        break;
-
-      case 'custom':
-        if (customStartDate && customEndDate) {
-          start = new Date(customStartDate);
-          const customEnd = new Date(customEndDate);
-          customEnd.setHours(23, 59, 59, 999);
-          return { start, end: customEnd };
-        } else {
-          // Fallback to this week if custom dates not set
-          start = new Date(now);
-          const dayOfWeek = start.getDay();
-          const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-          start.setDate(start.getDate() - diff);
-          start.setHours(0, 0, 0, 0);
-        }
-        break;
-
-      default:
-        start = new Date(now);
-        start.setHours(0, 0, 0, 0);
+        return { start, end };
+      }
+      case 'all_time':
+        return { start: null, end };
     }
-
-    return { start, end };
   };
 
   const loadCustomKPIs = async () => {
@@ -203,12 +180,13 @@ export default function Analytics() {
     const { start, end } = getDateRangeBounds();
 
     // Query activities in date range
-    const { data: activities } = await supabase
+    let activitiesQuery = supabase
       .from('activities')
       .select('type, outcome, replied_at')
       .eq('user_id', user.id)
-      .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString());
+    if (start) activitiesQuery = activitiesQuery.gte('created_at', start.toISOString());
+    const { data: activities } = await activitiesQuery;
 
     if (!activities) return 0;
 
@@ -273,27 +251,32 @@ export default function Analytics() {
       const { start, end } = getDateRangeBounds();
 
       // Query activities in date range
-      const { data: activities, error } = await supabase
+      let activitiesQuery = supabase
         .from('activities')
         .select('id, type, outcome, replied_at, created_at')
         .eq('user_id', user.id)
-        .gte('created_at', start.toISOString())
         .lte('created_at', end.toISOString())
         .order('created_at', { ascending: true });
+      if (start) activitiesQuery = activitiesQuery.gte('created_at', start.toISOString());
+      const { data: activities, error } = await activitiesQuery;
 
       if (error) throw error;
 
-      // Query previous period for comparison
-      const periodDuration = end.getTime() - start.getTime();
-      const prevEnd = new Date(start.getTime() - 1);
-      const prevStart = new Date(start.getTime() - periodDuration);
+      // Query previous period for comparison (skip for all_time — no prior period)
+      let prevActivities: typeof activities = [];
+      if (start) {
+        const periodDuration = end.getTime() - start.getTime();
+        const prevEnd = new Date(start.getTime() - 1);
+        const prevStart = new Date(start.getTime() - periodDuration);
 
-      const { data: prevActivities } = await supabase
-        .from('activities')
-        .select('id, type, outcome, replied_at')
-        .eq('user_id', user.id)
-        .gte('created_at', prevStart.toISOString())
-        .lte('created_at', prevEnd.toISOString());
+        const { data: prev } = await supabase
+          .from('activities')
+          .select('id, type, outcome, replied_at, created_at')
+          .eq('user_id', user.id)
+          .gte('created_at', prevStart.toISOString())
+          .lte('created_at', prevEnd.toISOString());
+        prevActivities = prev || [];
+      }
 
       // Calculate metrics
       const calls = activities?.filter((a) => a.type === 'call').length || 0;
@@ -320,17 +303,21 @@ export default function Analytics() {
         return `${y}-${m}-${day}`;
       };
 
-      const current = new Date(start);
-      while (current <= end) {
-        const dateKey = toLocalDateKey(current);
-        dailyMap[dateKey] = {
-          date: dateKey,
-          calls: 0,
-          emails: 0,
-          social: 0,
-          meetings: 0,
-        };
-        current.setDate(current.getDate() + 1);
+      // For all_time, seed from the earliest activity date; if none, skip seeding
+      const chartStart = start ?? (activities && activities.length > 0 ? new Date(activities[0].created_at) : null);
+      if (chartStart) {
+        const current = new Date(chartStart);
+        while (current <= end) {
+          const dateKey = toLocalDateKey(current);
+          dailyMap[dateKey] = {
+            date: dateKey,
+            calls: 0,
+            emails: 0,
+            social: 0,
+            meetings: 0,
+          };
+          current.setDate(current.getDate() + 1);
+        }
       }
 
       // Populate with activity data — use local date so a 11pm activity
@@ -445,64 +432,27 @@ export default function Analytics() {
 
         {/* Date Range Selector */}
         <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={() => setDateRange('today')}
-            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
-              dateRange === 'today'
-                ? 'bg-indigo-electric border-indigo-electric text-white'
-                : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
-            }`}
-          >
-            Today
-          </button>
-          <button
-            onClick={() => setDateRange('this_week')}
-            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
-              dateRange === 'this_week'
-                ? 'bg-indigo-electric border-indigo-electric text-white'
-                : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
-            }`}
-          >
-            This Week
-          </button>
-          <button
-            onClick={() => setDateRange('this_month')}
-            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
-              dateRange === 'this_month'
-                ? 'bg-indigo-electric border-indigo-electric text-white'
-                : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
-            }`}
-          >
-            This Month
-          </button>
-          <button
-            onClick={() => setDateRange('custom')}
-            className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
-              dateRange === 'custom'
-                ? 'bg-indigo-electric border-indigo-electric text-white'
-                : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
-            }`}
-          >
-            Custom
-          </button>
-
-          {dateRange === 'custom' && (
-            <>
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="px-3 py-2 border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/40"
-              />
-              <span className="text-white/40">to</span>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="px-3 py-2 border border-white/10 rounded-lg bg-white/5 text-white placeholder-white/40"
-              />
-            </>
-          )}
+          {(['last_7', 'last_30', 'last_90', 'all_time'] as const).map((range) => {
+            const labels: Record<DateRange, string> = {
+              last_7: 'Last 7 Days',
+              last_30: 'Last 30 Days',
+              last_90: 'Last 90 Days',
+              all_time: 'All Time',
+            };
+            return (
+              <button
+                key={range}
+                onClick={() => setDateRange(range)}
+                className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all duration-150 ease-snappy ${
+                  dateRange === range
+                    ? 'bg-indigo-electric border-indigo-electric text-white'
+                    : 'bg-white dark:bg-white/5 text-gray-700 dark:text-white/70 border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10'
+                }`}
+              >
+                {labels[range]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
