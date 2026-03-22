@@ -92,3 +92,12 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - Pattern: return typed result from sync functions so callers can show appropriate UI feedback
   - Pattern: disable action controls (toggle, button) when prerequisite not met + show explanation text
 ---
+
+## 2026-03-22 - P0-010 - Add confirmation dialogs to all delete actions
+- **Implemented:** Created shared ConfirmDeleteDialog component with Cancel as autoFocus. Replaced browser confirm() in SalesBlocks, Scripts, Goals. Upgraded EmailTemplates custom dialog to shared component. All show item name.
+- **Files changed:** frontend/src/components/ConfirmDeleteDialog.tsx (new), frontend/src/pages/SalesBlocks.tsx, frontend/src/pages/Scripts.tsx, frontend/src/pages/Goals.tsx, frontend/src/pages/EmailTemplates.tsx
+- **Learnings:**
+  - Pattern: store deleteTarget as { id, name } object, not just id — needed for dialog to show item name
+  - Shared ConfirmDeleteDialog avoids DRY violation across 4 pages
+  - useRef + focus() on Cancel button for default focus (safer action)
+---

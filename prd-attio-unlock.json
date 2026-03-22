@@ -142,7 +142,7 @@
       ],
       "priority": 2,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/pages/SalesBlocks.tsx", "frontend/src/pages/Scripts.tsx", "frontend/src/pages/Goals.tsx", "frontend/src/pages/EmailTemplates.tsx"],
       "notes": "Use existing shadcn/ui AlertDialog component — it's already in the project."
     },
