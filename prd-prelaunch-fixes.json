@@ -492,7 +492,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/SalesBlocks.tsx \u2014 Add delete confirmation dialog. Audit salesblocks query for org_id scoping. Add empty state. Consider status filter tabs. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
@@ -509,7 +509,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/Scripts.tsx \u2014 Add script categories/tags. Add search. Link scripts to SalesBlock session. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
@@ -525,7 +525,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/EmailTemplates.tsx \u2014 Add error toast on delete failure. Verify RLS. Add template preview and search/filter. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
@@ -541,7 +541,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/components/ComposeEmailModal.tsx \u2014 Add template insertion from EmailTemplates. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
@@ -558,7 +558,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/components/OutlookOAuthButton.tsx \u2014 Consolidate OutlookOAuthButton and OutlookCalendarOAuthButton into a single MicrosoftOAuthButton parameterized by integration type. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
@@ -574,7 +574,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/components/GoogleCalendarOAuthButton.tsx \u2014 Consolidate OAuth button logic with GmailOAuthButton into a shared hook with provider param. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
@@ -590,7 +590,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/SettingsPage.tsx \u2014 Wrap each OAuth button in ErrorBoundary. Add success/error toasts for all save actions. Extract each tab into a sub-component. [UI feature \u2014 core UX work]",
       "deferrable": false
     },

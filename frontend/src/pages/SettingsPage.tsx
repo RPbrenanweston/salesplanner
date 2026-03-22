@@ -123,6 +123,18 @@ export default function SettingsPage() {
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamDivisionId, setNewTeamDivisionId] = useState<string | null>(null)
 
+  // Activity types management state
+  const [activityTypes, setActivityTypes] = useState<{
+    id: string
+    label: string
+    value: string
+    icon: string | null
+  }[]>([])
+  const [loadingActivityTypes, setLoadingActivityTypes] = useState(false)
+  const [newActivityLabel, setNewActivityLabel] = useState('')
+  const [newActivityValue, setNewActivityValue] = useState('')
+  const [savingActivityType, setSavingActivityType] = useState(false)
+
   // Load organization data + profile data
   useEffect(() => {
     const loadOrgData = async () => {
@@ -300,8 +312,22 @@ export default function SettingsPage() {
         if (members) {
           setTeamMembers(members)
         }
+
+        // Load activity types
+        setLoadingActivityTypes(true)
+        const { data: activityTypesData } = await supabase
+          .from('activity_types')
+          .select('id, label, value, icon')
+          .eq('org_id', userData.org_id)
+          .order('label')
+
+        if (activityTypesData) {
+          setActivityTypes(activityTypesData)
+        }
+        setLoadingActivityTypes(false)
       } catch (error) {
         console.error('Error loading hierarchy data:', error)
+        setLoadingActivityTypes(false)
       } finally {
         setLoadingHierarchy(false)
       }
@@ -860,6 +886,56 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Error reassigning user:', error)
       toast({ variant: 'destructive', title: 'Failed to reassign user', description: 'Please try again.' })
+    }
+  }
+
+  // Activity types management handlers
+  const handleAddActivityType = async () => {
+    if (!newActivityLabel.trim() || !newActivityValue.trim() || !orgId) return
+
+    setSavingActivityType(true)
+    try {
+      const { data, error } = await supabase
+        .from('activity_types')
+        .insert({
+          org_id: orgId,
+          label: newActivityLabel.trim(),
+          value: newActivityValue.trim().toLowerCase().replace(/\s+/g, '_'),
+          icon: null,
+        })
+        .select('id, label, value, icon')
+        .single()
+
+      if (error) throw error
+
+      setActivityTypes([...activityTypes, data])
+      setNewActivityLabel('')
+      setNewActivityValue('')
+      toast({ title: 'Activity type added' })
+    } catch (error) {
+      console.error('Error adding activity type:', error)
+      toast({ variant: 'destructive', title: 'Failed to add activity type', description: 'Please try again.' })
+    } finally {
+      setSavingActivityType(false)
+    }
+  }
+
+  const handleDeleteActivityType = async (typeId: string) => {
+    if (!confirm('Delete this activity type?')) return
+
+    try {
+      const { error } = await supabase
+        .from('activity_types')
+        .delete()
+        .eq('id', typeId)
+
+      if (error) throw error
+
+      setActivityTypes(activityTypes.filter((t) => t.id !== typeId))
+      toast({ title: 'Activity type removed' })
+    } catch (error) {
+      console.error('Error deleting activity type:', error)
+      toast({ variant: 'destructive', title: 'Failed to remove activity type', description: 'Please try again.' })
     }
   }
 
@@ -1441,6 +1517,70 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Activity Types Management Section */}
+                {userRole === 'manager' && (
+                  <div className="glass-card p-4">
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white mb-1">
+                      Activity Types
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-white/50 mb-3">
+                      Configure the activity types available when logging activities.
+                    </p>
+
+                    {loadingActivityTypes ? (
+                      <div className="flex items-center gap-2 text-gray-400 dark:text-white/40 py-2">
+                        <div className="w-4 h-4 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm">Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 mb-4">
+                        {activityTypes.length === 0 ? (
+                          <p className="text-sm text-gray-500 dark:text-white/40 italic">No custom types configured. Using defaults.</p>
+                        ) : (
+                          activityTypes.map((type) => (
+                            <div key={type.id} className="flex items-center justify-between p-2 border border-gray-200 dark:border-white/10 rounded-md">
+                              <div>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">{type.label}</span>
+                                <span className="ml-2 text-xs text-gray-500 dark:text-white/50 font-mono">{type.value}</span>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteActivityType(type.id)}
+                                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newActivityLabel}
+                        onChange={(e) => setNewActivityLabel(e.target.value)}
+                        placeholder="Label (e.g. LinkedIn)"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400"
+                      />
+                      <input
+                        type="text"
+                        value={newActivityValue}
+                        onChange={(e) => setNewActivityValue(e.target.value)}
+                        placeholder="Value (e.g. linkedin)"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400"
+                      />
+                      <button
+                        onClick={handleAddActivityType}
+                        disabled={savingActivityType || !newActivityLabel.trim() || !newActivityValue.trim()}
+                        className="px-3 py-1.5 text-sm bg-indigo-electric text-white rounded-md hover:bg-indigo-electric/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

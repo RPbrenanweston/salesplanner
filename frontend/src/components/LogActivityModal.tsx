@@ -25,6 +25,21 @@ interface LogActivityModalProps {
   onSuccess: () => void;
 }
 
+interface ActivityTypeConfig {
+  id: string;
+  label: string;
+  value: string;
+  icon: string | null;
+}
+
+const DEFAULT_ACTIVITY_TYPES: ActivityTypeConfig[] = [
+  { id: 'default-call', label: 'Call', value: 'call', icon: null },
+  { id: 'default-email', label: 'Email', value: 'email', icon: null },
+  { id: 'default-meeting', label: 'Meeting', value: 'meeting', icon: null },
+  { id: 'default-note', label: 'Note', value: 'note', icon: null },
+  { id: 'default-social', label: 'Social', value: 'social', icon: null },
+]
+
 const outcomeOptions: Record<string, string[]> = {
   call: ['no_answer', 'voicemail', 'connect', 'conversation', 'meeting_booked', 'not_interested', 'follow_up', 'other'],
   email: ['other'],
@@ -57,11 +72,29 @@ export default function LogActivityModal({
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [salesforceConnected, setSalesforceConnected] = useState(false);
+  const [orgActivityTypes, setOrgActivityTypes] = useState<ActivityTypeConfig[]>(DEFAULT_ACTIVITY_TYPES);
 
   useEffect(() => {
     if (!isOpen) return;
     getSalesforceConnection().then((conn) => setSalesforceConnected(!!conn));
+    loadActivityTypes();
   }, [isOpen]);
+
+  const loadActivityTypes = async () => {
+    if (!orgId) return;
+    try {
+      const { data } = await supabase
+        .from('activity_types')
+        .select('id, label, value, icon')
+        .eq('org_id', orgId)
+        .order('label');
+      if (data && data.length > 0) {
+        setOrgActivityTypes(data);
+      }
+    } catch {
+      // Fall back to defaults silently
+    }
+  };
 
   const resetAndClose = () => {
     setOutcome('other');
@@ -101,7 +134,8 @@ export default function LogActivityModal({
 
   if (!isOpen) return null;
 
-  const typeLabel = activityType.charAt(0).toUpperCase() + activityType.slice(1);
+  const typeConfig = orgActivityTypes.find((t) => t.value === activityType);
+  const typeLabel = typeConfig?.label ?? (activityType.charAt(0).toUpperCase() + activityType.slice(1));
   const availableOutcomes = outcomeOptions[activityType] || ['other'];
 
   return (
