@@ -298,7 +298,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazards: ProtectedRoute.tsx \u2014 synchronous redirect causes loop on concurrent logout; useAuth.ts \u2014 loading=false but user still null race condition."
     },
     {
