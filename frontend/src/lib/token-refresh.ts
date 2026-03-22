@@ -10,7 +10,7 @@
 
 import { supabase } from './supabase'
 
-type OAuthProvider = 'gmail' | 'outlook' | 'google_calendar' | 'outlook_calendar'
+export type OAuthProvider = 'gmail' | 'outlook' | 'google_calendar' | 'outlook_calendar' | 'salesforce' | 'attio'
 
 /** Buffer time (ms) before actual expiry to trigger a refresh — prevents mid-request expiration */
 const EXPIRY_BUFFER_MS = 5 * 60 * 1000 // 5 minutes
@@ -63,6 +63,33 @@ export async function getValidToken(provider: OAuthProvider): Promise<string | n
 }
 
 /**
+ * Force-refresh a token with mutex protection.
+ * If a refresh is already in-flight for this provider, returns the existing promise.
+ * This is the primary entry point for callers that know the token is expired.
+ */
+export async function refreshTokenWithMutex(provider: OAuthProvider): Promise<string | null> {
+  const existing = refreshInFlight.get(provider)
+  if (existing) return existing
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: connection } = await supabase
+    .from('oauth_connections')
+    .select('refresh_token')
+    .eq('user_id', user.id)
+    .eq('provider', provider)
+    .maybeSingle()
+
+  if (!connection?.refresh_token) return null
+
+  const refreshPromise = refreshToken(provider, connection.refresh_token)
+    .finally(() => refreshInFlight.delete(provider))
+  refreshInFlight.set(provider, refreshPromise)
+  return refreshPromise
+}
+
+/**
  * Call the appropriate refresh edge function to get a new access_token.
  */
 async function refreshToken(
@@ -75,9 +102,7 @@ async function refreshToken(
   }
 
   // Route to the correct refresh edge function based on provider
-  const edgeFunctionName = isGoogleProvider(provider)
-    ? 'refresh-google-token'
-    : 'refresh-microsoft-token'
+  const edgeFunctionName = getRefreshFunctionName(provider)
 
   try {
     const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
@@ -101,7 +126,18 @@ async function refreshToken(
   }
 }
 
-/** Helper: determine if a provider uses Google's OAuth (vs Microsoft) */
-function isGoogleProvider(provider: OAuthProvider): boolean {
-  return provider === 'gmail' || provider === 'google_calendar'
+/** Helper: determine the correct refresh edge function for each provider */
+function getRefreshFunctionName(provider: OAuthProvider): string {
+  switch (provider) {
+    case 'gmail':
+    case 'google_calendar':
+      return 'refresh-google-token'
+    case 'outlook':
+    case 'outlook_calendar':
+      return 'refresh-microsoft-token'
+    case 'salesforce':
+    case 'attio':
+      // CRM providers use the generic OAuth token exchange function
+      return 'exchange-oauth-token'
+  }
 }
