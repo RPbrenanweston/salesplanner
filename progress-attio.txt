@@ -1,0 +1,30 @@
+# Ralph Progress Log — Attio Unlock
+Started: 2026-03-22
+Branch: ralph/salesblock-roadmap
+PRD: prd-attio-unlock.json
+Goal: Unlock Attio CRM integration (17 stories: 9 P0 stabilization + 4 CRM infrastructure + 4 Attio-specific)
+---
+
+## Codebase Patterns
+- OAuth pattern: Copy GmailOAuthButton.tsx / SalesforceOAuthButton.tsx — these are the canonical templates
+- CSRF nonce: frontend/src/lib/oauth-csrf.ts — use generateNonce() and verifyNonce() exactly as Salesforce does
+- Toast pattern: import { toast } from '../hooks/use-toast' with variant: 'destructive' for errors
+- Supabase query pattern: always .eq('org_id', orgId) for org-scoping
+- ON CONFLICT: use .upsert(..., { onConflict: 'column_name', ignoreDuplicates: true }) in Supabase JS
+- Token storage: oauth_connections table with provider, access_token, refresh_token, expires_at, user_id, org_id
+- TypeScript: Record<string, unknown> for unknown shapes, String(prop) for JSX from unknown
+
+## Dependency Order
+P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-010 → P0-012
+→ P1-011 (CrmAdapter types) → P1-012 (Salesforce refactor) → P1-013 (registry)
+→ P1-014 (DB migration) → P1-015 (Attio OAuth) → P1-016 (Attio adapter)
+→ P1-017 (contact sync) → P1-018 (activity push)
+
+## Key Files to Read Before Starting
+- frontend/src/lib/salesforce.ts (will become the CrmAdapter template)
+- frontend/src/components/GmailOAuthButton.tsx (OAuth flow template)
+- frontend/src/lib/oauth-csrf.ts (CSRF nonce pattern)
+- frontend/src/types/domain.ts (Contact, Activity, Deal types)
+- supabase/migrations/ (find existing oauth_connections constraint name)
+
+---
