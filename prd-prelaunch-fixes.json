@@ -606,7 +606,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/components/LogActivityModal.tsx \u2014 Make activity types configurable via org settings. Add outcome field for calls. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
