@@ -340,7 +340,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazards: ContactActivityTimeline.tsx \u2014 100+ activities cause unbounded query; Email.tsx \u2014 no pagination, large volumes cause slow query."
     },
     {
