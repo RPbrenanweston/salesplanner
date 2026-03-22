@@ -121,7 +121,27 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch all pending activities with salesforce_id
+    // Atomically claim pending activities by setting status to 'in_progress'.
+    // This prevents duplicate processing if the function is invoked concurrently.
+    const { data: claimedIds, error: claimError } = await supabaseAdmin
+      .from('activities')
+      .update({ sync_status: 'in_progress' })
+      .eq('sync_status', 'pending')
+      .not('contact_id', 'is', null)
+      .limit(50)
+      .select('id');
+
+    if (claimError) throw claimError;
+    if (!claimedIds || claimedIds.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'No pending activities to sync' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const claimedActivityIds = claimedIds.map((r: { id: string }) => r.id);
+
+    // Fetch full activity data (including contact) for claimed activities only
     const { data: activities, error: fetchError } = await supabaseAdmin
       .from('activities')
       .select(`
@@ -140,17 +160,10 @@ serve(async (req) => {
           email
         )
       `)
-      .eq('sync_status', 'pending')
-      .not('contacts.salesforce_id', 'is', null)
-      .limit(50); // Process 50 activities per run
+      .in('id', claimedActivityIds)
+      .not('contacts.salesforce_id', 'is', null);
 
     if (fetchError) throw fetchError;
-    if (!activities || activities.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No pending activities to sync' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     const results = {
       total: activities.length,
