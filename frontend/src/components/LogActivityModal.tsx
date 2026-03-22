@@ -8,10 +8,11 @@
 // edge:frontend/src/components/ContactActivityTimeline.tsx -> RELATES
 // edge:log-activity#1 -> STEP_IN
 // prompt: Pre-check Salesforce connection before calling markActivityForSync. Make activity types configurable via org settings. Add outcome field for calls.
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { markActivityForSync } from '../lib/salesforce';
+import { markActivityForSync, getSalesforceConnection } from '../lib/salesforce';
+import { toast } from '../hooks/use-toast';
 
 interface LogActivityModalProps {
   isOpen: boolean;
@@ -55,6 +56,12 @@ export default function LogActivityModal({
   const [outcome, setOutcome] = useState<string>('other');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [salesforceConnected, setSalesforceConnected] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    getSalesforceConnection().then((conn) => setSalesforceConnected(!!conn));
+  }, [isOpen]);
 
   const resetAndClose = () => {
     setOutcome('other');
@@ -77,8 +84,8 @@ export default function LogActivityModal({
 
       if (error) throw error;
 
-      // Mark for Salesforce sync if auto-push enabled
-      if (data?.id) {
+      // Mark for Salesforce sync only if a connection is confirmed
+      if (data?.id && salesforceConnected) {
         markActivityForSync(data.id); // Non-blocking, logs errors internally
       }
 
@@ -86,7 +93,7 @@ export default function LogActivityModal({
       resetAndClose();
     } catch (error) {
       console.error('Error logging activity:', error);
-      alert('Failed to log activity');
+      toast({ variant: 'destructive', title: 'Failed to log activity', description: error instanceof Error ? error.message : undefined });
     } finally {
       setSaving(false);
     }
