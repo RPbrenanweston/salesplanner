@@ -701,7 +701,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/Home.tsx \u2014 Add empty-state messaging when goals have no activities. Consider skeleton loaders per data section independently. [UI feature \u2014 core UX work]",
       "deferrable": true
     },
