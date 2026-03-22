@@ -622,7 +622,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/Lists.tsx \u2014 Batch list_contacts count into single query. Add error catch around getSalesforceConnection. Add list sorting and search. [UI feature \u2014 core UX work]",
       "deferrable": false
     },

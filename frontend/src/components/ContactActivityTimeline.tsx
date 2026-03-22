@@ -23,6 +23,7 @@ interface Activity {
 
 interface ContactActivityTimelineProps {
   contactId: string;
+  userId?: string;
   filterType?: 'call' | 'email' | 'social' | 'meeting' | 'note' | 'all';
   showAddNote?: boolean;
   onActivityLogged?: () => void;
@@ -32,6 +33,7 @@ const PAGE_SIZE = 20;
 
 export default function ContactActivityTimeline({
   contactId,
+  userId,
   filterType = 'all',
   showAddNote = true,
   onActivityLogged,
@@ -40,18 +42,18 @@ export default function ContactActivityTimeline({
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(0);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<typeof filterType>(filterType);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
 
   useEffect(() => {
-    setPage(0);
+    setCursor(null);
     setActivities([]);
-    loadActivities(0, true);
+    loadActivities(null, true);
   }, [contactId, selectedFilter]);
 
-  const loadActivities = async (pageNum: number, reset = false) => {
+  const loadActivities = async (afterCursor: string | null, reset = false) => {
     if (reset) setLoading(true); else setLoadingMore(true);
     try {
       let query = supabase
@@ -59,10 +61,18 @@ export default function ContactActivityTimeline({
         .select('id, type, outcome, notes, created_at, duration_seconds')
         .eq('contact_id', contactId)
         .order('created_at', { ascending: false })
-        .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+        .limit(PAGE_SIZE);
+
+      if (afterCursor) {
+        query = query.lt('created_at', afterCursor);
+      }
 
       if (selectedFilter !== 'all') {
         query = query.eq('type', selectedFilter);
+      }
+
+      if (userId) {
+        query = query.eq('user_id', userId);
       }
 
       const { data, error } = await query;
@@ -71,6 +81,9 @@ export default function ContactActivityTimeline({
       const fetched = data || [];
       setActivities((prev) => reset ? fetched : [...prev, ...fetched]);
       setHasMore(fetched.length === PAGE_SIZE);
+      if (fetched.length > 0) {
+        setCursor(fetched[fetched.length - 1].created_at);
+      }
     } catch (err) {
       logError(err, 'ContactActivityTimeline.loadActivities');
     } finally {
@@ -79,9 +92,7 @@ export default function ContactActivityTimeline({
   };
 
   const loadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    loadActivities(nextPage);
+    loadActivities(cursor);
   };
 
   const handleAddNote = async () => {
@@ -113,7 +124,7 @@ export default function ContactActivityTimeline({
 
       setNoteText('');
       setIsAddingNote(false);
-      loadActivities(0, true);
+      loadActivities(null, true);
       onActivityLogged?.();
     } catch (err) {
       logError(err, 'ContactActivityTimeline.handleAddNote');
