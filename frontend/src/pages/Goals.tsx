@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Target, Trash2, TrendingUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { toast } from '../hooks/use-toast'
 
 interface Goal {
   id: string
@@ -231,14 +232,14 @@ export default function Goals() {
 
       if (error) {
         console.error('Error deleting goal:', error)
-        alert('Failed to delete goal')
+        toast({ variant: 'destructive', title: 'Failed to delete goal', description: error.message })
         return
       }
 
       loadGoals()
     } catch (error) {
       console.error('Error deleting goal:', error)
-      alert('Failed to delete goal')
+      toast({ variant: 'destructive', title: 'Failed to delete goal', description: error instanceof Error ? error.message : undefined })
     }
   }
 

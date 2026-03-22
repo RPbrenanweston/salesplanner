@@ -14,6 +14,7 @@ import { Plus, Edit2, Trash2, Share2, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { ScriptModal } from '../components/ScriptModal';
 import DOMPurify from 'dompurify';
+import { toast } from '../hooks/use-toast';
 
 interface CallScript {
   id: string;
@@ -76,7 +77,7 @@ export default function Scripts() {
       await loadScripts();
     } catch (error) {
       console.error('Error deleting script:', error);
-      alert('Failed to delete script');
+      toast({ variant: 'destructive', title: 'Failed to delete script', description: error instanceof Error ? error.message : undefined });
     }
   }
 
