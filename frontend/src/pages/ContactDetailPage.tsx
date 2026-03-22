@@ -21,6 +21,8 @@ import ContactActivityTimeline from '../components/ContactActivityTimeline';
 import ComposeEmailModal from '../components/ComposeEmailModal';
 import LogSocialActivityModal from '../components/LogSocialActivityModal';
 import BookMeetingModal from '../components/BookMeetingModal';
+import IntelligenceSignalsPanel from '../components/intelligence/IntelligenceSignalsPanel';
+import { ROUTES } from '../lib/routes';
 
 interface Contact {
   id: string;
@@ -37,6 +39,8 @@ interface Contact {
   company_linkedin_url: string | null;
   twitter_handle: string | null;
   company_twitter: string | null;
+  account_id: string | null;
+  contact_purpose: string;
 }
 
 interface ResearchData {
@@ -435,6 +439,34 @@ export default function ContactDetailPage() {
             Activity Timeline
           </h2>
           <ContactActivityTimeline contactId={contact.id} showAddNote={true} />
+        </div>
+
+        {/* Prospect Intelligence */}
+        <div className="glass-card p-6">
+          <h3 className="font-display font-semibold text-gray-900 dark:text-white mb-4">
+            Prospect Intelligence
+          </h3>
+          {contact.account_id ? (
+            <IntelligenceSignalsPanel
+              accountId={contact.account_id}
+              orgId={orgId || ''}
+              level="prospect"
+              contactId={contact.id}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <Building2 className="w-8 h-8 text-gray-300 dark:text-white/20 mx-auto mb-2" />
+              <p className="text-sm text-gray-500 dark:text-white/40 mb-2">
+                Link this contact to an account to track prospect intelligence
+              </p>
+              <button
+                onClick={() => navigate(ROUTES.ACCOUNTS)}
+                className="text-sm text-indigo-electric hover:text-indigo-600 font-medium"
+              >
+                Go to Accounts →
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Modals */}

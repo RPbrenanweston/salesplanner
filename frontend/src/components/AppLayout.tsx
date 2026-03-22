@@ -35,7 +35,14 @@ import {
   ChevronRight,
   LogOut,
   Sun,
-  Moon
+  Moon,
+  Building2,
+  CalendarDays,
+  Sunrise,
+  BookOpen,
+  Swords,
+  Library,
+  Contact,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
@@ -54,6 +61,13 @@ const navItems: NavItem[] = [
   { name: 'Home', path: ROUTES.HOME, icon: Home },
   { name: 'SalesBlocks', path: ROUTES.SALESBLOCKS, icon: Clock },
   { name: 'Lists', path: ROUTES.LISTS, icon: List },
+  { name: 'Contacts', path: ROUTES.CONTACTS, icon: Contact },
+  { name: 'Accounts', path: ROUTES.ACCOUNTS, icon: Building2 },
+  { name: 'Arena', path: ROUTES.ARENA, icon: Swords },
+  { name: 'Content Library', path: ROUTES.CONTENT_LIBRARY, icon: Library },
+  { name: 'Day Planner', path: ROUTES.DAY_PLANNER, icon: CalendarDays },
+  { name: 'Briefing', path: ROUTES.MORNING_BRIEFING, icon: Sunrise },
+  { name: 'Debrief', path: ROUTES.DAILY_DEBRIEF, icon: BookOpen },
   { name: 'Scripts', path: ROUTES.SCRIPTS, icon: FileText },
   { name: 'Templates', path: ROUTES.TEMPLATES, icon: Layout },
   { name: 'Email', path: ROUTES.EMAIL, icon: Mail },
