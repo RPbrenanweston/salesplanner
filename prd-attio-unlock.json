@@ -108,7 +108,7 @@
       ],
       "priority": 1,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/lib/token-refresh.ts"],
       "notes": "CRITICAL for Attio OAuth reliability. Multiple concurrent calls can race to refresh. Implement with a Promise queue: if refresh in-flight, push resolve callbacks and return shared promise."
     },

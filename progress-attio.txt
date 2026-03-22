@@ -73,3 +73,13 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - Conditional update (.eq + .is) is Supabase's idiomatic ON CONFLICT alternative for updates
   - Edge functions may run concurrently — always guard against race conditions
 ---
+
+## 2026-03-22 - P0-008 - Fix concurrent OAuth token refresh race condition
+- **Implemented:** Extended OAuthProvider type to include salesforce/attio. Added refreshTokenWithMutex() export. Replaced isGoogleProvider with getRefreshFunctionName switch. Existing mutex pattern was already correct.
+- **Files changed:** frontend/src/lib/token-refresh.ts
+- **Learnings:**
+  - The mutex pattern (Map of in-flight promises) was already implemented correctly
+  - JS single-threaded event loop means the check-then-set on refreshInFlight is atomic between awaits
+  - Extended provider type now for attio readiness (P1-015/P1-016 will use it)
+  - Pattern: refreshTokenWithMutex is the public API for force-refresh; getValidToken is for get-or-refresh
+---
