@@ -21,6 +21,8 @@ import GmailOAuthButton from '../components/GmailOAuthButton'
 import MicrosoftOAuthButton from '../components/MicrosoftOAuthButton'
 import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
+import OAuthErrorBoundary from '../components/OAuthErrorBoundary'
+import { toast } from '../hooks/use-toast'
 
 type Tab = 'profile' | 'organization' | 'team' | 'integrations' | 'pipeline' | 'billing'
 
@@ -486,7 +488,7 @@ export default function SettingsPage() {
       setSfAutoPush(newValue)
     } catch (error) {
       console.error('Failed to update SF auto-push setting:', error)
-      alert('Failed to update auto-push setting. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to update auto-push setting', description: 'Please try again.' })
     } finally {
       setSfAutoPushLoading(false)
     }
@@ -508,10 +510,10 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error('Sync failed')
 
       const result = await response.json()
-      alert(`Sync completed: ${result.synced} synced, ${result.failed} failed`)
+      toast({ title: `Sync completed: ${result.synced} synced, ${result.failed} failed` })
     } catch (error) {
       console.error('Manual sync error:', error)
-      alert('Manual sync failed. Please try again.')
+      toast({ variant: 'destructive', title: 'Manual sync failed', description: 'Please try again.' })
     }
   }
 
@@ -538,10 +540,10 @@ export default function SettingsPage() {
 
       await Promise.all(updates)
 
-      alert('Stage probabilities updated successfully')
+      toast({ title: 'Stage probabilities updated successfully' })
     } catch (error) {
       console.error('Error saving probabilities:', error)
-      alert('Failed to save probabilities. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to save probabilities', description: 'Please try again.' })
     } finally {
       setSavingStages(false)
     }
@@ -566,7 +568,7 @@ export default function SettingsPage() {
       window.location.href = url
     } catch (error) {
       console.error('Error opening customer portal:', error)
-      alert('Failed to open billing portal. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to open billing portal', description: 'Please try again.' })
     }
   }
 
@@ -589,25 +591,25 @@ export default function SettingsPage() {
 
       if (!response.ok) throw new Error('Failed to cancel subscription')
 
-      alert('Subscription cancelled. You will retain access until the end of your billing period.')
+      toast({ title: 'Subscription cancelled. You will retain access until the end of your billing period.' })
       // Reload billing data
       setActiveTab('billing')
     } catch (error) {
       console.error('Error cancelling subscription:', error)
-      alert('Failed to cancel subscription. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to cancel subscription', description: 'Please try again.' })
     }
   }
 
   const handleSendInvite = async () => {
     if (!inviteEmail || !orgId) {
-      alert('Please enter an email address')
+      toast({ variant: 'destructive', title: 'Please enter an email address' })
       return
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(inviteEmail)) {
-      alert('Please enter a valid email address')
+      toast({ variant: 'destructive', title: 'Please enter a valid email address' })
       return
     }
 
@@ -651,7 +653,7 @@ export default function SettingsPage() {
         throw new Error('Failed to send invitation email')
       }
 
-      alert(`Invitation sent to ${inviteEmail}`)
+      toast({ title: `Invitation sent to ${inviteEmail}` })
 
       // Reset form
       setInviteEmail('')
@@ -664,9 +666,9 @@ export default function SettingsPage() {
     } catch (error: any) {
       console.error('Error sending invitation:', error)
       if (error.message?.includes('duplicate')) {
-        alert('An invitation has already been sent to this email address')
+        toast({ variant: 'destructive', title: 'An invitation has already been sent to this email address' })
       } else {
-        alert('Failed to send invitation. Please try again.')
+        toast({ variant: 'destructive', title: 'Failed to send invitation', description: 'Please try again.' })
       }
     } finally {
       setSendingInvite(false)
@@ -688,10 +690,10 @@ export default function SettingsPage() {
 
       // Reload invitations
       setTeamInvitations(invites => invites.filter(i => i.id !== inviteId))
-      alert('Invitation cancelled')
+      toast({ title: 'Invitation cancelled' })
     } catch (error) {
       console.error('Error cancelling invitation:', error)
-      alert('Failed to cancel invitation. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to cancel invitation', description: 'Please try again.' })
     }
   }
 
@@ -710,10 +712,10 @@ export default function SettingsPage() {
 
       setDivisions([...divisions, data])
       setNewDivisionName('')
-      alert('Division created successfully')
+      toast({ title: 'Division created successfully' })
     } catch (error) {
       console.error('Error creating division:', error)
-      alert('Failed to create division. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to create division', description: 'Please try again.' })
     }
   }
 
@@ -733,7 +735,7 @@ export default function SettingsPage() {
       setEditingDivisionName('')
     } catch (error) {
       console.error('Error renaming division:', error)
-      alert('Failed to rename division. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to rename division', description: 'Please try again.' })
     }
   }
 
@@ -753,10 +755,10 @@ export default function SettingsPage() {
       setDivisions(divisions.filter(d => d.id !== divisionId))
       // Update teams that were in this division (division_id will be set to null by ON DELETE SET NULL)
       setTeams(teams.map(t => t.division_id === divisionId ? { ...t, division_id: null } : t))
-      alert('Division deleted')
+      toast({ title: 'Division deleted' })
     } catch (error) {
       console.error('Error deleting division:', error)
-      alert('Failed to delete division. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to delete division', description: 'Please try again.' })
     }
   }
 
@@ -779,10 +781,10 @@ export default function SettingsPage() {
       setTeams([...teams, data])
       setNewTeamName('')
       setNewTeamDivisionId(null)
-      alert('Team created successfully')
+      toast({ title: 'Team created successfully' })
     } catch (error) {
       console.error('Error creating team:', error)
-      alert('Failed to create team. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to create team', description: 'Please try again.' })
     }
   }
 
@@ -802,7 +804,7 @@ export default function SettingsPage() {
       setEditingTeamName('')
     } catch (error) {
       console.error('Error renaming team:', error)
-      alert('Failed to rename team. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to rename team', description: 'Please try again.' })
     }
   }
 
@@ -822,10 +824,10 @@ export default function SettingsPage() {
       setTeams(teams.filter(t => t.id !== teamId))
       // Update users that were in this team
       setTeamMembers(teamMembers.map(m => m.team_id === teamId ? { ...m, team_id: null } : m))
-      alert('Team deleted')
+      toast({ title: 'Team deleted' })
     } catch (error) {
       console.error('Error deleting team:', error)
-      alert('Failed to delete team. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to delete team', description: 'Please try again.' })
     }
   }
 
@@ -841,7 +843,7 @@ export default function SettingsPage() {
       setTeams(teams.map(t => t.id === teamId ? { ...t, division_id: divisionId } : t))
     } catch (error) {
       console.error('Error assigning team to division:', error)
-      alert('Failed to assign team. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to assign team', description: 'Please try again.' })
     }
   }
 
@@ -857,7 +859,7 @@ export default function SettingsPage() {
       setTeamMembers(teamMembers.map(m => m.id === userId ? { ...m, team_id: newTeamId } : m))
     } catch (error) {
       console.error('Error reassigning user:', error)
-      alert('Failed to reassign user. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to reassign user', description: 'Please try again.' })
     }
   }
 
@@ -974,6 +976,7 @@ export default function SettingsPage() {
                     setTimeout(() => setProfileSaved(false), 3000)
                   } catch (err) {
                     console.error('Failed to save display name:', err)
+                    toast({ variant: 'destructive', title: 'Failed to save display name', description: 'Please try again.' })
                   } finally {
                     setSavingProfile(false)
                   }
@@ -1667,8 +1670,12 @@ export default function SettingsPage() {
               Email
             </h3>
             <div className="space-y-4">
-              <GmailOAuthButton />
-              <MicrosoftOAuthButton integrationType="mail" />
+              <OAuthErrorBoundary label="Gmail">
+                <GmailOAuthButton />
+              </OAuthErrorBoundary>
+              <OAuthErrorBoundary label="Outlook">
+                <MicrosoftOAuthButton integrationType="mail" />
+              </OAuthErrorBoundary>
             </div>
           </div>
 
@@ -1678,8 +1685,12 @@ export default function SettingsPage() {
               Calendar
             </h3>
             <div className="space-y-4">
-              <GoogleCalendarOAuthButton />
-              <MicrosoftOAuthButton integrationType="calendar" />
+              <OAuthErrorBoundary label="Google Calendar">
+                <GoogleCalendarOAuthButton />
+              </OAuthErrorBoundary>
+              <OAuthErrorBoundary label="Outlook Calendar">
+                <MicrosoftOAuthButton integrationType="calendar" />
+              </OAuthErrorBoundary>
             </div>
           </div>
 
@@ -1689,7 +1700,9 @@ export default function SettingsPage() {
               CRM
             </h3>
             <div className="space-y-4">
-              <SalesforceOAuthButton />
+              <OAuthErrorBoundary label="Salesforce">
+                <SalesforceOAuthButton />
+              </OAuthErrorBoundary>
 
               {/* Salesforce Activity Sync Settings */}
               <div className="glass-card p-4">
