@@ -64,17 +64,6 @@ export default function Home() {
     return new Date(sb.scheduled_start) <= new Date()
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-full bg-gray-50 dark:bg-void-950 p-8 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-400 dark:text-white/40">
-          <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
-          <span className="font-mono text-sm tracking-widest uppercase">Initialising Briefing...</span>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
 
@@ -212,13 +201,14 @@ export default function Home() {
             salesblocks={todaysSalesblocks}
             onStartBlock={handleStartBlock}
             onScheduleBlock={() => setShowCreateModal(true)}
+            loading={loading}
           />
-          <ActivityFeedSection activities={recentActivities} />
+          <ActivityFeedSection activities={recentActivities} loading={loading} />
         </div>
 
         {/* Right: Goal Progress + Upcoming */}
         <div className="space-y-6">
-          <GoalProgressSection goals={goalProgress} />
+          <GoalProgressSection goals={goalProgress} loading={loading} />
           <UpcomingSalesBlocksSection salesblocks={upcomingSalesblocks} />
         </div>
       </div>

@@ -685,7 +685,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/components/TemplateModal.tsx \u2014 Validate merge tags at save time. Add send-time preview with variable substitution. Enforce limits. [UI feature \u2014 core UX work]",
       "deferrable": true
     },

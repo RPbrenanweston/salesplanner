@@ -10,14 +10,17 @@
 /**
  * Section showing goal progress with progress bars
  */
-import { Target } from 'lucide-react'
+import { Target, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { GoalProgress } from '../hooks/useGoalProgress'
 
 interface GoalProgressSectionProps {
   goals: GoalProgress[]
+  loading?: boolean
 }
 
-export function GoalProgressSection({ goals }: GoalProgressSectionProps) {
+export function GoalProgressSection({ goals, loading = false }: GoalProgressSectionProps) {
+  const navigate = useNavigate()
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -25,10 +28,29 @@ export function GoalProgressSection({ goals }: GoalProgressSectionProps) {
         Goal Progress
       </h2>
 
-      {goals.length === 0 ? (
-        <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-          No goals set
-        </p>
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="animate-pulse">
+              <div className="flex justify-between mb-1">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16" />
+              </div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full w-full" />
+            </div>
+          ))}
+        </div>
+      ) : goals.length === 0 ? (
+        <div className="text-center py-6">
+          <p className="text-gray-500 dark:text-gray-400 mb-3">Set your first goal to track progress</p>
+          <button
+            onClick={() => navigate('/settings')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Set a Goal
+          </button>
+        </div>
       ) : (
         <div className="space-y-4">
           {goals.map((goal, index) => {
