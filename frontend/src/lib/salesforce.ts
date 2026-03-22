@@ -211,6 +211,14 @@ export async function getSalesforceConnection(): Promise<{
 }
 
 /**
+ * Check if Salesforce is connected (has an active oauth_connections row)
+ */
+export async function isSalesforceConnected(): Promise<boolean> {
+  const connection = await getSalesforceConnection();
+  return connection !== null;
+}
+
+/**
  * Check if Salesforce auto-push activities is enabled for the current user's org
  */
 export async function isSalesforceAutoPushEnabled(): Promise<boolean> {
@@ -239,17 +247,20 @@ export async function isSalesforceAutoPushEnabled(): Promise<boolean> {
   }
 }
 
+export type SyncMarkResult = 'synced' | 'auto_push_disabled' | 'not_connected' | 'error'
+
 /**
  * Mark activity as pending sync to Salesforce (called after activity insert)
  * Non-blocking: logs errors but doesn't throw
+ * Returns status so callers can optionally show user feedback
  */
-export async function markActivityForSync(activityId: string): Promise<void> {
+export async function markActivityForSync(activityId: string): Promise<SyncMarkResult> {
   try {
     const autoPushEnabled = await isSalesforceAutoPushEnabled()
-    if (!autoPushEnabled) return // Skip if auto-push disabled
+    if (!autoPushEnabled) return 'auto_push_disabled'
 
     const connection = await getSalesforceConnection()
-    if (!connection) return // Skip if no SF connection
+    if (!connection) return 'not_connected'
 
     // Update activity to pending sync status
     await supabase
@@ -258,8 +269,9 @@ export async function markActivityForSync(activityId: string): Promise<void> {
       .eq('id', activityId)
 
     console.log(`Activity ${activityId} marked for Salesforce sync`)
+    return 'synced'
   } catch (error) {
     console.error('Error marking activity for sync:', error)
-    // Non-blocking: don't throw error, just log
+    return 'error'
   }
 }

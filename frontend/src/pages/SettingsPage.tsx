@@ -22,6 +22,7 @@ import OutlookOAuthButton from '../components/OutlookOAuthButton'
 import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import OutlookCalendarOAuthButton from '../components/OutlookCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
+import { isSalesforceConnected } from '../lib/salesforce'
 
 type Tab = 'profile' | 'organization' | 'team' | 'integrations' | 'pipeline' | 'billing'
 
@@ -39,6 +40,7 @@ export default function SettingsPage() {
   // Salesforce auto-push toggle state
   const [sfAutoPush, setSfAutoPush] = useState(false)
   const [sfAutoPushLoading, setSfAutoPushLoading] = useState(false)
+  const [sfConnected, setSfConnected] = useState(false)
 
   // Pipeline stages state
   const [pipelineStages, setPipelineStages] = useState<{
@@ -155,6 +157,10 @@ export default function SettingsPage() {
         setLogoUrl(orgData.logo_url)
         setSfAutoPush(orgData.sf_auto_push_activities || false)
       }
+
+      // Check Salesforce connection status
+      const connected = await isSalesforceConnected()
+      setSfConnected(connected)
     }
 
     loadOrgData()
@@ -1705,23 +1711,31 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={handleSfAutoPushToggle}
-                    disabled={sfAutoPushLoading}
+                    disabled={sfAutoPushLoading || !sfConnected}
+                    title={!sfConnected ? 'Salesforce not connected — connect above to enable' : undefined}
                     className={`${
-                      sfAutoPush ? 'bg-indigo-electric' : 'dark:bg-white/10 bg-gray-300'
+                      sfAutoPush && sfConnected ? 'bg-indigo-electric' : 'dark:bg-white/10 bg-gray-300'
                     } relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50`}
                   >
                     <span
                       className={`${
-                        sfAutoPush ? 'translate-x-6' : 'translate-x-1'
+                        sfAutoPush && sfConnected ? 'translate-x-6' : 'translate-x-1'
                       } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                     />
                   </button>
                 </div>
 
+                {!sfConnected && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Salesforce not connected &mdash; connect above to sync activities
+                  </p>
+                )}
+
                 <div className="mt-4 flex items-center space-x-2">
                   <button
                     onClick={handleSyncNow}
-                    className="px-3 py-1 text-sm font-medium text-white bg-indigo-electric hover:bg-indigo-electric/80 rounded-md transition-all duration-150 ease-snappy"
+                    disabled={!sfConnected}
+                    className="px-3 py-1 text-sm font-medium text-white bg-indigo-electric hover:bg-indigo-electric/80 rounded-md transition-all duration-150 ease-snappy disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Sync Now
                   </button>
