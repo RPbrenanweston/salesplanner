@@ -9,12 +9,13 @@
 // edge:frontend/src/App.tsx -> RELATES
 // edge:pipeline#1 -> STEP_IN
 // prompt: Add optimistic rollback for failed stage updates. Investigate StrictMode double-fire. Add deal value total in column header. Verify org_id scoping.
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { Plus, DollarSign, Calendar, User } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import AddDealModal from '../components/AddDealModal'
 import DealDetailModal from '../components/DealDetailModal'
+import { toast } from '../hooks/use-toast'
 
 interface PipelineStage {
   id: string
@@ -53,6 +54,7 @@ export default function Pipeline() {
   const [selectedStageId, setSelectedStageId] = useState<string | undefined>()
   const [isDealDetailModalOpen, setIsDealDetailModalOpen] = useState(false)
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
+  const dragInFlight = useRef(false)
 
   useEffect(() => {
     loadPipeline()
@@ -126,60 +128,77 @@ export default function Pipeline() {
   }
 
   async function handleDragEnd(result: DropResult) {
-    const { destination, source, draggableId } = result
+    // Idempotency guard: prevent StrictMode double-fire or concurrent drags
+    if (dragInFlight.current) return
+    dragInFlight.current = true
 
-    if (!destination) return
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return
-
-    const sourceColumn = columns.find(col => col.stage.id === source.droppableId)
-    const destColumn = columns.find(col => col.stage.id === destination.droppableId)
-
-    if (!sourceColumn || !destColumn) return
-
-    const deal = sourceColumn.deals.find(d => d.id === draggableId)
-    if (!deal) return
-
-    // Optimistically update UI
-    const newColumns = columns.map(col => {
-      if (col.stage.id === source.droppableId) {
-        const newDeals = col.deals.filter(d => d.id !== draggableId)
-        return {
-          ...col,
-          deals: newDeals,
-          count: newDeals.length,
-          totalValue: newDeals.reduce((sum, d) => sum + (d.value || 0), 0)
-        }
-      }
-      if (col.stage.id === destination.droppableId) {
-        const newDeals = [...col.deals]
-        newDeals.splice(destination.index, 0, { ...deal, stage_id: destination.droppableId })
-        return {
-          ...col,
-          deals: newDeals,
-          count: newDeals.length,
-          totalValue: newDeals.reduce((sum, d) => sum + (d.value || 0), 0)
-        }
-      }
-      return col
-    })
-
-    setColumns(newColumns)
-
-    // Update in database
     try {
+      const { destination, source, draggableId } = result
+
+      if (!destination) return
+      if (destination.droppableId === source.droppableId && destination.index === source.index) return
+
+      const sourceColumn = columns.find(col => col.stage.id === source.droppableId)
+      const destColumn = columns.find(col => col.stage.id === destination.droppableId)
+
+      if (!sourceColumn || !destColumn) return
+
+      const deal = sourceColumn.deals.find(d => d.id === draggableId)
+      if (!deal) return
+
+      // Snapshot current columns for rollback
+      const previousColumns = columns
+
+      // Optimistically update UI
+      const newColumns = columns.map(col => {
+        if (col.stage.id === source.droppableId) {
+          const newDeals = col.deals.filter(d => d.id !== draggableId)
+          return {
+            ...col,
+            deals: newDeals,
+            count: newDeals.length,
+            totalValue: newDeals.reduce((sum, d) => sum + (d.value || 0), 0)
+          }
+        }
+        if (col.stage.id === destination.droppableId) {
+          const newDeals = [...col.deals]
+          newDeals.splice(destination.index, 0, { ...deal, stage_id: destination.droppableId })
+          return {
+            ...col,
+            deals: newDeals,
+            count: newDeals.length,
+            totalValue: newDeals.reduce((sum, d) => sum + (d.value || 0), 0)
+          }
+        }
+        return col
+      })
+
+      setColumns(newColumns)
+
+      // Persist to database
       const { error } = await supabase
         .from('deals')
         .update({ stage_id: destination.droppableId })
         .eq('id', draggableId)
 
       if (error) {
-        console.error('Error updating deal stage:', error)
-        // Revert on error
-        loadPipeline()
+        // Instant revert — no full reload needed
+        setColumns(previousColumns)
+        toast({
+          variant: 'destructive',
+          title: 'Failed to move deal',
+          description: error.message,
+        })
       }
-    } catch (error) {
-      console.error('Error updating deal:', error)
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to move deal',
+        description: err instanceof Error ? err.message : 'Unexpected error',
+      })
       loadPipeline()
+    } finally {
+      dragInFlight.current = false
     }
   }
 
