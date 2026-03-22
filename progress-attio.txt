@@ -83,3 +83,12 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - Extended provider type now for attio readiness (P1-015/P1-016 will use it)
   - Pattern: refreshTokenWithMutex is the public API for force-refresh; getValidToken is for get-or-refresh
 ---
+
+## 2026-03-22 - P0-009 - Add pre-check for Salesforce push when disconnected
+- **Implemented:** Added isSalesforceConnected() export. markActivityForSync returns SyncMarkResult type. SettingsPage checks SF connection, disables toggle and Sync Now when disconnected, shows warning.
+- **Files changed:** frontend/src/lib/salesforce.ts, frontend/src/pages/SettingsPage.tsx
+- **Learnings:**
+  - SalesforceOAuthButton manages its own connection state internally — SettingsPage needs separate check
+  - Pattern: return typed result from sync functions so callers can show appropriate UI feedback
+  - Pattern: disable action controls (toggle, button) when prerequisite not met + show explanation text
+---

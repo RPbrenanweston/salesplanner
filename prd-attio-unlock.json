@@ -124,7 +124,7 @@
       ],
       "priority": 1,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/lib/salesforce.ts", "frontend/src/pages/SettingsPage.tsx"],
       "notes": "Sets the pattern for all CRM disconnected-state handling including Attio."
     },
