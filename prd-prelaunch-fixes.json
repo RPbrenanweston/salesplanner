@@ -312,7 +312,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/components/TrialExpiryBanner.tsx \u2014 dismissal in React local state only; reappears on navigation."
     },
     {
