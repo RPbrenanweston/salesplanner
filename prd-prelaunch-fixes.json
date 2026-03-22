@@ -284,7 +284,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb hazard: frontend/src/pages/Arena.tsx \u2014 void-700 missing from tailwind.config.js; rank colour fallback uses undefined colour class."
     },
     {

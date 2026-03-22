@@ -17,6 +17,7 @@ export default {
           950: '#020617',
           900: '#0F172A',
           800: '#131f24',
+          700: '#1e2d35',
         },
         'indigo-electric': '#6366F1',
         'cyan-neon': '#0db9f2',
