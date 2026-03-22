@@ -458,45 +458,24 @@ export default function Analytics() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="glass-card p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-indigo-electric/10 rounded-lg">
-              <Phone className="w-6 h-6 text-indigo-electric" />
+        {[
+          { icon: <Phone className="w-6 h-6 text-indigo-electric" />, bg: 'bg-indigo-electric/10', label: 'Total Calls', value: metrics.totalCalls },
+          { icon: <Mail className="w-6 h-6 text-cyan-neon" />, bg: 'bg-cyan-neon/10', label: 'Total Emails', value: metrics.totalEmails },
+          { icon: <Share2 className="w-6 h-6 text-amber-400" />, bg: 'bg-amber-400/10', label: 'Social Touches', value: metrics.totalSocial },
+          { icon: <Calendar className="w-6 h-6 text-red-alert" />, bg: 'bg-red-alert/10', label: 'Meetings Booked', value: metrics.totalMeetings },
+        ].map((card) => (
+          <div key={card.label} className="glass-card p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`p-3 ${card.bg} rounded-lg`}>{card.icon}</div>
+              <h3 className="vv-section-title">{card.label}</h3>
             </div>
-            <h3 className="vv-section-title">Total Calls</h3>
+            {loading ? (
+              <div className="h-10 w-20 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
+            ) : (
+              <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{card.value}</p>
+            )}
           </div>
-          <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{metrics.totalCalls}</p>
-        </div>
-
-        <div className="glass-card p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-cyan-neon/10 rounded-lg">
-              <Mail className="w-6 h-6 text-cyan-neon" />
-            </div>
-            <h3 className="vv-section-title">Total Emails</h3>
-          </div>
-          <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{metrics.totalEmails}</p>
-        </div>
-
-        <div className="glass-card p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-amber-400/10 rounded-lg">
-              <Share2 className="w-6 h-6 text-amber-400" />
-            </div>
-            <h3 className="vv-section-title">Social Touches</h3>
-          </div>
-          <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{metrics.totalSocial}</p>
-        </div>
-
-        <div className="glass-card p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-red-alert/10 rounded-lg">
-              <Calendar className="w-6 h-6 text-red-alert" />
-            </div>
-            <h3 className="vv-section-title">Meetings Booked</h3>
-          </div>
-          <p className="font-display font-mono text-4xl font-black text-gray-900 dark:text-white">{metrics.totalMeetings}</p>
-        </div>
+        ))}
       </div>
 
       {/* Activity Trend Chart */}

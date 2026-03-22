@@ -430,7 +430,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/Analytics.tsx \u2014 Add time-range filter. Add loading skeleton per KPI card. Validate custom KPI bounds. Consider Recharts for trend visualisation. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
