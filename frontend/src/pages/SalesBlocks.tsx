@@ -17,6 +17,7 @@ import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { deleteCalendarEvent } from '../lib/calendar'
+import { toast } from '../hooks/use-toast'
 
 type TabType = 'upcoming' | 'in_progress' | 'completed' | 'all'
 type ViewType = 'my' | 'team'
@@ -172,6 +173,7 @@ export default function SalesBlocks() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('list')
   const [isManager, setIsManager] = useState(false)
   const [teamId, setTeamId] = useState<string | null>(null)
+  const [orgId, setOrgId] = useState<string | null>(null)
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -181,7 +183,7 @@ export default function SalesBlocks() {
 
   useEffect(() => {
     loadSalesblocks()
-  }, [user, activeTab, viewType])
+  }, [user, orgId, activeTab, viewType])
 
   const loadUserRole = async () => {
     if (!user) return
@@ -189,7 +191,7 @@ export default function SalesBlocks() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('role, team_id')
+        .select('role, team_id, org_id')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -197,6 +199,7 @@ export default function SalesBlocks() {
       if (data) {
         setIsManager(data.role === 'manager')
         setTeamId(data.team_id)
+        setOrgId(data.org_id)
       }
     } catch (error) {
       console.error('Error loading user role:', error)
@@ -214,6 +217,9 @@ export default function SalesBlocks() {
           *,
           list:lists(name)
         `)
+
+      // Scope to org
+      if (orgId) query = query.eq('org_id', orgId)
 
       // Apply view filter (my vs team)
       if (viewType === 'my') {
@@ -339,7 +345,7 @@ export default function SalesBlocks() {
       loadSalesblocks()
     } catch (error) {
       console.error('Error cancelling salesblock:', error)
-      alert('Failed to cancel salesblock')
+      toast({ variant: 'destructive', title: 'Failed to cancel SalesBlock', description: 'Please try again.' })
     }
   }
 
@@ -385,10 +391,10 @@ export default function SalesBlocks() {
   }
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: 'upcoming', label: 'Upcoming' },
-    { key: 'in_progress', label: 'In Progress' },
-    { key: 'completed', label: 'Completed' },
     { key: 'all', label: 'All' },
+    { key: 'in_progress', label: 'Active' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'upcoming', label: 'Scheduled' },
   ]
 
   return (
@@ -498,15 +504,20 @@ export default function SalesBlocks() {
           </div>
         </div>
       ) : salesblocks.length === 0 ? (
-        <div className="glass-card text-center py-16">
-          <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">
-            No {activeTab !== 'all' ? activeTab : ''} salesblocks
+        <div className="glass-card text-center py-16 px-8">
+          <Zap className="mx-auto h-10 w-10 text-indigo-electric/40 mb-4" />
+          <p className="font-display font-semibold text-gray-900 dark:text-white mb-2">
+            No {activeTab === 'all' ? '' : activeTab === 'in_progress' ? 'active' : activeTab === 'upcoming' ? 'scheduled' : activeTab} SalesBlocks
+          </p>
+          <p className="text-sm text-gray-500 dark:text-white/50 mb-6 max-w-sm mx-auto">
+            SalesBlocks are timed focus sessions that help you work through contact lists with structured outreach.
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="text-indigo-electric hover:text-indigo-electric/70 text-sm transition-colors duration-150"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
           >
-            Create your first SalesBlock
+            <Plus className="w-4 h-4" />
+            Create SalesBlock
           </button>
         </div>
       ) : displayMode === 'campaign' ? (
