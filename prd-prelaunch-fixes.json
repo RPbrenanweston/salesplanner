@@ -717,7 +717,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/components/ImportCSVModal.tsx \u2014 Add batch insert for contacts (chunk 500). Consider streaming progress updates during import. [UI feature \u2014 core UX work]",
       "deferrable": true
     },
