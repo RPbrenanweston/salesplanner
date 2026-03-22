@@ -15,6 +15,8 @@ import { Trophy, Zap, Mail, Phone, TrendingUp, ArrowLeft } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
+type TimeRange = 'today' | 'this_week' | 'this_month' | 'all_time';
+
 interface BattleStats {
   user_id: string;
   user_name: string;
@@ -25,31 +27,79 @@ interface BattleStats {
   rank: number;
 }
 
+function getRangeStart(range: TimeRange): Date | null {
+  const now = new Date();
+  switch (range) {
+    case 'today': {
+      const d = new Date(now); d.setHours(0, 0, 0, 0); return d;
+    }
+    case 'this_week': {
+      const d = new Date(now);
+      const day = d.getDay();
+      d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case 'this_month': {
+      const d = new Date(now.getFullYear(), now.getMonth(), 1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    case 'all_time':
+      return null;
+  }
+}
+
 export default function Arena() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<BattleStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>('this_week');
+  const [orgId, setOrgId] = useState<string | null>(null);
 
+  // Load org_id once
   useEffect(() => {
-    if (user) {
-      loadLeaderboard();
-    }
+    if (!user) return;
+    supabase.from('users').select('org_id').eq('id', user.id).single()
+      .then(({ data }) => setOrgId(data?.org_id || null));
   }, [user]);
 
+  useEffect(() => {
+    if (!orgId) return;
+    loadLeaderboard();
+
+    // Real-time subscription — reload on any activities change within org
+    const channel = supabase
+      .channel('arena-leaderboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activities', filter: `org_id=eq.${orgId}` }, () => {
+        loadLeaderboard();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [orgId, timeRange]);
+
   const loadLeaderboard = async () => {
+    if (!orgId) return;
     try {
-      const { data: activities, error } = await supabase
+      let query = supabase
         .from('activities')
         .select('user_id, type, users!activities_user_id_fkey(display_name)')
+        .eq('org_id', orgId)
         .order('created_at', { ascending: false });
+
+      const start = getRangeStart(timeRange);
+      if (start) query = query.gte('created_at', start.toISOString());
+
+      const { data: activities, error } = await query;
 
       if (error) throw error;
 
       const userStats = new Map<string, BattleStats>();
 
-      activities.forEach((activity: any) => {
+      (activities || []).forEach((activity: any) => {
         const userId = activity.user_id;
         const userName = activity.users?.display_name || 'Unknown';
 
@@ -65,25 +115,21 @@ export default function Arena() {
           });
         }
 
-        const stats = userStats.get(userId)!;
-        if (activity.type === 'call') stats.calls_made++;
-        if (activity.type === 'email') stats.emails_sent++;
-        if (activity.type === 'pipeline_move') stats.deals_moved++;
-        stats.total_activity++;
+        const s = userStats.get(userId)!;
+        if (activity.type === 'call') s.calls_made++;
+        if (activity.type === 'email') s.emails_sent++;
+        if (activity.type === 'pipeline_move') s.deals_moved++;
+        s.total_activity++;
       });
 
       const sortedStats = Array.from(userStats.values())
         .sort((a, b) => b.total_activity - a.total_activity)
-        .map((stat, index) => ({
-          ...stat,
-          rank: index + 1,
-        }));
+        .map((stat, index) => ({ ...stat, rank: index + 1 }));
 
       setStats(sortedStats);
     } catch (error) {
       console.error('Failed to load leaderboard:', error);
       setLoadError('Failed to load leaderboard. Please refresh the page.');
-      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -126,6 +172,23 @@ export default function Arena() {
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-8">
+        {/* Time-range filter */}
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
+          {([['today', 'Today'], ['this_week', 'This Week'], ['this_month', 'This Month'], ['all_time', 'All Time']] as const).map(([range, label]) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                timeRange === range
+                  ? 'bg-cyan-neon border-cyan-neon text-void-950'
+                  : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {loadError && (
           <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 mb-6">
             <p className="text-sm text-red-alert">{loadError}</p>

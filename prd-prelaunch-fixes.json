@@ -446,7 +446,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Breadcrumb prompt: frontend/src/pages/Arena.tsx \u2014 Consider real-time subscription for live leaderboard. Add time-range filter. Enforce org-scoped leaderboard. [UI feature \u2014 core UX work]",
       "deferrable": false
     },
