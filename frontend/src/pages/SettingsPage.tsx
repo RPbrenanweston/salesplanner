@@ -21,7 +21,10 @@ import GmailOAuthButton from '../components/GmailOAuthButton'
 import MicrosoftOAuthButton from '../components/MicrosoftOAuthButton'
 import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
+import AttioOAuthButton from '../components/AttioOAuthButton'
 import OAuthErrorBoundary from '../components/OAuthErrorBoundary'
+import { isSalesforceConnected } from '../lib/salesforce'
+import { getAvailableAdapters } from '../lib/crm/registry'
 import { toast } from '../hooks/use-toast'
 
 type Tab = 'profile' | 'organization' | 'team' | 'integrations' | 'pipeline' | 'billing'
@@ -1942,6 +1945,10 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <OAuthErrorBoundary label="Salesforce">
                 <SalesforceOAuthButton />
+              </OAuthErrorBoundary>
+
+              <OAuthErrorBoundary label="Attio">
+                <AttioOAuthButton />
               </OAuthErrorBoundary>
 
               {/* Salesforce Activity Sync Settings */}

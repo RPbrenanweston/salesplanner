@@ -47,6 +47,9 @@ export default function BookMeetingModal({
   const [error, setError] = useState('');
   const [calendarStatus, setCalendarStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
 
+  const checkingCalendar = calendarStatus === 'checking';
+  const calendarDisconnected = calendarStatus === 'disconnected';
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -89,7 +92,7 @@ export default function BookMeetingModal({
       });
 
       if (!calendarResult) {
-        setCalendarDisconnected(true);
+        setCalendarStatus('disconnected');
         setError('Calendar disconnected — reconnect in Settings to book meetings.');
         setIsSaving(false);
         return;

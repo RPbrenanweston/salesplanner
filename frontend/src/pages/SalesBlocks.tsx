@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { deleteCalendarEvent } from '../lib/calendar'
 import { toast } from '../hooks/use-toast'
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 
 type TabType = 'upcoming' | 'in_progress' | 'completed' | 'all'
 type ViewType = 'my' | 'team'
@@ -174,6 +175,7 @@ export default function SalesBlocks() {
   const [isManager, setIsManager] = useState(false)
   const [teamId, setTeamId] = useState<string | null>(null)
   const [orgId, setOrgId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
   const { user } = useAuth()
   const navigate = useNavigate()
 

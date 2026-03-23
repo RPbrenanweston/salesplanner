@@ -56,9 +56,6 @@ export default function Pipeline() {
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
   const dragInFlight = useRef(false)
 
-  // StrictMode double-fire guard: tracks in-flight drag operations by draggableId
-  const dragInFlightRef = useRef<Set<string>>(new Set())
-
   useEffect(() => {
     loadPipeline()
   }, [])
@@ -203,7 +200,7 @@ export default function Pipeline() {
     } finally {
       dragInFlight.current = false
     }
-  }, [columns])
+  }
 
   function openAddDealModal(stageId?: string) {
     setSelectedStageId(stageId)

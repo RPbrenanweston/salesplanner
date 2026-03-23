@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { markActivityForSync, getSalesforceConnection } from '../lib/salesforce';
+import { AttioAdapter } from '../lib/crm/adapters/attio';
 import { toast } from '../hooks/use-toast';
 
 interface LogActivityModalProps {
@@ -143,11 +144,11 @@ export default function LogActivityModal({
               },
               userId,
               orgId
-            ).catch((err) => console.error('Attio push failed:', err));
+            ).catch((e: unknown) => console.error('Attio push failed:', e));
           }
         }
-      } catch (err) {
-        console.error('Attio auto-push check failed:', err);
+      } catch (e: unknown) {
+        console.error('Attio auto-push check failed:', e);
       }
 
       onSuccess();

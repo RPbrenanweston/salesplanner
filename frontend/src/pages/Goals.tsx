@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Target, Trash2, TrendingUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { toast } from '../hooks/use-toast'
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 
 interface Goal {
   id: string

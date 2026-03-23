@@ -15,6 +15,7 @@ import { supabase } from '../lib/supabase';
 import { ScriptModal } from '../components/ScriptModal';
 import DOMPurify from 'dompurify';
 import { toast } from '../hooks/use-toast';
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
 interface CallScript {
   id: string;
@@ -35,6 +36,7 @@ export default function Scripts() {
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadScripts();

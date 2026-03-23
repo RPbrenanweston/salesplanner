@@ -89,10 +89,10 @@ const INITIAL_STATE: TimerState = {
 // Store
 // ---------------------------------------------------------------------------
 
-export const useTimerStore = create<TimerStore>((set, get) => ({
+export const useTimerStore = create<TimerStore>((set, get: () => TimerStore) => ({
   ...INITIAL_STATE,
 
-  start(mode, targetMs = 0, blockId) {
+  start(mode: FocusMode, targetMs: number = 0, blockId?: string) {
     const now = new Date().toISOString()
     set({
       state: 'running',
@@ -158,7 +158,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     set({ state: 'completed' })
   },
 
-  startBreak(breakDurationMs) {
+  startBreak(breakDurationMs: number) {
     const { state, breakCount } = get()
     if (state !== 'completed' && state !== 'idle') return
     set({
@@ -188,7 +188,7 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     set({ lastPersistedAt: Date.now() })
   },
 
-  setSessionId(id) {
+  setSessionId(id: string) {
     set({ sessionId: id })
   },
 }))
