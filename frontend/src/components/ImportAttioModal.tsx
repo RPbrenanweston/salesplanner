@@ -285,14 +285,17 @@ export default function ImportAttioModal({
         }).select('id').single();
 
         if (newList && importedContactIds.length > 0) {
+          // Deduplicate before linking — same contact may appear multiple times in Attio list
+          const uniqueContactIds = [...new Set(importedContactIds)];
           // Link contacts via list_contacts in batches of 100
-          for (let i = 0; i < importedContactIds.length; i += 100) {
-            const batch = importedContactIds.slice(i, i + 100).map((contactId, idx) => ({
+          // upsert + ignoreDuplicates so re-importing or overlapping lists never creates duplicate join rows
+          for (let i = 0; i < uniqueContactIds.length; i += 100) {
+            const batch = uniqueContactIds.slice(i, i + 100).map((contactId, idx) => ({
               list_id: newList.id,
               contact_id: contactId,
               position: i + idx,
             }));
-            await supabase.from('list_contacts').insert(batch);
+            await supabase.from('list_contacts').upsert(batch, { onConflict: 'list_id,contact_id', ignoreDuplicates: true });
           }
         }
       } else {
@@ -353,14 +356,16 @@ export default function ImportAttioModal({
         }).select('id').single();
 
         if (newList && importedAccountIds.length > 0) {
-          // Link accounts via account_list_items in batches of 100
-          for (let i = 0; i < importedAccountIds.length; i += 100) {
-            const batch = importedAccountIds.slice(i, i + 100).map((accountId, idx) => ({
+          // Deduplicate before linking — same account may appear multiple times in Attio list
+          const uniqueAccountIds = [...new Set(importedAccountIds)];
+          // upsert + ignoreDuplicates so re-importing or overlapping lists never creates duplicate join rows
+          for (let i = 0; i < uniqueAccountIds.length; i += 100) {
+            const batch = uniqueAccountIds.slice(i, i + 100).map((accountId, idx) => ({
               list_id: newList.id,
               account_id: accountId,
               position: i + idx,
             }));
-            await supabase.from('account_list_items').insert(batch);
+            await supabase.from('account_list_items').upsert(batch, { onConflict: 'list_id,account_id', ignoreDuplicates: true });
           }
         }
       }
