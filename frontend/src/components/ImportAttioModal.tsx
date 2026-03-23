@@ -255,19 +255,18 @@ export default function ImportAttioModal({
           setImportCounts({ ...counts });
         }
       } else {
-        // Companies — inserted into contacts with company name as name fields
+        // Companies — inserted into the accounts table (where AccountsPage reads)
         const selectedCompanies = companies.filter((c) => selectedIds.has(c.externalId));
 
         for (const company of selectedCompanies) {
           try {
-            // Duplicate check by company name + org
+            // Duplicate check by name + org in accounts table
             if (company.name) {
               const { data: existing } = await supabase
-                .from('contacts')
+                .from('accounts')
                 .select('id')
                 .eq('org_id', userData.org_id)
-                .eq('company', company.name)
-                .eq('first_name', company.name)
+                .eq('name', company.name)
                 .maybeSingle();
 
               if (existing) {
@@ -277,23 +276,22 @@ export default function ImportAttioModal({
               }
             }
 
-            const { error: insertError } = await supabase.from('contacts').insert({
-              first_name: company.name || 'Unknown',
-              last_name: '(Company)',
-              email: null,
-              phone: null,
-              company: company.name || null,
-              title: company.industry || null,
-              source: 'manual',
+            const { error: insertError } = await supabase.from('accounts').insert({
+              name: company.name || 'Unknown',
+              domain: company.domain || null,
+              industry: company.industry || null,
               org_id: userData.org_id,
               created_by: user.id,
-              domain: company.domain || null,
-              custom_fields: { attio_id: company.externalId, is_company: true },
             });
 
             if (insertError) {
-              console.error('Insert error:', insertError);
-              counts.errors += 1;
+              // Handle unique constraint violation
+              if (insertError.code === '23505') {
+                counts.skipped += 1;
+              } else {
+                console.error('Insert error:', insertError);
+                counts.errors += 1;
+              }
             } else {
               counts.imported += 1;
             }
