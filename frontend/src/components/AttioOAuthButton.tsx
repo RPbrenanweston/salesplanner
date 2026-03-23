@@ -11,6 +11,7 @@ import { generateOAuthNonce } from '../lib/oauth-csrf'
 import { logError } from '../lib/error-logger'
 
 const ATTIO_CLIENT_ID = import.meta.env.VITE_ATTIO_CLIENT_ID
+const ATTIO_ACCESS_TOKEN = import.meta.env.VITE_ATTIO_ACCESS_TOKEN
 const ATTIO_REDIRECT_URI =
   import.meta.env.VITE_ATTIO_REDIRECT_URI ||
   `${window.location.origin}/oauth/attio/callback`
@@ -46,10 +47,55 @@ export default function AttioOAuthButton() {
     }
   }
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
+    // Personal access token flow — store token directly
+    if (ATTIO_ACCESS_TOKEN) {
+      try {
+        setLoading(true)
+        // Get org_id from user profile
+        const { data: profile } = await supabase
+          .from('users')
+          .select('org_id')
+          .eq('id', user?.id)
+          .single()
+
+        if (!profile?.org_id) {
+          setError('Could not determine organization.')
+          return
+        }
+
+        const { error: upsertError } = await supabase
+          .from('oauth_connections')
+          .upsert(
+            {
+              user_id: user?.id,
+              org_id: profile.org_id,
+              provider: 'attio',
+              access_token: ATTIO_ACCESS_TOKEN,
+              refresh_token: null,
+              expires_at: null,
+              metadata: { type: 'personal_access_token' },
+            },
+            { onConflict: 'user_id,provider' }
+          )
+
+        if (upsertError) throw upsertError
+
+        await loadConnection()
+        setError(null)
+      } catch (err) {
+        logError(err, 'AttioOAuthButton.handleConnect.personalToken')
+        setError('Failed to store Attio token. Check console for details.')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
+    // Full OAuth flow — requires VITE_ATTIO_CLIENT_ID
     if (!ATTIO_CLIENT_ID) {
       setError(
-        'Attio integration not configured. Missing VITE_ATTIO_CLIENT_ID environment variable.'
+        'Attio integration not configured. Set VITE_ATTIO_CLIENT_ID or VITE_ATTIO_ACCESS_TOKEN.'
       )
       return
     }
