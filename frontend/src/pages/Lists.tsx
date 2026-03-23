@@ -1,20 +1,9 @@
 // @crumb frontend-page-lists
-// UI/PAGES | load_contact_lists | display_list_cards | import_modals | list_builder | salesblock_launch | navigate_to_detail
-// why: Contact list management — create, view, import, and navigate into contact lists for prospecting and SalesBlock targeting
-// in:supabase(lists+list_contacts),useNavigate,ImportCSVModal+AddContactModal+ListBuilderModal+CreateSalesBlockModal+ImportSalesforceModal,getSalesforceConnection out:list cards grid with contact counts,import buttons,create list button,run SalesBlock CTA err:Salesforce connection check failure(silently disables import),list load failure(empty state)
-// hazard: getSalesforceConnection called on mount — if salesforce.ts throws, error propagates and may crash the component
-// hazard: list_contacts count is a separate aggregation per list — N+1 pattern; load time scales linearly with list count
-// edge:frontend/src/lib/supabase.ts -> CALLS
-// edge:frontend/src/lib/salesforce.ts -> CALLS
-// edge:frontend/src/components/ImportCSVModal.tsx -> CALLS
-// edge:frontend/src/components/ListBuilderModal.tsx -> CALLS
-// edge:frontend/src/pages/ListDetailPage.tsx -> RELATES
-// edge:frontend/src/App.tsx -> RELATES
-// edge:lists#1 -> STEP_IN
-// prompt: Add error catch around getSalesforceConnection. Batch list_contacts count into single query. Add list sorting and search.
+// UI/PAGES | load_contact_lists | load_account_lists | display_list_cards | import_modals | list_builder | salesblock_launch | navigate_to_detail
+// why: List management — create, view, import, and navigate into contact lists and account lists for prospecting and SalesBlock targeting
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Plus, List, RefreshCw, Users, Clock, Database } from 'lucide-react';
+import { Upload, Plus, List, RefreshCw, Users, Clock, Database, Building2 } from 'lucide-react';
 import ImportCSVModal from '../components/ImportCSVModal';
 import { AddContactModal } from '../components/AddContactModal';
 import ListBuilderModal from '../components/ListBuilderModal';
@@ -30,6 +19,7 @@ interface ListRecord {
   description: string | null;
   owner_id: string;
   is_shared: boolean;
+  list_type: string | null;
   filter_criteria: {
     autoRefresh?: boolean;
   };
@@ -39,8 +29,11 @@ interface ListRecord {
   owner_name?: string;
 }
 
+type ListTab = 'contacts' | 'accounts';
+
 export default function Lists() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<ListTab>('contacts');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportSalesforceModalOpen, setIsImportSalesforceModalOpen] = useState(false);
   const [isImportAttioModalOpen, setIsImportAttioModalOpen] = useState(false);
@@ -62,6 +55,11 @@ export default function Lists() {
     checkSalesforceConnection();
     checkAttioConnection();
   }, []);
+
+  // Reload lists when tab changes
+  useEffect(() => {
+    loadLists();
+  }, [activeTab]);
 
   const checkSalesforceConnection = async () => {
     try {
@@ -106,12 +104,21 @@ export default function Lists() {
         return;
       }
 
-      // Fetch lists
-      const { data: listsData, error } = await supabase
+      // Fetch lists filtered by list_type
+      let listsQuery = supabase
         .from('lists')
-        .select('id, name, description, owner_id, is_shared, filter_criteria, created_at, updated_at')
+        .select('id, name, description, owner_id, is_shared, list_type, filter_criteria, created_at, updated_at')
         .order('updated_at', { ascending: false })
         .limit(200);
+
+      if (activeTab === 'accounts') {
+        listsQuery = listsQuery.eq('list_type', 'accounts');
+      } else {
+        // For contacts tab, show lists with list_type 'contacts' or null (backward compat)
+        listsQuery = listsQuery.or('list_type.eq.contacts,list_type.is.null');
+      }
+
+      const { data: listsData, error } = await listsQuery;
 
       if (error) {
         console.error('Error fetching lists from Supabase:', error);
@@ -128,15 +135,27 @@ export default function Lists() {
         return;
       }
 
-      // Single batch query for all contact counts — fixes N+1 pattern
-      const { data: contactRows } = await supabase
-        .from('list_contacts')
-        .select('list_id')
-        .in('list_id', listIds);
+      // Fetch counts from the appropriate junction table
+      let countByListId: Record<string, number> = {};
 
-      const countByListId: Record<string, number> = {};
-      for (const row of contactRows || []) {
-        countByListId[row.list_id] = (countByListId[row.list_id] ?? 0) + 1;
+      if (activeTab === 'accounts') {
+        const { data: accountRows } = await supabase
+          .from('account_list_items')
+          .select('list_id')
+          .in('list_id', listIds);
+
+        for (const row of accountRows || []) {
+          countByListId[row.list_id] = (countByListId[row.list_id] ?? 0) + 1;
+        }
+      } else {
+        const { data: contactRows } = await supabase
+          .from('list_contacts')
+          .select('list_id')
+          .in('list_id', listIds);
+
+        for (const row of contactRows || []) {
+          countByListId[row.list_id] = (countByListId[row.list_id] ?? 0) + 1;
+        }
       }
 
       // Collect unique owner IDs and batch-fetch display names
@@ -188,13 +207,16 @@ export default function Lists() {
     }).format(date);
   };
 
+  const isAccountsTab = activeTab === 'accounts';
+  const itemLabel = isAccountsTab ? 'Accounts' : 'Contacts';
+
   return (
     <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="vv-section-title mb-1">Prospecting</p>
           <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white">
-            Contact Lists
+            {isAccountsTab ? 'Account Lists' : 'Contact Lists'}
           </h1>
         </div>
 
@@ -213,21 +235,25 @@ export default function Lists() {
             <List className="w-4 h-4" />
             Create List
           </button>
-          <button
-            onClick={() => setIsAddContactModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
-          >
-            <Plus className="w-4 h-4" />
-            Add Contact
-          </button>
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
-          >
-            <Upload className="w-4 h-4" />
-            Import CSV
-          </button>
-          {salesforceConnection && (
+          {!isAccountsTab && (
+            <>
+              <button
+                onClick={() => setIsAddContactModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
+              >
+                <Plus className="w-4 h-4" />
+                Add Contact
+              </button>
+              <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
+              >
+                <Upload className="w-4 h-4" />
+                Import CSV
+              </button>
+            </>
+          )}
+          {salesforceConnection && !isAccountsTab && (
             <button
               onClick={() => setIsImportSalesforceModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
@@ -248,6 +274,30 @@ export default function Lists() {
         </div>
       </div>
 
+      {/* Tab Switcher */}
+      <div className="flex bg-gray-100 dark:bg-white/5 rounded-lg p-1">
+        <button
+          onClick={() => setActiveTab('contacts')}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            activeTab === 'contacts'
+              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+          }`}
+        >
+          <Users className="w-4 h-4" /> Contact Lists
+        </button>
+        <button
+          onClick={() => setActiveTab('accounts')}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            activeTab === 'accounts'
+              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+          }`}
+        >
+          <Building2 className="w-4 h-4" /> Account Lists
+        </button>
+      </div>
+
       {/* Lists Table */}
       <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
@@ -261,7 +311,7 @@ export default function Lists() {
                   <span className="vv-section-title">Description</span>
                 </th>
                 <th className="px-6 py-3 text-left">
-                  <span className="vv-section-title">Contacts</span>
+                  <span className="vv-section-title">{itemLabel}</span>
                 </th>
                 <th className="px-6 py-3 text-left">
                   <span className="vv-section-title">Owner</span>
@@ -290,7 +340,9 @@ export default function Lists() {
                     <List className="w-10 h-10 text-gray-300 dark:text-white/20 mx-auto mb-3" />
                     <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">No lists yet</p>
                     <p className="text-sm text-gray-400 dark:text-white/40">
-                      Click "Create List" to build your first filtered contact list
+                      {isAccountsTab
+                        ? 'Import companies from Attio or create an account list'
+                        : 'Click "Create List" to build your first filtered contact list'}
                     </p>
                   </td>
                 </tr>
@@ -303,6 +355,9 @@ export default function Lists() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
+                        {isAccountsTab ? (
+                          <Building2 className="w-4 h-4 text-gray-400 dark:text-white/30 flex-shrink-0" />
+                        ) : null}
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {list.name}
                         </div>
@@ -315,12 +370,16 @@ export default function Lists() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-600 dark:text-white/50 max-w-xs truncate">
-                        {list.description || '—'}
+                        {list.description || '\u2014'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 text-sm text-gray-900 dark:text-white">
-                        <Users className="w-4 h-4 text-gray-400 dark:text-white/30" />
+                        {isAccountsTab ? (
+                          <Building2 className="w-4 h-4 text-gray-400 dark:text-white/30" />
+                        ) : (
+                          <Users className="w-4 h-4 text-gray-400 dark:text-white/30" />
+                        )}
                         {list.contact_count}
                       </div>
                     </td>
@@ -370,6 +429,7 @@ export default function Lists() {
         isOpen={isListBuilderOpen}
         onClose={() => setIsListBuilderOpen(false)}
         onSuccess={handleListCreated}
+        defaultListType={activeTab}
       />
 
       <CreateSalesBlockModal
@@ -377,7 +437,6 @@ export default function Lists() {
         onClose={() => setIsCreateSalesBlockOpen(false)}
         onSuccess={() => {
           setIsCreateSalesBlockOpen(false);
-          // No need to reload lists - salesblock creation doesn't affect list data
         }}
       />
 

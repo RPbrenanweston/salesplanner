@@ -1,23 +1,9 @@
 // @crumb frontend-page-list-detail
-// UI/PAGES | load_list_metadata | render_sortable_contact_table | checkbox_selection | bulk_remove | single_remove | action_modals | salesblock_launch | list_edit
-// why: Contact list detail view — browse, search, sort, bulk-select, and act on contacts in a specific list
-// in:useParams(listId),useAuth(user),supabase(lists+list_contacts+contacts+activities),ComposeEmailModal+LogSocialActivityModal+BookMeetingModal+ListBuilderModal out:searchable sortable contact table with bulk actions,action buttons per row,list header,Run SalesBlock CTA err:listId not found(loading spinner indefinitely),contact remove failure(alert),load error(error state with retry)
-// hazard: Single contact remove still uses browser confirm() — inconsistent UX with the new bulk delete modal
-// hazard: Sort state is client-side only — if contact list is paginated in future, sort breaks silently
-// hazard: Chunked .in() queries (200 per chunk) for large lists — may be slow for 10,000+ contacts
-// edge:frontend/src/lib/supabase.ts -> CALLS
-// edge:frontend/src/hooks/useAuth.ts -> CALLS
-// edge:frontend/src/components/ComposeEmailModal.tsx -> CALLS
-// edge:frontend/src/components/LogSocialActivityModal.tsx -> CALLS
-// edge:frontend/src/components/BookMeetingModal.tsx -> CALLS
-// edge:frontend/src/components/ListBuilderModal.tsx -> CALLS
-// edge:frontend/src/pages/ContactDetailPage.tsx -> RELATES
-// edge:frontend/src/App.tsx -> RELATES
-// edge:list-detail#1 -> STEP_IN
-// prompt: Consider migrating single-contact remove to use modal confirmation (matching bulk pattern). Add 404 state when list not found. Move sort to server-side when list grows. VV design applied throughout.
+// UI/PAGES | load_list_metadata | render_sortable_contact_table | render_account_table | checkbox_selection | bulk_remove | single_remove | action_modals | salesblock_launch | list_edit
+// why: List detail view — browse, search, sort, bulk-select, and act on contacts or accounts in a specific list
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Search, UserMinus, Play, ChevronUp, ChevronDown, Mail, Share2, Calendar, Pencil, Trash2, AlertTriangle, Building2, Globe, Briefcase } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { ROUTES, getSalesBlocksRoute } from '../lib/routes';
@@ -38,6 +24,14 @@ interface Contact {
   last_activity_date?: string | null;
 }
 
+interface Account {
+  id: string;
+  name: string;
+  domain: string | null;
+  industry: string | null;
+  created_at: string;
+}
+
 interface ListDetail {
   id: string;
   name: string;
@@ -45,6 +39,7 @@ interface ListDetail {
   filter_criteria: Record<string, unknown> | null;
   is_shared: boolean;
   owner_id: string;
+  list_type: string | null;
 }
 
 type SortField = 'name' | 'company' | 'title' | 'email' | 'phone' | 'last_activity_date';
@@ -58,6 +53,8 @@ export default function ListDetailPage() {
   const [listDetail, setListDetail] = useState<ListDetail | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [filteredAccounts, setFilteredAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('name');
@@ -76,15 +73,28 @@ export default function ListDetailPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const listDetailRef = useRef<ListDetail | null>(null);
 
+  const isAccountList = listDetail?.list_type === 'accounts';
+
   useEffect(() => {
     if (listId) {
-      // Load list detail first, then contacts (contacts may need filter_criteria from list)
-      loadListDetail().then(() => loadContacts(sortField, sortDirection));
+      loadListDetail().then(() => {
+        // loadContacts or loadAccounts happens after list_type is known
+      });
     }
   }, [listId]);
 
+  // Load the correct data once listDetail is available
   useEffect(() => {
-    if (!isLoading && contacts.length > 0) {
+    if (!listDetail) return;
+    if (listDetail.list_type === 'accounts') {
+      loadAccounts();
+    } else {
+      loadContacts(sortField, sortDirection);
+    }
+  }, [listDetail?.id, listDetail?.list_type]);
+
+  useEffect(() => {
+    if (!isLoading && !isAccountList && contacts.length > 0) {
       loadContacts(sortField, sortDirection);
     }
   }, [sortField, sortDirection]);
@@ -109,8 +119,9 @@ export default function ListDetailPage() {
     loadOrgId();
   }, [user]);
 
+  // Filter contacts based on search query
   useEffect(() => {
-    // Filter contacts based on search query
+    if (isAccountList) return;
     if (searchQuery.trim() === '') {
       setFilteredContacts(contacts);
     } else {
@@ -123,11 +134,29 @@ export default function ListDetailPage() {
       });
       setFilteredContacts(filtered);
     }
-    setCurrentPage(1); // Reset to page 1 on search change
-  }, [searchQuery, contacts]);
+    setCurrentPage(1);
+  }, [searchQuery, contacts, isAccountList]);
+
+  // Filter accounts based on search query
+  useEffect(() => {
+    if (!isAccountList) return;
+    if (searchQuery.trim() === '') {
+      setFilteredAccounts(accounts);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = accounts.filter((account) => {
+        const name = account.name.toLowerCase();
+        const domain = (account.domain || '').toLowerCase();
+        const industry = (account.industry || '').toLowerCase();
+        return name.includes(query) || domain.includes(query) || industry.includes(query);
+      });
+      setFilteredAccounts(filtered);
+    }
+    setCurrentPage(1);
+  }, [searchQuery, accounts, isAccountList]);
 
   useEffect(() => {
-    // Client-side sort only for derived last_activity_date field; other fields reload from server
+    if (isAccountList) return;
     if (sortField !== 'last_activity_date') return;
     const sorted = [...filteredContacts].sort((a, b) => {
       const aVal = a.last_activity_date || '';
@@ -142,7 +171,7 @@ export default function ListDetailPage() {
     try {
       const { data, error } = await supabase
         .from('lists')
-        .select('id, name, description, filter_criteria, is_shared, owner_id')
+        .select('id, name, description, filter_criteria, is_shared, owner_id, list_type')
         .eq('id', listId)
         .single();
 
@@ -154,11 +183,55 @@ export default function ListDetailPage() {
     }
   };
 
+  const loadAccounts = async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const { data: listItems, error: listItemsError } = await supabase
+        .from('account_list_items')
+        .select('account_id')
+        .eq('list_id', listId);
+
+      if (listItemsError) throw listItemsError;
+
+      const accountIds = (listItems || []).map((li) => li.account_id);
+
+      if (accountIds.length === 0) {
+        setAccounts([]);
+        setFilteredAccounts([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch accounts in chunks
+      const CHUNK_SIZE = 200;
+      let allAccounts: Account[] = [];
+      for (let i = 0; i < accountIds.length; i += CHUNK_SIZE) {
+        const chunk = accountIds.slice(i, i + CHUNK_SIZE);
+        const { data: accountsData, error: accountsError } = await supabase
+          .from('accounts')
+          .select('id, name, domain, industry, created_at')
+          .in('id', chunk)
+          .order('name', { ascending: true });
+
+        if (accountsError) throw accountsError;
+        allAccounts = allAccounts.concat(accountsData || []);
+      }
+
+      setAccounts(allAccounts);
+      setFilteredAccounts(allAccounts);
+    } catch (err) {
+      console.error('Error loading accounts:', err);
+      setLoadError(err instanceof Error ? err.message : 'Failed to load accounts');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const loadContacts = async (sortBy: SortField = 'name', sortDir: SortDirection = 'asc') => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      // Get contacts in this list via the junction table
       const { data: listContactsData, error: listContactsError } = await supabase
         .from('list_contacts')
         .select('contact_id')
@@ -168,8 +241,7 @@ export default function ListDetailPage() {
 
       let contactIds = (listContactsData || []).map((lc) => lc.contact_id);
 
-      // Fallback: if list_contacts is empty, re-resolve via filter_criteria.
-      // Lists created before the junction table fix may only have filter_criteria stored.
+      // Fallback: if list_contacts is empty, re-resolve via filter_criteria
       const currentList = listDetailRef.current;
       if (contactIds.length === 0 && currentList?.filter_criteria) {
         const filters = (currentList.filter_criteria as { filters?: Array<{ field: string; operator: string; value: string; customFieldKey?: string }> }).filters;
@@ -197,7 +269,6 @@ export default function ListDetailPage() {
           const { data: resolvedContacts } = await contactQuery;
           const resolved = (resolvedContacts ?? []) as { id: string }[];
           if (resolved.length > 0) {
-            // Re-populate list_contacts so future loads are instant
             const BATCH_SIZE = 500;
             for (let i = 0; i < resolved.length; i += BATCH_SIZE) {
               const batch = resolved.slice(i, i + BATCH_SIZE).map((c, idx) => ({
@@ -219,8 +290,6 @@ export default function ListDetailPage() {
         return;
       }
 
-      // Fetch the actual contact records (chunk .in() for large lists)
-      // Server-side ORDER BY applied for non-derived fields
       const CHUNK_SIZE = 200;
       const serverSortColumn = sortBy === 'name' ? 'first_name'
         : sortBy === 'last_activity_date' ? null
@@ -241,7 +310,7 @@ export default function ListDetailPage() {
         allContactsData = allContactsData.concat(contactsData || []);
       }
 
-      // Batch-fetch last activity dates (single query instead of N+1)
+      // Batch-fetch last activity dates
       const activityMap = new Map<string, string>();
       try {
         for (let i = 0; i < contactIds.length; i += CHUNK_SIZE) {
@@ -253,14 +322,13 @@ export default function ListDetailPage() {
             .order('created_at', { ascending: false });
 
           for (const row of actData || []) {
-            // First occurrence per contact_id is the latest (ordered desc)
             if (!activityMap.has(row.contact_id)) {
               activityMap.set(row.contact_id, row.created_at);
             }
           }
         }
       } catch {
-        // Activity dates are non-critical — show contacts without them
+        // Activity dates are non-critical
       }
 
       const contactsWithActivity = allContactsData.map((contact) => ({
@@ -279,13 +347,14 @@ export default function ListDetailPage() {
   };
 
   // Pagination computed values
-  const totalPages = Math.ceil(filteredContacts.length / pageSize);
-  const paginatedContacts = filteredContacts.slice(
+  const currentItems = isAccountList ? filteredAccounts : filteredContacts;
+  const totalPages = Math.ceil(currentItems.length / pageSize);
+  const paginatedItems = currentItems.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
-  const paginationStart = filteredContacts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const paginationEnd = Math.min(currentPage * pageSize, filteredContacts.length);
+  const paginationStart = currentItems.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const paginationEnd = Math.min(currentPage * pageSize, currentItems.length);
 
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize);
@@ -294,10 +363,8 @@ export default function ListDetailPage() {
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      // Toggle direction if clicking the same column
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      // Set new field and default to ascending
       setSortField(field);
       setSortDirection('asc');
     }
@@ -314,12 +381,28 @@ export default function ListDetailPage() {
         .eq('contact_id', contactId);
 
       if (error) throw error;
-
-      // Reload contacts
       loadContacts();
     } catch (err) {
       console.error('Error removing contact:', err);
       alert('Failed to remove contact from list');
+    }
+  };
+
+  const handleRemoveAccount = async (accountId: string) => {
+    if (!confirm('Remove this account from the list?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('account_list_items')
+        .delete()
+        .eq('list_id', listId)
+        .eq('account_id', accountId);
+
+      if (error) throw error;
+      loadAccounts();
+    } catch (err) {
+      console.error('Error removing account:', err);
+      alert('Failed to remove account from list');
     }
   };
 
@@ -330,24 +413,30 @@ export default function ListDetailPage() {
     try {
       const ids = Array.from(selectedContactIds);
       const CHUNK_SIZE = 200;
+      const tableName = isAccountList ? 'account_list_items' : 'list_contacts';
+      const idColumn = isAccountList ? 'account_id' : 'contact_id';
 
       for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
         const chunk = ids.slice(i, i + CHUNK_SIZE);
         const { error } = await supabase
-          .from('list_contacts')
+          .from(tableName)
           .delete()
           .eq('list_id', listId)
-          .in('contact_id', chunk);
+          .in(idColumn, chunk);
 
         if (error) throw error;
       }
 
       setSelectedContactIds(new Set());
       setIsDeleteModalOpen(false);
-      loadContacts();
+      if (isAccountList) {
+        loadAccounts();
+      } else {
+        loadContacts();
+      }
     } catch (err) {
-      console.error('Error removing contacts:', err);
-      alert('Failed to remove some contacts from list');
+      console.error('Error removing items:', err);
+      alert('Failed to remove some items from list');
     } finally {
       setIsDeleting(false);
     }
@@ -366,15 +455,14 @@ export default function ListDetailPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedContactIds.size === filteredContacts.length) {
+    if (selectedContactIds.size === currentItems.length) {
       setSelectedContactIds(new Set());
     } else {
-      setSelectedContactIds(new Set(filteredContacts.map((c) => c.id)));
+      setSelectedContactIds(new Set(currentItems.map((c) => c.id)));
     }
   };
 
   const handleStartSalesBlock = () => {
-    // Navigate to create salesblock with this list pre-selected
     navigate(getSalesBlocksRoute(listId));
   };
 
@@ -394,7 +482,7 @@ export default function ListDetailPage() {
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return '—';
+    if (!dateString) return '\u2014';
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
@@ -423,6 +511,9 @@ export default function ListDetailPage() {
     );
   }
 
+  const itemLabel = isAccountList ? 'account' : 'contact';
+  const itemCount = isAccountList ? accounts.length : contacts.length;
+
   return (
     <div className="min-h-full bg-gray-50 dark:bg-void-950 p-6 space-y-6">
       {/* Header */}
@@ -437,7 +528,9 @@ export default function ListDetailPage() {
 
         <div className="flex items-center justify-between">
           <div>
-            <p className="vv-section-title mb-1">Lists</p>
+            <p className="vv-section-title mb-1">
+              {isAccountList ? 'Account Lists' : 'Lists'}
+            </p>
             <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-2">
               {listDetail.name}
             </h1>
@@ -446,7 +539,7 @@ export default function ListDetailPage() {
             )}
             {!isLoading && (
               <p className="text-sm text-gray-400 dark:text-white/30 mt-1">
-                {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
+                {itemCount} {itemLabel}{itemCount !== 1 ? 's' : ''}
               </p>
             )}
           </div>
@@ -459,13 +552,15 @@ export default function ListDetailPage() {
               <Pencil className="w-4 h-4" />
               Edit List
             </button>
-            <button
-              onClick={handleStartSalesBlock}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg transition-all duration-200 ease-snappy"
-            >
-              <Play className="w-4 h-4" />
-              Start SalesBlock
-            </button>
+            {!isAccountList && (
+              <button
+                onClick={handleStartSalesBlock}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg transition-all duration-200 ease-snappy"
+              >
+                <Play className="w-4 h-4" />
+                Start SalesBlock
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -476,7 +571,9 @@ export default function ListDetailPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
-            placeholder="Search contacts by name, email, or company..."
+            placeholder={isAccountList
+              ? 'Search accounts by name, domain, or industry...'
+              : 'Search contacts by name, email, or company...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-electric focus:outline-none bg-white dark:bg-white/5 text-gray-900 dark:text-white transition-colors duration-150"
@@ -488,7 +585,7 @@ export default function ListDetailPage() {
       {selectedContactIds.size > 0 && (
         <div className="flex items-center justify-between px-4 py-3 bg-indigo-50 dark:bg-indigo-electric/10 border border-indigo-200 dark:border-indigo-electric/20 rounded-lg">
           <span className="text-sm font-medium text-indigo-700 dark:text-indigo-electric">
-            {selectedContactIds.size} contact{selectedContactIds.size !== 1 ? 's' : ''} selected
+            {selectedContactIds.size} {itemLabel}{selectedContactIds.size !== 1 ? 's' : ''} selected
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -508,194 +605,331 @@ export default function ListDetailPage() {
         </div>
       )}
 
-      {/* Contacts Table */}
+      {/* Table */}
       <div className="glass-card">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-white/5">
-              <tr>
-                <th className="px-3 py-3 w-10">
-                  <input
-                    type="checkbox"
-                    checked={filteredContacts.length > 0 && selectedContactIds.size === filteredContacts.length}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
-                  />
-                </th>
-                <th
-                  onClick={() => handleSort('name')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[200px]"
-                >
-                  Name <SortIcon field="name" />
-                </th>
-                <th
-                  onClick={() => handleSort('company')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[180px]"
-                >
-                  Company <SortIcon field="company" />
-                </th>
-                <th
-                  onClick={() => handleSort('title')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 max-w-[150px]"
-                >
-                  Title <SortIcon field="title" />
-                </th>
-                <th
-                  onClick={() => handleSort('email')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[200px]"
-                >
-                  Email <SortIcon field="email" />
-                </th>
-                <th
-                  onClick={() => handleSort('phone')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
-                >
-                  Phone <SortIcon field="phone" />
-                </th>
-                <th
-                  onClick={() => handleSort('last_activity_date')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
-                >
-                  Last Activity <SortIcon field="last_activity_date" />
-                </th>
-                <th className="px-6 py-3 text-right vv-section-title sticky right-0 bg-gray-50 dark:bg-white/5">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-white/10">
-              {isLoading ? (
+          {isAccountList ? (
+            /* ===== ACCOUNTS TABLE ===== */
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-white/5">
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <div className="flex items-center justify-center gap-3 text-gray-400 dark:text-white/40">
-                      <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
-                      <span className="font-mono text-sm">Loading contacts...</span>
-                    </div>
-                  </td>
+                  <th className="px-3 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={filteredAccounts.length > 0 && selectedContactIds.size === filteredAccounts.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left vv-section-title min-w-[200px]">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left vv-section-title min-w-[180px]">
+                    Domain
+                  </th>
+                  <th className="px-6 py-3 text-left vv-section-title min-w-[150px]">
+                    Industry
+                  </th>
+                  <th className="px-6 py-3 text-left vv-section-title">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 text-right vv-section-title sticky right-0 bg-gray-50 dark:bg-white/5">
+                    Actions
+                  </th>
                 </tr>
-              ) : loadError ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <p className="text-red-500 dark:text-red-alert mb-2">Failed to load contacts</p>
-                    <p className="text-sm text-gray-400 dark:text-white/30 mb-3">{loadError}</p>
-                    <button
-                      onClick={() => loadContacts()}
-                      className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
-                    >
-                      Try again
-                    </button>
-                  </td>
-                </tr>
-              ) : filteredContacts.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <p className="text-gray-500 dark:text-white/50 mb-2">
-                      {searchQuery ? 'No contacts match your search' : 'No contacts in this list'}
-                    </p>
-                    <p className="text-sm text-gray-400 dark:text-white/30">
-                      {searchQuery ? 'Try a different search term' : 'Edit the list filters or import contacts via CSV'}
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                paginatedContacts.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150">
-                    <td className="px-3 py-4 w-10">
-                      <input
-                        type="checkbox"
-                        checked={selectedContactIds.has(contact.id)}
-                        onChange={() => toggleSelectContact(contact.id)}
-                        className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
-                      />
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-white/10">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex items-center justify-center gap-3 text-gray-400 dark:text-white/40">
+                        <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+                        <span className="font-mono text-sm">Loading accounts...</span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
+                  </tr>
+                ) : loadError ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <p className="text-red-500 dark:text-red-alert mb-2">Failed to load accounts</p>
+                      <p className="text-sm text-gray-400 dark:text-white/30 mb-3">{loadError}</p>
                       <button
-                        onClick={() =>
-                          navigate(`/contacts/${contact.id}`, {
-                            state: { returnPath: `/lists/${listId}` },
-                          })
-                        }
-                        className="font-display text-sm font-medium text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150 text-left"
+                        onClick={() => loadAccounts()}
+                        className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
                       >
-                        {contact.first_name} {contact.last_name}
+                        Try again
                       </button>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap min-w-[180px]">
-                      <div className="text-sm text-gray-600 dark:text-white/50">
-                        {contact.company || '—'}
-                      </div>
+                  </tr>
+                ) : filteredAccounts.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <Building2 className="w-10 h-10 text-gray-300 dark:text-white/20 mx-auto mb-3" />
+                      <p className="text-gray-500 dark:text-white/50 mb-2">
+                        {searchQuery ? 'No accounts match your search' : 'No accounts in this list'}
+                      </p>
+                      <p className="text-sm text-gray-400 dark:text-white/30">
+                        {searchQuery ? 'Try a different search term' : 'Import accounts from Attio or add them manually'}
+                      </p>
                     </td>
-                    <td className="px-6 py-4 max-w-[150px]">
-                      <div className="text-sm text-gray-600 dark:text-white/50 truncate" title={contact.title || undefined}>
-                        {contact.title || '—'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
-                      <a
-                        href={`mailto:${contact.email}`}
-                        className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
-                      >
-                        {contact.email}
-                      </a>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {contact.phone ? (
-                        <a
-                          href={`tel:${contact.phone}`}
-                          className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
-                        >
-                          {contact.phone}
-                        </a>
-                      ) : (
-                        <span className="text-sm text-gray-400 dark:text-white/30">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-600 dark:text-white/40 font-mono">
-                        {formatDate(contact.last_activity_date ?? null)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-void-950 group-hover:bg-gray-50 dark:group-hover:bg-white/[0.08]">
-                      <div className="flex items-center justify-end gap-2">
+                  </tr>
+                ) : (
+                  (paginatedItems as Account[]).map((account) => (
+                    <tr key={account.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150">
+                      <td className="px-3 py-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedContactIds.has(account.id)}
+                          onChange={() => toggleSelectContact(account.id)}
+                          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
                         <button
-                          onClick={() => handleEmailClick(contact)}
-                          className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
-                          title="Send email"
+                          onClick={() =>
+                            navigate(`/accounts/${account.id}`, {
+                              state: { returnPath: `/lists/${listId}` },
+                            })
+                          }
+                          className="flex items-center gap-2 font-display text-sm font-medium text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150 text-left"
                         >
-                          <Mail className="w-4 h-4" />
+                          <Building2 className="w-4 h-4 flex-shrink-0" />
+                          {account.name}
                         </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap min-w-[180px]">
+                        {account.domain ? (
+                          <a
+                            href={`https://${account.domain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Globe className="w-3 h-3" />
+                            {account.domain}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-white/30">{'\u2014'}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 max-w-[150px]">
+                        {account.industry ? (
+                          <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-white/50">
+                            <Briefcase className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate" title={account.industry}>{account.industry}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-white/30">{'\u2014'}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-600 dark:text-white/40 font-mono">
+                          {formatDate(account.created_at)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-void-950">
                         <button
-                          onClick={() => handleMeetingClick(contact)}
-                          className="text-emerald-signal hover:text-emerald-signal/70 transition-colors duration-150"
-                          title="Book meeting"
-                        >
-                          <Calendar className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleSocialClick(contact)}
-                          className="text-purple-neon hover:text-purple-neon/70 transition-colors duration-150"
-                          title="Log social activity"
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRemoveContact(contact.id)}
+                          onClick={() => handleRemoveAccount(account.id)}
                           className="text-red-alert hover:text-red-alert/70 transition-colors duration-150"
                           title="Remove from list"
                         >
                           <UserMinus className="w-4 h-4" />
                         </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          ) : (
+            /* ===== CONTACTS TABLE ===== */
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-white/5">
+                <tr>
+                  <th className="px-3 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={filteredContacts.length > 0 && selectedContactIds.size === filteredContacts.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
+                    />
+                  </th>
+                  <th
+                    onClick={() => handleSort('name')}
+                    className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[200px]"
+                  >
+                    Name <SortIcon field="name" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('company')}
+                    className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[180px]"
+                  >
+                    Company <SortIcon field="company" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('title')}
+                    className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 max-w-[150px]"
+                  >
+                    Title <SortIcon field="title" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('email')}
+                    className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[200px]"
+                  >
+                    Email <SortIcon field="email" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('phone')}
+                    className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                  >
+                    Phone <SortIcon field="phone" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('last_activity_date')}
+                    className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                  >
+                    Last Activity <SortIcon field="last_activity_date" />
+                  </th>
+                  <th className="px-6 py-3 text-right vv-section-title sticky right-0 bg-gray-50 dark:bg-white/5">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-white/10">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="flex items-center justify-center gap-3 text-gray-400 dark:text-white/40">
+                        <div className="w-5 h-5 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+                        <span className="font-mono text-sm">Loading contacts...</span>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : loadError ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <p className="text-red-500 dark:text-red-alert mb-2">Failed to load contacts</p>
+                      <p className="text-sm text-gray-400 dark:text-white/30 mb-3">{loadError}</p>
+                      <button
+                        onClick={() => loadContacts()}
+                        className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
+                      >
+                        Try again
+                      </button>
+                    </td>
+                  </tr>
+                ) : filteredContacts.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <p className="text-gray-500 dark:text-white/50 mb-2">
+                        {searchQuery ? 'No contacts match your search' : 'No contacts in this list'}
+                      </p>
+                      <p className="text-sm text-gray-400 dark:text-white/30">
+                        {searchQuery ? 'Try a different search term' : 'Edit the list filters or import contacts via CSV'}
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  (paginatedItems as Contact[]).map((contact) => (
+                    <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150">
+                      <td className="px-3 py-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedContactIds.has(contact.id)}
+                          onChange={() => toggleSelectContact(contact.id)}
+                          className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
+                        <button
+                          onClick={() =>
+                            navigate(`/contacts/${contact.id}`, {
+                              state: { returnPath: `/lists/${listId}` },
+                            })
+                          }
+                          className="font-display text-sm font-medium text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150 text-left"
+                        >
+                          {contact.first_name} {contact.last_name}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap min-w-[180px]">
+                        <div className="text-sm text-gray-600 dark:text-white/50">
+                          {contact.company || '\u2014'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 max-w-[150px]">
+                        <div className="text-sm text-gray-600 dark:text-white/50 truncate" title={contact.title || undefined}>
+                          {contact.title || '\u2014'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
+                        <a
+                          href={`mailto:${contact.email}`}
+                          className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                        >
+                          {contact.email}
+                        </a>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {contact.phone ? (
+                          <a
+                            href={`tel:${contact.phone}`}
+                            className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                          >
+                            {contact.phone}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-white/30">{'\u2014'}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-600 dark:text-white/40 font-mono">
+                          {formatDate(contact.last_activity_date ?? null)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-void-950 group-hover:bg-gray-50 dark:group-hover:bg-white/[0.08]">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleEmailClick(contact)}
+                            className="text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
+                            title="Send email"
+                          >
+                            <Mail className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleMeetingClick(contact)}
+                            className="text-emerald-signal hover:text-emerald-signal/70 transition-colors duration-150"
+                            title="Book meeting"
+                          >
+                            <Calendar className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleSocialClick(contact)}
+                            className="text-purple-neon hover:text-purple-neon/70 transition-colors duration-150"
+                            title="Log social activity"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveContact(contact.id)}
+                            className="text-red-alert hover:text-red-alert/70 transition-colors duration-150"
+                            title="Remove from list"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination Bar */}
-        {filteredContacts.length > 0 && (
+        {currentItems.length > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02]">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -711,7 +945,7 @@ export default function ListDetailPage() {
                 </select>
               </div>
               <span className="text-sm text-gray-500 dark:text-white/40">
-                Showing {paginationStart}–{paginationEnd} of {filteredContacts.length} contacts
+                Showing {paginationStart}--{paginationEnd} of {currentItems.length} {itemLabel}s
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -745,7 +979,7 @@ export default function ListDetailPage() {
           contact={selectedContact}
           onSuccess={() => {
             setIsEmailModalOpen(false);
-            loadContacts(); // Refresh to update last activity
+            loadContacts();
           }}
         />
       )}
@@ -761,7 +995,7 @@ export default function ListDetailPage() {
           orgId={orgId}
           onSuccess={() => {
             setIsSocialModalOpen(false);
-            loadContacts(); // Refresh to update last activity
+            loadContacts();
           }}
         />
       )}
@@ -775,7 +1009,7 @@ export default function ListDetailPage() {
           salesblockId={null}
           onSuccess={() => {
             setIsMeetingModalOpen(false);
-            loadContacts(); // Refresh to update last activity
+            loadContacts();
           }}
         />
       )}
@@ -793,8 +1027,12 @@ export default function ListDetailPage() {
         } : null}
         onSuccess={() => {
           setIsEditModalOpen(false);
-          loadListDetail(); // Refresh list name/description
-          loadContacts(); // Re-fetch contacts (filters may have changed)
+          loadListDetail();
+          if (isAccountList) {
+            loadAccounts();
+          } else {
+            loadContacts();
+          }
         }}
       />
 
@@ -807,14 +1045,14 @@ export default function ListDetailPage() {
                 <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-alert" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Remove contacts</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Remove {itemLabel}s</h3>
                 <p className="text-sm text-gray-500 dark:text-white/50">This cannot be undone</p>
               </div>
             </div>
 
             <p className="text-sm text-gray-600 dark:text-white/60 mb-6">
-              Remove <strong>{selectedContactIds.size}</strong> contact{selectedContactIds.size !== 1 ? 's' : ''} from
-              {' '}<strong>{listDetail?.name}</strong>? The contacts will still exist in your database but will no
+              Remove <strong>{selectedContactIds.size}</strong> {itemLabel}{selectedContactIds.size !== 1 ? 's' : ''} from
+              {' '}<strong>{listDetail?.name}</strong>? The {itemLabel}s will still exist in your database but will no
               longer be in this list.
             </p>
 
@@ -839,7 +1077,7 @@ export default function ListDetailPage() {
                 ) : (
                   <>
                     <Trash2 className="w-4 h-4" />
-                    Remove {selectedContactIds.size} contact{selectedContactIds.size !== 1 ? 's' : ''}
+                    Remove {selectedContactIds.size} {itemLabel}{selectedContactIds.size !== 1 ? 's' : ''}
                   </>
                 )}
               </button>

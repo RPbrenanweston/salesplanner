@@ -1,7 +1,8 @@
 // Attio CRM import modal — multi-step flow for importing people/companies from Attio
 // Step 1: Choose source (People / Companies) and optionally select an Attio List
 // Step 2: Preview records with checkboxes for selective import
-// Step 3: Import selected records with progress tracking
+// Step 3: Name the list
+// Step 4: Import selected records with progress tracking
 
 import { useState, useEffect, useCallback } from 'react';
 import { X, AlertCircle, CheckCircle, Users, Building2, List, ChevronLeft } from 'lucide-react';
@@ -33,7 +34,7 @@ interface ImportAttioModalProps {
 // ---------------------------------------------------------------------------
 
 type RecordType = 'people' | 'companies';
-type ModalStep = 'source' | 'preview' | 'summary';
+type ModalStep = 'source' | 'preview' | 'naming' | 'summary';
 
 interface ImportCounts {
   imported: number;
@@ -61,11 +62,15 @@ export default function ImportAttioModal({
   const [attioLists, setAttioLists] = useState<AttioList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [selectedListName, setSelectedListName] = useState<string | null>(null);
 
   // Records for preview
   const [people, setPeople] = useState<AttioPerson[]>([]);
   const [companies, setCompanies] = useState<AttioCompany[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // List naming
+  const [listName, setListName] = useState('');
 
   // Loading / importing states
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
@@ -97,7 +102,6 @@ export default function ImportAttioModal({
       setAttioLists(lists);
     } catch (err) {
       console.error('Failed to load Attio lists:', err);
-      // Non-fatal — lists section will just be empty
     } finally {
       setIsLoadingLists(false);
     }
@@ -176,10 +180,28 @@ export default function ImportAttioModal({
   };
 
   // ---------------------------------------------------------------------------
+  // Proceed to naming step
+  // ---------------------------------------------------------------------------
+
+  const proceedToNaming = () => {
+    // Default list name based on source
+    const defaultName = selectedListName
+      ? `Attio - ${selectedListName}`
+      : `Attio ${recordType === 'people' ? 'People' : 'Companies'} Import`;
+    setListName(defaultName);
+    setStep('naming');
+  };
+
+  // ---------------------------------------------------------------------------
   // Import
   // ---------------------------------------------------------------------------
 
   const startImport = async () => {
+    if (!listName.trim()) {
+      setError('Please enter a list name');
+      return;
+    }
+
     setIsImporting(true);
     setError('');
 
@@ -200,7 +222,9 @@ export default function ImportAttioModal({
       if (!userData) throw new Error('User org not found');
 
       if (recordType === 'people') {
+        // --- Import people into contacts table ---
         const selectedPeople = people.filter((p) => selectedIds.has(p.externalId));
+        const importedContactIds: string[] = [];
 
         for (const person of selectedPeople) {
           try {
@@ -215,29 +239,31 @@ export default function ImportAttioModal({
 
               if (existing) {
                 counts.skipped += 1;
+                importedContactIds.push(existing.id);
                 setImportCounts({ ...counts });
                 continue;
               }
             }
 
-            const { error: insertError } = await supabase.from('contacts').insert({
+            const { data: inserted, error: insertError } = await supabase.from('contacts').insert({
               first_name: person.firstName || 'Unknown',
               last_name: person.lastName || 'Unknown',
               email: person.email || null,
               phone: null,
               company: person.company || null,
               title: person.title || null,
-              source: 'manual', // 'attio' not in enum — use 'manual' as fallback
+              source: 'manual',
               org_id: userData.org_id,
               created_by: user.id,
               custom_fields: { attio_id: person.externalId },
-            });
+            }).select('id').single();
 
             if (insertError) {
               console.error('Insert error:', insertError);
               counts.errors += 1;
-            } else {
+            } else if (inserted) {
               counts.imported += 1;
+              importedContactIds.push(inserted.id);
             }
           } catch (err) {
             console.error('Record import error:', err);
@@ -245,53 +271,96 @@ export default function ImportAttioModal({
           }
           setImportCounts({ ...counts });
         }
+
+        // Create the list with list_type: 'contacts'
+        const { data: newList } = await supabase.from('lists').insert({
+          name: listName.trim(),
+          description: selectedListName ? `Imported from Attio list: ${selectedListName}` : 'Imported from Attio',
+          org_id: userData.org_id,
+          owner_id: user.id,
+          is_shared: false,
+          list_type: 'contacts',
+          filter_criteria: { filters: [], autoRefresh: false },
+        }).select('id').single();
+
+        if (newList && importedContactIds.length > 0) {
+          // Link contacts via list_contacts in batches of 100
+          for (let i = 0; i < importedContactIds.length; i += 100) {
+            const batch = importedContactIds.slice(i, i + 100).map((contactId, idx) => ({
+              list_id: newList.id,
+              contact_id: contactId,
+              position: i + idx,
+            }));
+            await supabase.from('list_contacts').insert(batch);
+          }
+        }
       } else {
-        // Companies — route through contacts table so they can be linked to lists
+        // --- Import companies into accounts table ---
         const selectedCompanies = companies.filter((c) => selectedIds.has(c.externalId));
+        const importedAccountIds: string[] = [];
 
         for (const company of selectedCompanies) {
           try {
-            // Duplicate check by company name + org
+            // Duplicate check by name + org
             if (company.name) {
               const { data: existing } = await supabase
-                .from('contacts')
+                .from('accounts')
                 .select('id')
                 .eq('org_id', userData.org_id)
-                .eq('company', company.name)
-                .eq('first_name', company.name)
+                .eq('name', company.name)
                 .maybeSingle();
 
               if (existing) {
                 counts.skipped += 1;
+                importedAccountIds.push(existing.id);
                 setImportCounts({ ...counts });
                 continue;
               }
             }
 
-            const { error: insertError } = await supabase.from('contacts').insert({
-              first_name: company.name || 'Unknown',
-              last_name: '',
-              email: null,
-              phone: null,
-              company: company.name || null,
-              title: company.industry || null,
-              source: 'manual',
+            const { data: inserted, error: insertError } = await supabase.from('accounts').insert({
+              name: company.name || 'Unknown',
+              domain: company.domain || null,
+              industry: company.industry || null,
               org_id: userData.org_id,
               created_by: user.id,
-              custom_fields: { attio_id: company.externalId, is_company: true },
-            });
+            }).select('id').single();
 
             if (insertError) {
               console.error('Insert error:', insertError);
               counts.errors += 1;
-            } else {
+            } else if (inserted) {
               counts.imported += 1;
+              importedAccountIds.push(inserted.id);
             }
           } catch (err) {
             console.error('Record import error:', err);
             counts.errors += 1;
           }
           setImportCounts({ ...counts });
+        }
+
+        // Create the list with list_type: 'accounts'
+        const { data: newList } = await supabase.from('lists').insert({
+          name: listName.trim(),
+          description: selectedListName ? `Imported from Attio list: ${selectedListName}` : 'Imported from Attio',
+          org_id: userData.org_id,
+          owner_id: user.id,
+          is_shared: false,
+          list_type: 'accounts',
+          filter_criteria: { filters: [], autoRefresh: false },
+        }).select('id').single();
+
+        if (newList && importedAccountIds.length > 0) {
+          // Link accounts via account_list_items in batches of 100
+          for (let i = 0; i < importedAccountIds.length; i += 100) {
+            const batch = importedAccountIds.slice(i, i + 100).map((accountId, idx) => ({
+              list_id: newList.id,
+              account_id: accountId,
+              position: i + idx,
+            }));
+            await supabase.from('account_list_items').insert(batch);
+          }
         }
       }
 
@@ -311,9 +380,11 @@ export default function ImportAttioModal({
     setStep('source');
     setRecordType('people');
     setSelectedListId(null);
+    setSelectedListName(null);
     setPeople([]);
     setCompanies([]);
     setSelectedIds(new Set());
+    setListName('');
     setImportCounts({ imported: 0, skipped: 0, errors: 0, total: 0 });
     setError('');
     setIsImporting(false);
@@ -360,6 +431,9 @@ export default function ImportAttioModal({
                 <span className="font-semibold text-red-600">{importCounts.errors}</span>
               </div>
             </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4 text-center">
+              Created list: <strong>{listName}</strong>
+            </p>
             <button
               onClick={completeImport}
               className="w-full mt-6 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
@@ -372,15 +446,98 @@ export default function ImportAttioModal({
     );
   }
 
+  // -- Naming step --
+  if (step === 'naming') {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setStep('preview')}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <h2 className="text-lg font-bold dark:text-white">Name Your List</h2>
+              </div>
+              <button
+                onClick={resetAndClose}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              {selectedIds.size} {recordType === 'people' ? 'people' : 'companies'} will be imported
+              into a new {recordType === 'people' ? 'contact' : 'account'} list.
+            </p>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-red-800 dark:text-red-200">{error}</span>
+              </div>
+            )}
+
+            <label className="block text-sm font-medium mb-2 dark:text-gray-200">
+              List Name
+            </label>
+            <input
+              type="text"
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+              placeholder="e.g., Q1 Target Accounts"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-6 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              autoFocus
+            />
+
+            {/* Import progress */}
+            {isImporting && (
+              <div className="mb-4">
+                <div className="flex justify-between text-sm mb-2 dark:text-purple-200">
+                  <span>Importing...</span>
+                  <span>
+                    {importCounts.imported + importCounts.skipped + importCounts.errors} / {importCounts.total}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-purple-600 h-2 rounded-full transition-all"
+                    style={{
+                      width: `${importCounts.total > 0 ? ((importCounts.imported + importCounts.skipped + importCounts.errors) / importCounts.total) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={resetAndClose}
+                disabled={isImporting}
+                className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={startImport}
+                disabled={isImporting || !listName.trim()}
+                className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              >
+                {isImporting ? 'Importing...' : 'Start Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // -- Preview step --
   if (step === 'preview') {
-    const progressPercent =
-      importCounts.total > 0
-        ? ((importCounts.imported + importCounts.skipped + importCounts.errors) /
-            importCounts.total) *
-          100
-        : 0;
-
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
@@ -390,8 +547,7 @@ export default function ImportAttioModal({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setStep('source')}
-                  disabled={isImporting}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
@@ -413,7 +569,6 @@ export default function ImportAttioModal({
               </div>
               <button
                 onClick={resetAndClose}
-                disabled={isImporting}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <X className="h-6 w-6" />
@@ -439,7 +594,6 @@ export default function ImportAttioModal({
                       type="checkbox"
                       checked={allSelected}
                       onChange={toggleAll}
-                      disabled={isImporting}
                       className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                     />
                   </th>
@@ -470,7 +624,6 @@ export default function ImportAttioModal({
                             type="checkbox"
                             checked={selectedIds.has(person.externalId)}
                             onChange={() => toggleRecord(person.externalId)}
-                            disabled={isImporting}
                             className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                           />
                         </td>
@@ -495,7 +648,6 @@ export default function ImportAttioModal({
                             type="checkbox"
                             checked={selectedIds.has(company.externalId)}
                             onChange={() => toggleRecord(company.externalId)}
-                            disabled={isImporting}
                             className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                           />
                         </td>
@@ -518,47 +670,20 @@ export default function ImportAttioModal({
             )}
           </div>
 
-          {/* Import progress */}
-          {isImporting && (
-            <div className="px-6 py-3 border-t dark:border-gray-700 flex-shrink-0">
-              <div className="flex justify-between text-sm mb-2 dark:text-purple-200">
-                <span>Importing...</span>
-                <span>
-                  {importCounts.imported + importCounts.skipped + importCounts.errors} /{' '}
-                  {importCounts.total}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  className="bg-purple-600 h-2 rounded-full transition-all"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-              <div className="flex gap-4 text-xs mt-2 dark:text-gray-300">
-                <span className="text-green-600">Imported: {importCounts.imported}</span>
-                <span className="text-yellow-600">Skipped: {importCounts.skipped}</span>
-                <span className="text-red-600">Errors: {importCounts.errors}</span>
-              </div>
-            </div>
-          )}
-
           {/* Footer actions */}
           <div className="p-6 border-t dark:border-gray-700 flex gap-3 flex-shrink-0">
             <button
               onClick={resetAndClose}
-              disabled={isImporting}
-              className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white"
             >
               Cancel
             </button>
             <button
-              onClick={startImport}
-              disabled={isImporting || selectedIds.size === 0}
+              onClick={proceedToNaming}
+              disabled={selectedIds.size === 0}
               className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
             >
-              {isImporting
-                ? 'Importing...'
-                : `Import ${selectedIds.size} ${recordType === 'people' ? 'People' : 'Companies'}`}
+              Next: Name List ({selectedIds.size} {recordType === 'people' ? 'people' : 'companies'})
             </button>
           </div>
         </div>
@@ -626,6 +751,9 @@ export default function ImportAttioModal({
                 >
                   People
                 </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  Import as contacts
+                </span>
               </button>
               <button
                 onClick={() => setRecordType('companies')}
@@ -652,6 +780,9 @@ export default function ImportAttioModal({
                 >
                   Companies
                 </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  Import as accounts
+                </span>
               </button>
             </div>
           </div>
@@ -660,6 +791,7 @@ export default function ImportAttioModal({
           <button
             onClick={() => {
               setSelectedListId(null);
+              setSelectedListName(null);
               loadRecords(recordType, null);
             }}
             disabled={isLoadingRecords}
@@ -695,6 +827,7 @@ export default function ImportAttioModal({
                     key={list.id}
                     onClick={() => {
                       setSelectedListId(list.id);
+                      setSelectedListName(list.name);
                       loadRecords('people', list.id);
                     }}
                     disabled={isLoadingRecords}
