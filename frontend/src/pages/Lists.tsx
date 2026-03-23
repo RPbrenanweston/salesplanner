@@ -20,6 +20,7 @@ import { AddContactModal } from '../components/AddContactModal';
 import ListBuilderModal from '../components/ListBuilderModal';
 import { CreateSalesBlockModal } from '../components/CreateSalesBlockModal';
 import ImportSalesforceModal from '../components/ImportSalesforceModal';
+import ImportAttioModal from '../components/ImportAttioModal';
 import { supabase } from '../lib/supabase';
 import { getSalesforceConnection } from '../lib/salesforce';
 
@@ -42,6 +43,8 @@ export default function Lists() {
   const navigate = useNavigate();
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportSalesforceModalOpen, setIsImportSalesforceModalOpen] = useState(false);
+  const [isImportAttioModalOpen, setIsImportAttioModalOpen] = useState(false);
+  const [attioConnected, setAttioConnected] = useState(false);
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [isListBuilderOpen, setIsListBuilderOpen] = useState(false);
   const [isCreateSalesBlockOpen, setIsCreateSalesBlockOpen] = useState(false);
@@ -55,6 +58,7 @@ export default function Lists() {
   useEffect(() => {
     loadLists();
     checkSalesforceConnection();
+    checkAttioConnection();
   }, []);
 
   const checkSalesforceConnection = async () => {
@@ -63,6 +67,22 @@ export default function Lists() {
       setSalesforceConnection(connection);
     } catch (err) {
       console.error('getSalesforceConnection error (non-fatal):', err);
+    }
+  };
+
+  const checkAttioConnection = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('oauth_connections')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('provider', 'attio')
+        .maybeSingle();
+      setAttioConnected(!!data);
+    } catch (err) {
+      console.error('checkAttioConnection error (non-fatal):', err);
     }
   };
 
@@ -203,6 +223,15 @@ export default function Lists() {
             >
               <Database className="w-4 h-4" />
               Import from Salesforce
+            </button>
+          )}
+          {attioConnected && (
+            <button
+              onClick={() => setIsImportAttioModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
+            >
+              <Database className="w-4 h-4" />
+              Import from Attio
             </button>
           )}
         </div>
@@ -350,6 +379,12 @@ export default function Lists() {
           instanceUrl={salesforceConnection.instance_url}
         />
       )}
+
+      <ImportAttioModal
+        isOpen={isImportAttioModalOpen}
+        onClose={() => setIsImportAttioModalOpen(false)}
+        onSuccess={handleImportComplete}
+      />
     </div>
   );
 }
