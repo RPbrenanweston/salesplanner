@@ -308,7 +308,8 @@ export async function fetchAttioLists(
 
 /**
  * Fetch entries from a specific Attio List as People.
- * Two-step: get parent_record_ids from list entries, then fetch actual People records.
+ * Strategy: get parent_record_ids from list entries, then fetch ALL people
+ * via the query endpoint and filter to only those in the list.
  */
 export async function fetchAttioListEntriesAsPeople(
   userId: string,
@@ -321,23 +322,15 @@ export async function fetchAttioListEntriesAsPeople(
   const recordIds = await fetchListParentRecordIds(token, listId);
   if (recordIds.length === 0) return [];
 
-  return fetchRecordsByIds(token, 'people', recordIds, (record) => {
-    const v = record.values ?? {};
-    const recordId = typeof record.id === 'string' ? record.id : record.id?.record_id ?? '';
-    return {
-      externalId: recordId,
-      firstName: extractFirstName(v.name),
-      lastName: extractLastName(v.name),
-      email: extractEmail(v.email_addresses),
-      title: extractValue(v.job_title),
-      company: extractValue(v.company),
-    } as AttioPerson;
-  });
+  const idSet = new Set(recordIds);
+  const allPeople = await fetchAttioPeople(userId, orgId);
+  return allPeople.filter((p) => idSet.has(p.externalId));
 }
 
 /**
  * Fetch entries from a specific Attio List as Companies.
- * Two-step: get parent_record_ids from list entries, then fetch actual Company records.
+ * Strategy: get parent_record_ids from list entries, then fetch ALL companies
+ * via the query endpoint and filter to only those in the list.
  */
 export async function fetchAttioListEntriesAsCompanies(
   userId: string,
@@ -350,16 +343,9 @@ export async function fetchAttioListEntriesAsCompanies(
   const recordIds = await fetchListParentRecordIds(token, listId);
   if (recordIds.length === 0) return [];
 
-  return fetchRecordsByIds(token, 'companies', recordIds, (record) => {
-    const v = record.values ?? {};
-    const recordId = typeof record.id === 'string' ? record.id : record.id?.record_id ?? '';
-    return {
-      externalId: recordId,
-      name: extractValue(v.name),
-      domain: extractDomain(v.domains),
-      industry: extractValue(v.categories),
-    } as AttioCompany;
-  });
+  const idSet = new Set(recordIds);
+  const allCompanies = await fetchAttioCompanies(userId, orgId);
+  return allCompanies.filter((c) => idSet.has(c.externalId));
 }
 
 /** Extract parent_record_ids from all list entries (paginated) */
@@ -390,37 +376,6 @@ async function fetchListParentRecordIds(token: string, listId: string): Promise<
   }
 
   return ids;
-}
-
-/** Fetch full records by IDs from an object endpoint, one at a time */
-async function fetchRecordsByIds<T>(
-  token: string,
-  objectType: string,
-  recordIds: string[],
-  mapFn: (record: AttioApiRecord) => T
-): Promise<T[]> {
-  const results: T[] = [];
-
-  for (const recordId of recordIds) {
-    try {
-      const response = await fetch(`${ATTIO_API}/objects/${objectType}/records/${recordId}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) continue; // Skip records that can't be fetched
-
-      const result = (await response.json()) as { data: AttioApiRecord };
-      if (result.data) results.push(mapFn(result.data));
-    } catch {
-      continue; // Skip on error
-    }
-  }
-
-  return results;
 }
 
 /**
