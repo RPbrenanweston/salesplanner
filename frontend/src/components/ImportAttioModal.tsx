@@ -9,7 +9,8 @@ import {
   fetchAttioPeople,
   fetchAttioCompanies,
   fetchAttioLists,
-  fetchAttioListEntries,
+  fetchAttioListEntriesAsPeople,
+  fetchAttioListEntriesAsCompanies,
   type AttioPerson,
   type AttioCompany,
   type AttioList,
@@ -108,7 +109,7 @@ export default function ImportAttioModal({
   // ---------------------------------------------------------------------------
 
   const loadRecords = useCallback(
-    async (type: RecordType, listId: string | null) => {
+    async (type: RecordType, listId: string | null, listParentObject?: string) => {
       setIsLoadingRecords(true);
       setError('');
       setPeople([]);
@@ -117,11 +118,19 @@ export default function ImportAttioModal({
 
       try {
         if (listId) {
-          // Import from a specific Attio list — entries are always people-shaped
-          const entries = await fetchAttioListEntries(userId, orgId, listId);
-          setPeople(entries);
-          setSelectedIds(new Set(entries.map((p) => p.externalId)));
-          setRecordType('people');
+          // Detect list type from parent_object — route to correct import
+          const isCompanyList = listParentObject === 'companies';
+          if (isCompanyList) {
+            const entries = await fetchAttioListEntriesAsCompanies(userId, orgId, listId);
+            setCompanies(entries);
+            setSelectedIds(new Set(entries.map((c) => c.externalId)));
+            setRecordType('companies');
+          } else {
+            const entries = await fetchAttioListEntriesAsPeople(userId, orgId, listId);
+            setPeople(entries);
+            setSelectedIds(new Set(entries.map((p) => p.externalId)));
+            setRecordType('people');
+          }
         } else if (type === 'people') {
           const fetched = await fetchAttioPeople(userId, orgId);
           setPeople(fetched);
@@ -696,17 +705,24 @@ export default function ImportAttioModal({
                     key={list.id}
                     onClick={() => {
                       setSelectedListId(list.id);
-                      loadRecords('people', list.id);
+                      loadRecords(list.parentObject === 'companies' ? 'companies' : 'people', list.id, list.parentObject);
                     }}
                     disabled={isLoadingRecords}
                     className="w-full text-left px-4 py-3 rounded-lg border dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium dark:text-white">{list.name}</span>
+                      <div className="flex items-center gap-2">
+                        {list.parentObject === 'companies' ? (
+                          <Building2 className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+                        ) : (
+                          <Users className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+                        )}
+                        <span className="text-sm font-medium dark:text-white">{list.name}</span>
+                      </div>
                       <span className="text-xs text-gray-400 dark:text-gray-500">
                         {isLoadingRecords && selectedListId === list.id
                           ? 'Loading...'
-                          : list.apiSlug}
+                          : list.parentObject === 'companies' ? 'Companies' : 'People'}
                       </span>
                     </div>
                   </button>

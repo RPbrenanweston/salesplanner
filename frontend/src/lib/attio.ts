@@ -12,6 +12,8 @@ export interface AttioList {
   id: string;
   name: string;
   apiSlug: string;
+  /** 'people' | 'companies' | 'deals' etc — the record type this list contains */
+  parentObject: string;
 }
 
 export interface AttioPerson {
@@ -126,6 +128,7 @@ interface AttioListApiEntry {
   id: string | { list_id: string };
   api_slug: string;
   name: string;
+  parent_object: string;
 }
 
 interface AttioListsResponse {
@@ -279,24 +282,63 @@ export async function fetchAttioLists(
     id: typeof entry.id === 'string' ? entry.id : entry.id?.list_id ?? '',
     name: entry.name ?? 'Untitled',
     apiSlug: entry.api_slug ?? '',
+    parentObject: entry.parent_object ?? 'people',
   }));
 }
 
 /**
- * Fetch entries from a specific Attio List.
+ * Fetch entries from a specific Attio List as People.
  * Uses POST /v2/lists/{listId}/entries/query
- *
- * Returns people-shaped records since list entries include the full record values.
  */
-export async function fetchAttioListEntries(
+export async function fetchAttioListEntriesAsPeople(
   userId: string,
   orgId: string,
   listId: string
 ): Promise<AttioPerson[]> {
+  const entries = await fetchListEntriesRaw(userId, orgId, listId);
+  return entries.map((entry) => {
+    const v = entry.values ?? {};
+    return {
+      externalId: entry.record_id || entry.parent_record_id || '',
+      firstName: extractFirstName(v.name),
+      lastName: extractLastName(v.name),
+      email: extractEmail(v.email_addresses),
+      title: extractValue(v.job_title),
+      company: extractValue(v.company),
+    };
+  });
+}
+
+/**
+ * Fetch entries from a specific Attio List as Companies.
+ */
+export async function fetchAttioListEntriesAsCompanies(
+  userId: string,
+  orgId: string,
+  listId: string
+): Promise<AttioCompany[]> {
+  const entries = await fetchListEntriesRaw(userId, orgId, listId);
+  return entries.map((entry) => {
+    const v = entry.values ?? {};
+    return {
+      externalId: entry.record_id || entry.parent_record_id || '',
+      name: extractValue(v.name),
+      domain: extractDomain(v.domains),
+      industry: extractValue(v.categories),
+    };
+  });
+}
+
+/** Internal: paginate through list entries */
+async function fetchListEntriesRaw(
+  userId: string,
+  orgId: string,
+  listId: string
+): Promise<AttioListEntryRecord[]> {
   const token = await getAttioToken(userId, orgId);
   if (!token) throw new Error('No Attio connection found. Please connect Attio first.');
 
-  const people: AttioPerson[] = [];
+  const all: AttioListEntryRecord[] = [];
   let offset: number | null = 0;
 
   while (offset !== null) {
@@ -306,7 +348,7 @@ export async function fetchAttioListEntries(
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ limit: 500, offset }),
+      body: JSON.stringify({ offset }),
     });
 
     if (!response.ok) {
@@ -315,24 +357,13 @@ export async function fetchAttioListEntries(
     }
 
     const result = (await response.json()) as AttioListEntriesResponse;
-
     for (const entry of result.data) {
-      if (!entry) continue;
-      const v = entry.values ?? {};
-      people.push({
-        externalId: entry.record_id || entry.parent_record_id || '',
-        firstName: extractFirstName(v.name),
-        lastName: extractLastName(v.name),
-        email: extractEmail(v.email_addresses),
-        title: extractValue(v.job_title),
-        company: extractValue(v.company),
-      });
+      if (entry) all.push(entry);
     }
-
     offset = result.next_page_offset ?? null;
   }
 
-  return people;
+  return all;
 }
 
 /**
