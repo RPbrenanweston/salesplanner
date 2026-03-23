@@ -102,6 +102,74 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - useRef + focus() on Cancel button for default focus (safer action)
 ---
 
+## 2026-03-23 - P1-011 - Create CrmAdapter TypeScript interface
+- **Implemented:** Created frontend/src/lib/crm/types.ts with CrmAdapter, CrmContact, CrmCompany, CrmActivity, CrmImportOptions, CrmAdapterMeta interfaces
+- **Files changed:** frontend/src/lib/crm/types.ts (new)
+- **Learnings:**
+  - Keep CrmAdapter minimal — only what the first two adapters (Salesforce, Attio) actually need
+  - CrmAdapterMeta provides display info for dynamic registry rendering
+---
+
+## 2026-03-23 - P1-012 - Refactor Salesforce integration into CrmAdapter pattern
+- **Implemented:** Moved salesforce.ts code to crm/adapters/salesforce.ts, created SalesforceAdapter implementing CrmAdapter, kept salesforce.ts as re-export barrel for zero breakage
+- **Files changed:** frontend/src/lib/crm/adapters/salesforce.ts (new), frontend/src/lib/salesforce.ts (converted to barrel)
+- **Learnings:**
+  - Re-export barrel pattern preserves all existing imports — zero-breakage refactor
+  - SalesforceAdapter wraps existing functions (getSalesforceConnection, markActivityForSync) rather than reimplementing
+  - Unused function params need underscore prefix for TypeScript noUnusedParameters
+---
+
+## 2026-03-23 - P1-013 - Create CRM adapter registry
+- **Implemented:** Created registry.ts with registerAdapter/getAdapter/getAvailableAdapters, auto-registers SalesforceAdapter on import
+- **Files changed:** frontend/src/lib/crm/registry.ts (new)
+- **Learnings:**
+  - Simple Map<string, CrmAdapter> is sufficient — no factory pattern needed yet
+  - Auto-registration on import keeps adapter setup declarative
+---
+
+## 2026-03-23 - P1-014 - Widen oauth_connections provider CHECK constraint
+- **Implemented:** Migration drops existing constraint and adds new one supporting attio/hubspot/pipedrive/close
+- **Files changed:** supabase/migrations/20260323000000_widen_oauth_providers.sql (new)
+- **Learnings:**
+  - Inline CHECK constraints on columns get auto-named as tablename_columnname_check
+  - DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT is idempotent pattern
+---
+
+## 2026-03-23 - P1-015 - Build Attio OAuth connection flow
+- **Implemented:** AttioOAuthButton (popup OAuth flow), AttioOAuthCallback page, route in App.tsx, button in SettingsPage CRM section, edge function updated for attio provider
+- **Files changed:** frontend/src/components/AttioOAuthButton.tsx (new), frontend/src/pages/AttioOAuthCallback.tsx (new), frontend/src/App.tsx, frontend/src/pages/SettingsPage.tsx, supabase/functions/exchange-oauth-token/index.ts
+- **Learnings:**
+  - Existing useOAuthCallback hook + exchange-oauth-token edge function are fully extensible — just add cases
+  - Attio OAuth flow: authorize at app.attio.com/authorize, exchange at app.attio.com/oauth/token
+  - SettingsPage CRM section already used adapter registry — just add provider === 'attio' case
+---
+
+## 2026-03-23 - P1-016 - Build Attio CRM adapter
+- **Implemented:** AttioAdapter implementing CrmAdapter with importContacts (paginated People query) and pushActivity (Notes API), registered in registry
+- **Files changed:** frontend/src/lib/crm/adapters/attio.ts (new), frontend/src/lib/crm/registry.ts
+- **Learnings:**
+  - Attio People query uses POST /objects/people/records/query with offset-based pagination
+  - Attio Notes API requires content as structured blocks, not plaintext
+  - Use supabase singleton import, not createClient — consistent with codebase pattern
+---
+
+## 2026-03-23 - P1-017 - Build Attio contact sync (import)
+- **Implemented:** ImportAttioModal with preview/import flow, attio_record_id column migration, 'attio' added to Contact source union type
+- **Files changed:** frontend/src/components/ImportAttioModal.tsx (new), frontend/src/types/domain.ts, supabase/migrations/20260323000001_contacts_attio_record_id.sql (new)
+- **Learnings:**
+  - Partial unique index (WHERE attio_record_id IS NOT NULL) prevents constraint violations on null values
+  - ImportAttioModal is simpler than ImportSalesforceModal — no object type selection needed (Attio People only)
+---
+
+## 2026-03-23 - P1-018 - Build Attio activity push
+- **Implemented:** LogActivityModal pushes to Attio after Salesforce sync (fire-and-forget), attio_auto_push_activities toggle in SettingsPage, migration for org setting column
+- **Files changed:** frontend/src/components/LogActivityModal.tsx, frontend/src/pages/SettingsPage.tsx, supabase/migrations/20260323000002_attio_auto_push_setting.sql (new)
+- **Learnings:**
+  - Fire-and-forget pattern: .catch(console.error) — don't await in UI path, don't surface errors to user
+  - Attio connection check uses direct supabase query (no adapter needed for simple boolean check in settings load)
+  - Mirror SF pattern for org-level toggle: dedicated boolean column on organizations table
+---
+
 ## 2026-03-23 - P1-013 - PAI Iteration 5
 - **Implemented:** Wired Settings > Integrations CRM section to use getAvailableAdapters() from crm/registry.ts. Imported registry in SettingsPage, replaced static SalesforceOAuthButton render with a .map() over available adapters that renders the matching OAuth button by provider name.
 - **Files changed:** frontend/src/pages/SettingsPage.tsx

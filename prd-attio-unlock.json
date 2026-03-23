@@ -246,7 +246,7 @@
       ],
       "priority": 1,
       "phase": 1,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/components/AttioOAuthButton.tsx", "frontend/src/pages/AttioOAuthCallback.tsx", "frontend/src/pages/SettingsPage.tsx", "frontend/src/App.tsx"],
       "notes": "Copy GmailOAuthButton.tsx and SalesforceOAuthButton.tsx as templates. Attio OAuth docs: https://developers.attio.com/docs/oauth. Attio authorize URL: https://app.attio.com/authorize. Token URL: https://app.attio.com/oauth/token. Scopes needed: read:people, write:notes, read:companies, read:deals."
     },
@@ -266,7 +266,7 @@
       ],
       "priority": 1,
       "phase": 1,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/lib/crm/adapters/attio.ts"],
       "notes": "Attio REST API base: https://api.attio.com/v2. People endpoint: GET /v2/objects/people/records. Companies: GET /v2/objects/companies/records. Notes: POST /v2/notes. Use Bearer token from oauth_connections. Reference: https://developers.attio.com/reference"
     },
@@ -284,7 +284,7 @@
       ],
       "priority": 1,
       "phase": 1,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/components/ImportAttioModal.tsx", "frontend/src/lib/crm/adapters/attio.ts", "supabase/migrations/YYYYMMDD_contacts_attio_id.sql"],
       "notes": "Follow ImportSalesforceModal.tsx as template. Source enum: add 'attio' to contact source type in domain.ts."
     },
@@ -302,7 +302,7 @@
       ],
       "priority": 1,
       "phase": 1,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/lib/crm/adapters/attio.ts", "frontend/src/pages/SettingsPage.tsx", "frontend/src/components/LogActivityModal.tsx"],
       "notes": "Follow same async push pattern as Salesforce sync-activities-to-salesforce. Attio Notes API: POST /v2/notes with {parent_record_id, parent_object, title, content}. If contact has no attio_record_id, skip push silently."
     }
