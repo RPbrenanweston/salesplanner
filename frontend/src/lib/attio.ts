@@ -331,8 +331,12 @@ export async function fetchAttioListEntriesAsPeople(
   if (recordIds.length === 0) return [];
 
   const idSet = new Set(recordIds);
+  console.log(`[Attio] List has ${idSet.size} unique record IDs, fetching all people...`);
   const allPeople = await fetchAttioPeople(userId, orgId);
-  return allPeople.filter((p) => idSet.has(p.externalId));
+  console.log(`[Attio] Fetched ${allPeople.length} total people, filtering...`);
+  const filtered = allPeople.filter((p) => idSet.has(p.externalId));
+  console.log(`[Attio] ${filtered.length} people matched list IDs`);
+  return filtered;
 }
 
 /**
@@ -352,8 +356,12 @@ export async function fetchAttioListEntriesAsCompanies(
   if (recordIds.length === 0) return [];
 
   const idSet = new Set(recordIds);
+  console.log(`[Attio] List has ${idSet.size} unique record IDs, fetching all companies...`);
   const allCompanies = await fetchAttioCompanies(userId, orgId);
-  return allCompanies.filter((c) => idSet.has(c.externalId));
+  console.log(`[Attio] Fetched ${allCompanies.length} total companies, filtering...`);
+  const filtered = allCompanies.filter((c) => idSet.has(c.externalId));
+  console.log(`[Attio] ${filtered.length} companies matched list IDs`);
+  return filtered;
 }
 
 /** Extract parent_record_ids from all list entries (paginated) */
@@ -362,13 +370,16 @@ async function fetchListParentRecordIds(token: string, listId: string): Promise<
   let offset: number | string | null = 0;
 
   while (offset !== null) {
+    const body: Record<string, unknown> = { limit: 500 };
+    if (offset !== 0) body.offset = offset;
+
     const response = await fetch(`${ATTIO_API}/lists/${listId}/entries/query`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ offset }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -377,11 +388,20 @@ async function fetchListParentRecordIds(token: string, listId: string): Promise<
     }
 
     const result = (await response.json()) as AttioListEntriesResponse;
+
+    // Debug first entry shape
+    if (ids.length === 0 && result.data.length > 0) {
+      console.log('[Attio] First list entry shape:', JSON.stringify(result.data[0], null, 2).slice(0, 1500));
+    }
+    console.log(`[Attio] List entries page: ${result.data.length} entries, next_page_offset: ${JSON.stringify(result.next_page_offset)}, total IDs so far: ${ids.length}`);
+
     for (const entry of result.data) {
       if (entry?.parent_record_id) ids.push(entry.parent_record_id);
     }
     offset = result.next_page_offset ?? null;
   }
+
+  console.log(`[Attio] Total list entry IDs collected: ${ids.length}`);
 
   return ids;
 }
