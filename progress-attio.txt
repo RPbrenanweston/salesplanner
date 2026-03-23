@@ -101,3 +101,13 @@ P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-
   - Shared ConfirmDeleteDialog avoids DRY violation across 4 pages
   - useRef + focus() on Cancel button for default focus (safer action)
 ---
+
+## 2026-03-23 - P1-013 - PAI Iteration 5
+- **Implemented:** Wired Settings > Integrations CRM section to use getAvailableAdapters() from crm/registry.ts. Imported registry in SettingsPage, replaced static SalesforceOAuthButton render with a .map() over available adapters that renders the matching OAuth button by provider name.
+- **Files changed:** frontend/src/pages/SettingsPage.tsx
+- **ISC Status:** registry.ts exports registerAdapter/getAdapter/getAvailableAdapters ✓, Salesforce auto-registered on import ✓, Settings uses registry to render CRMs ✓, each adapter has displayName/iconUrl/description/scopes via CrmAdapterMeta ✓, typecheck passes ✓
+- **Learnings:**
+  - registry.ts and adapters/salesforce.ts were already complete from P1-011/P1-012 — P1-013 only needed SettingsPage wiring
+  - Pattern: import getAvailableAdapters() and .map() over results, keying on adapter.meta.provider to render provider-specific UI
+  - Salesforce-specific controls (auto-push, sync now) remain outside the map loop since they're not adapter-generic yet
+---

@@ -158,7 +158,7 @@
       ],
       "priority": 2,
       "phase": 0,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/pages/Analytics.tsx"],
       "notes": "Check if frontend/src/ported-features/08-analytics-computation/ exists. If not, skip and mark passes:true with a note."
     },
@@ -175,7 +175,7 @@
       ],
       "priority": 1,
       "phase": 1,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/lib/crm/types.ts"],
       "notes": "Foundation story — nothing else can start until this exists. Keep it minimal: only what Attio actually needs."
     },
@@ -194,7 +194,7 @@
       ],
       "priority": 1,
       "phase": 1,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/lib/crm/adapters/salesforce.ts", "frontend/src/lib/salesforce.ts", "frontend/src/components/ImportSalesforceModal.tsx", "frontend/src/pages/SettingsPage.tsx"],
       "notes": "Pure refactor — no new functionality. Read salesforce.ts thoroughly before moving anything. Keep the old file as a re-export barrel during transition."
     },
@@ -211,7 +211,7 @@
       ],
       "priority": 1,
       "phase": 1,
-      "passes": false,
+      "passes": true,
       "files": ["frontend/src/lib/crm/registry.ts", "frontend/src/pages/SettingsPage.tsx"],
       "notes": "Keep it simple: a Map<string, CrmAdapterFactory>. Salesforce registers itself on import."
     },
@@ -227,7 +227,7 @@
       ],
       "priority": 1,
       "phase": 1,
-      "passes": false,
+      "passes": true,
       "files": ["supabase/migrations/YYYYMMDD_widen_oauth_providers.sql"],
       "notes": "Simple ALTER TABLE. Check existing constraint name first with \\d oauth_connections. Use ALTER TABLE ... DROP CONSTRAINT ... ADD CONSTRAINT pattern."
     },
