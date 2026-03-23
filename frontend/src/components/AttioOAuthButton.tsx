@@ -74,7 +74,7 @@ export default function AttioOAuthButton() {
               access_token: ATTIO_ACCESS_TOKEN,
               refresh_token: null,
               expires_at: null,
-              metadata: { type: 'personal_access_token' },
+              scope: 'read:people,write:notes,read:companies,read:deals',
             },
             { onConflict: 'user_id,provider' }
           )
