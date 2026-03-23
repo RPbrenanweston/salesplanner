@@ -5,6 +5,7 @@
 
 import type { CrmAdapter } from './types'
 import { SalesforceAdapter } from './adapters/salesforce'
+import { AttioAdapter } from './adapters/attio'
 
 const adapters = new Map<string, CrmAdapter>()
 
@@ -20,5 +21,6 @@ export function getAvailableAdapters(): CrmAdapter[] {
   return Array.from(adapters.values())
 }
 
-// Auto-register Salesforce on import
+// Auto-register adapters on import
 registerAdapter(SalesforceAdapter)
+registerAdapter(AttioAdapter)
