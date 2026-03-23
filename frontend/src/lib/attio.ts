@@ -288,9 +288,11 @@ export async function fetchAttioLists(
 
 /**
  * Fetch entries from a specific Attio List.
- * Uses POST /v2/lists/{listId}/entries/query
  *
- * Returns people-shaped records since list entries include the full record values.
+ * Two-step process:
+ *   1. Query the list entries endpoint to collect parent_record_ids.
+ *      (Entry `values` contain list-level attributes like stage — NOT person data.)
+ *   2. Batch-GET the actual person records by ID (20 concurrent) to get name/email/title.
  */
 export async function fetchAttioListEntries(
   userId: string,
@@ -300,7 +302,8 @@ export async function fetchAttioListEntries(
   const token = await getAttioToken(userId, orgId);
   if (!token) throw new Error('No Attio connection found. Please connect Attio first.');
 
-  const people: AttioPerson[] = [];
+  // ── Step 1: collect parent_record_ids from list entries ──────────────────
+  const parentRecordIds: string[] = [];
   let offset: number | null = 0;
 
   while (offset !== null) {
@@ -319,12 +322,49 @@ export async function fetchAttioListEntries(
     }
 
     const result = (await response.json()) as AttioListEntriesResponse;
+    console.log('[Attio debug] fetchAttioListEntries page — entries:', result.data?.length, 'sample:', JSON.stringify(result.data?.[0])?.slice(0, 150));
 
     for (const entry of result.data) {
-      const v = entry.values ?? {};
-      console.log('[Attio debug] fetchAttioListEntries entry.values:', v, 'entry.record_id:', entry.record_id);
+      const id = entry.parent_record_id || entry.record_id;
+      if (id) parentRecordIds.push(id);
+    }
+
+    offset = result.next_page_offset ?? null;
+  }
+
+  if (parentRecordIds.length === 0) return [];
+
+  // ── Step 2: batch-GET the actual person records (20 concurrent) ──────────
+  const people: AttioPerson[] = [];
+  const BATCH = 20;
+
+  for (let i = 0; i < parentRecordIds.length; i += BATCH) {
+    const batch = parentRecordIds.slice(i, i + BATCH);
+
+    const records = await Promise.all(
+      batch.map(async (recordId) => {
+        const resp = await fetch(`${ATTIO_API}/objects/people/records/${recordId}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!resp.ok) {
+          console.warn('[Attio debug] person GET failed for', recordId, resp.status);
+          return null;
+        }
+        const json = await resp.json();
+        return json.data as AttioApiRecord;
+      })
+    );
+
+    for (const record of records) {
+      if (!record) continue;
+      const v = record.values ?? {};
+      console.log('[Attio debug] person record.id:', record.id?.record_id, 'values keys:', Object.keys(v).join(', '));
       people.push({
-        externalId: entry.record_id || entry.parent_record_id,
+        externalId: record.id?.record_id ?? '',
         firstName: extractFirstName(v.name),
         lastName: extractLastName(v.name),
         email: extractEmail(v.email_addresses),
@@ -333,7 +373,10 @@ export async function fetchAttioListEntries(
       });
     }
 
-    offset = result.next_page_offset ?? null;
+    // Brief pause between batches to stay within Attio's 100 req/s limit
+    if (i + BATCH < parentRecordIds.length) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
   }
 
   return people;
