@@ -293,57 +293,63 @@ export async function fetchAttioLists(
 
 /**
  * Fetch entries from a specific Attio List as People.
- * Uses POST /v2/lists/{listId}/entries/query
+ * Two-step: get parent_record_ids from list entries, then fetch actual People records.
  */
 export async function fetchAttioListEntriesAsPeople(
   userId: string,
   orgId: string,
   listId: string
 ): Promise<AttioPerson[]> {
-  const entries = await fetchListEntriesRaw(userId, orgId, listId);
-  return entries.map((entry) => {
-    const v = entry.values ?? {};
+  const token = await getAttioToken(userId, orgId);
+  if (!token) throw new Error('No Attio connection found. Please connect Attio first.');
+
+  const recordIds = await fetchListParentRecordIds(token, listId);
+  if (recordIds.length === 0) return [];
+
+  return fetchRecordsByIds(token, 'people', recordIds, (record) => {
+    const v = record.values ?? {};
+    const recordId = typeof record.id === 'string' ? record.id : record.id?.record_id ?? '';
     return {
-      externalId: entry.record_id || entry.parent_record_id || '',
+      externalId: recordId,
       firstName: extractFirstName(v.name),
       lastName: extractLastName(v.name),
       email: extractEmail(v.email_addresses),
       title: extractValue(v.job_title),
       company: extractValue(v.company),
-    };
+    } as AttioPerson;
   });
 }
 
 /**
  * Fetch entries from a specific Attio List as Companies.
+ * Two-step: get parent_record_ids from list entries, then fetch actual Company records.
  */
 export async function fetchAttioListEntriesAsCompanies(
   userId: string,
   orgId: string,
   listId: string
 ): Promise<AttioCompany[]> {
-  const entries = await fetchListEntriesRaw(userId, orgId, listId);
-  return entries.map((entry) => {
-    const v = entry.values ?? {};
-    return {
-      externalId: entry.record_id || entry.parent_record_id || '',
-      name: extractValue(v.name),
-      domain: extractDomain(v.domains),
-      industry: extractValue(v.categories),
-    };
-  });
-}
-
-/** Internal: paginate through list entries */
-async function fetchListEntriesRaw(
-  userId: string,
-  orgId: string,
-  listId: string
-): Promise<AttioListEntryRecord[]> {
   const token = await getAttioToken(userId, orgId);
   if (!token) throw new Error('No Attio connection found. Please connect Attio first.');
 
-  const all: AttioListEntryRecord[] = [];
+  const recordIds = await fetchListParentRecordIds(token, listId);
+  if (recordIds.length === 0) return [];
+
+  return fetchRecordsByIds(token, 'companies', recordIds, (record) => {
+    const v = record.values ?? {};
+    const recordId = typeof record.id === 'string' ? record.id : record.id?.record_id ?? '';
+    return {
+      externalId: recordId,
+      name: extractValue(v.name),
+      domain: extractDomain(v.domains),
+      industry: extractValue(v.categories),
+    } as AttioCompany;
+  });
+}
+
+/** Extract parent_record_ids from all list entries (paginated) */
+async function fetchListParentRecordIds(token: string, listId: string): Promise<string[]> {
+  const ids: string[] = [];
   let offset: number | null = 0;
 
   while (offset !== null) {
@@ -363,12 +369,43 @@ async function fetchListEntriesRaw(
 
     const result = (await response.json()) as AttioListEntriesResponse;
     for (const entry of result.data) {
-      if (entry) all.push(entry);
+      if (entry?.parent_record_id) ids.push(entry.parent_record_id);
     }
     offset = result.next_page_offset ?? null;
   }
 
-  return all;
+  return ids;
+}
+
+/** Fetch full records by IDs from an object endpoint, one at a time */
+async function fetchRecordsByIds<T>(
+  token: string,
+  objectType: string,
+  recordIds: string[],
+  mapFn: (record: AttioApiRecord) => T
+): Promise<T[]> {
+  const results: T[] = [];
+
+  for (const recordId of recordIds) {
+    try {
+      const response = await fetch(`${ATTIO_API}/objects/${objectType}/records/${recordId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) continue; // Skip records that can't be fetched
+
+      const result = (await response.json()) as { data: AttioApiRecord };
+      if (result.data) results.push(mapFn(result.data));
+    } catch {
+      continue; // Skip on error
+    }
+  }
+
+  return results;
 }
 
 /**
