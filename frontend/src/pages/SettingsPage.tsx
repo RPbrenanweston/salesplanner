@@ -22,6 +22,7 @@ import OutlookOAuthButton from '../components/OutlookOAuthButton'
 import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import OutlookCalendarOAuthButton from '../components/OutlookCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
+import AttioOAuthButton from '../components/AttioOAuthButton'
 import { isSalesforceConnected } from '../lib/salesforce'
 import { getAvailableAdapters } from '../lib/crm/registry'
 
@@ -1703,6 +1704,7 @@ export default function SettingsPage() {
               {getAvailableAdapters().map((adapter) => (
                 <div key={adapter.meta.provider}>
                   {adapter.meta.provider === 'salesforce' && <SalesforceOAuthButton />}
+                  {adapter.meta.provider === 'attio' && <AttioOAuthButton />}
                 </div>
               ))}
 

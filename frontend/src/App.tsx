@@ -43,6 +43,7 @@ const OutlookOAuthCallback = lazy(() => import('./pages/OutlookOAuthCallback'))
 const GoogleCalendarOAuthCallback = lazy(() => import('./pages/GoogleCalendarOAuthCallback'))
 const OutlookCalendarOAuthCallback = lazy(() => import('./pages/OutlookCalendarOAuthCallback'))
 const SalesforceOAuthCallback = lazy(() => import('./pages/SalesforceOAuthCallback'))
+const AttioOAuthCallback = lazy(() => import('./pages/AttioOAuthCallback'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
 const MarketingPage = lazy(() => import('./pages/MarketingPage'))
 const Diagnostics = lazy(() => import('./pages/Diagnostics'))
@@ -93,6 +94,7 @@ function App() {
             <Route path="/oauth/google-calendar/callback" element={<GoogleCalendarOAuthCallback />} />
             <Route path="/oauth/outlook-calendar/callback" element={<OutlookCalendarOAuthCallback />} />
             <Route path="/oauth/salesforce/callback" element={<SalesforceOAuthCallback />} />
+            <Route path="/oauth/attio/callback" element={<AttioOAuthCallback />} />
 
             {/* Protected routes with AppLayout */}
             <Route

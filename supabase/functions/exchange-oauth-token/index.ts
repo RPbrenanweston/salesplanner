@@ -23,7 +23,8 @@ type Provider =
   | 'outlook'
   | 'google_calendar'
   | 'outlook_calendar'
-  | 'salesforce';
+  | 'salesforce'
+  | 'attio';
 
 interface TokenExchangeRequest {
   provider: Provider;
@@ -52,6 +53,8 @@ function getTokenEndpoint(provider: Provider): string {
       return 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
     case 'salesforce':
       return 'https://login.salesforce.com/services/oauth2/token';
+    case 'attio':
+      return 'https://app.attio.com/oauth/token';
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -70,6 +73,8 @@ function getClientId(provider: Provider): string {
       return Deno.env.get('OUTLOOK_CALENDAR_CLIENT_ID') || '';
     case 'salesforce':
       return Deno.env.get('SALESFORCE_CLIENT_ID') || '';
+    case 'attio':
+      return Deno.env.get('ATTIO_CLIENT_ID') || '';
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -88,6 +93,8 @@ function getClientSecret(provider: Provider): string {
       return Deno.env.get('OUTLOOK_CLIENT_SECRET') || '';
     case 'salesforce':
       return Deno.env.get('SALESFORCE_CLIENT_SECRET') || '';
+    case 'attio':
+      return Deno.env.get('ATTIO_CLIENT_SECRET') || '';
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -155,6 +162,8 @@ function getDefaultScopes(provider: Provider): string {
       return 'Calendars.ReadWrite offline_access';
     case 'salesforce':
       return 'api refresh_token';
+    case 'attio':
+      return 'read:people write:notes read:companies read:deals';
     default:
       return '';
   }
@@ -201,6 +210,7 @@ serve(async (req) => {
       'google_calendar',
       'outlook_calendar',
       'salesforce',
+      'attio',
     ];
     if (!validProviders.includes(provider)) {
       return new Response(
