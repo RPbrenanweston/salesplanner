@@ -87,7 +87,8 @@ serve(async (req) => {
         .eq("type", "email")
         .gte("created_at", thirtyDaysAgo.toISOString())
         .is("replied_at", null) // Only check emails without replies yet
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(100); // Cap per-user batch to prevent runaway queries
 
       if (activitiesError) {
         console.error(`Failed to fetch activities for user ${connection.user_id}:`, activitiesError);

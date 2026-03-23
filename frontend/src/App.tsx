@@ -27,6 +27,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const SalesBlocks = lazy(() => import('./pages/SalesBlocks'))
 const Lists = lazy(() => import('./pages/Lists'))
 const ListDetailPage = lazy(() => import('./pages/ListDetailPage'))
+const ContactsPage = lazy(() => import('./pages/ContactsPage'))
 const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage'))
 const Email = lazy(() => import('./pages/Email'))
 const Social = lazy(() => import('./pages/Social'))
@@ -47,8 +48,15 @@ const AttioOAuthCallback = lazy(() => import('./pages/AttioOAuthCallback'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
 const MarketingPage = lazy(() => import('./pages/MarketingPage'))
 const Diagnostics = lazy(() => import('./pages/Diagnostics'))
+const AccountsPage = lazy(() => import('./pages/AccountsPage'))
+const AccountDetailPage = lazy(() => import('./pages/AccountDetailPage'))
 const Arena = lazy(() => import('./pages/Arena'))
 const ContentLibrary = lazy(() => import('./pages/ContentLibrary'))
+
+// Productivity (Super Productivity integration)
+const DayPlannerPage = lazy(() => import('./pages/DayPlannerPage'))
+const MorningBriefingPage = lazy(() => import('./pages/MorningBriefingPage'))
+const DailyDebriefPage = lazy(() => import('./pages/DailyDebriefPage'))
 
 const queryClient = new QueryClient()
 
@@ -141,6 +149,16 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <ListDetailPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/contacts"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <ContactsPage />
                   </AppLayout>
                 </ProtectedRoute>
               }
@@ -261,6 +279,60 @@ function App() {
                 <ProtectedRoute>
                   <AppLayout>
                     <ContentLibrary />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Accounts */}
+            <Route
+              path="/accounts"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AccountsPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/accounts/:accountId"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <AccountDetailPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Productivity (Super Productivity integration) */}
+            <Route
+              path="/planner"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <DayPlannerPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/briefing"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <MorningBriefingPage />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/debrief"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <DailyDebriefPage />
                   </AppLayout>
                 </ProtectedRoute>
               }

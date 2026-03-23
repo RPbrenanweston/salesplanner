@@ -58,8 +58,12 @@ export default function Lists() {
   }, []);
 
   const checkSalesforceConnection = async () => {
-    const connection = await getSalesforceConnection();
-    setSalesforceConnection(connection);
+    try {
+      const connection = await getSalesforceConnection();
+      setSalesforceConnection(connection);
+    } catch (err) {
+      console.error('getSalesforceConnection error (non-fatal):', err);
+    }
   };
 
   const loadLists = async () => {
@@ -71,19 +75,10 @@ export default function Lists() {
         return;
       }
 
-      // Fetch lists with owner info
+      // Fetch lists
       const { data: listsData, error } = await supabase
         .from('lists')
-        .select(`
-          id,
-          name,
-          description,
-          owner_id,
-          is_shared,
-          filter_criteria,
-          created_at,
-          updated_at
-        `)
+        .select('id, name, description, owner_id, is_shared, filter_criteria, created_at, updated_at')
         .order('updated_at', { ascending: false })
         .limit(200);
 
@@ -93,58 +88,43 @@ export default function Lists() {
       }
 
       if ((listsData?.length ?? 0) >= 200) {
-        console.warn('loadLists: hit 200-record limit — pagination needed')
+        console.warn('loadLists: hit 200-record limit — pagination needed');
       }
 
-      console.log(`loadLists: Fetched ${listsData?.length ?? 0} lists from Supabase`);
+      const listIds = (listsData || []).map((l) => l.id);
+      if (listIds.length === 0) {
+        setLists([]);
+        return;
+      }
 
-      // For each list, count contacts and get owner — each sub-query is wrapped
-      // individually so one failure doesn't kill the entire list display
-      const listsWithCounts = await Promise.all(
-        (listsData || []).map(async (list) => {
-          let contactCount = 0;
-          let ownerName = 'Unknown';
+      // Single batch query for all contact counts — fixes N+1 pattern
+      const { data: contactRows } = await supabase
+        .from('list_contacts')
+        .select('list_id')
+        .in('list_id', listIds);
 
-          // Get contact count — wrapped individually
-          try {
-            const { count, error: countError } = await supabase
-              .from('list_contacts')
-              .select('contact_id', { count: 'exact', head: true })
-              .eq('list_id', list.id);
+      const countByListId: Record<string, number> = {};
+      for (const row of contactRows || []) {
+        countByListId[row.list_id] = (countByListId[row.list_id] ?? 0) + 1;
+      }
 
-            if (countError) {
-              console.error(`Error counting contacts for list ${list.id}:`, countError);
-            } else {
-              contactCount = count || 0;
-            }
-          } catch (countErr) {
-            console.error(`Exception counting contacts for list ${list.id}:`, countErr);
-          }
+      // Collect unique owner IDs and batch-fetch display names
+      const ownerIds = [...new Set((listsData || []).map((l) => l.owner_id))];
+      const { data: ownerRows } = await supabase
+        .from('users')
+        .select('id, display_name')
+        .in('id', ownerIds);
 
-          // Get owner name — wrapped individually
-          try {
-            const { data: ownerData, error: ownerError } = await supabase
-              .from('users')
-              .select('display_name')
-              .eq('id', list.owner_id)
-              .single();
+      const nameByOwnerId: Record<string, string> = {};
+      for (const row of ownerRows || []) {
+        nameByOwnerId[row.id] = row.display_name || 'Unknown';
+      }
 
-            if (ownerError) {
-              console.error(`Error fetching owner for list ${list.id}:`, ownerError);
-            } else {
-              ownerName = ownerData?.display_name || 'Unknown';
-            }
-          } catch (ownerErr) {
-            console.error(`Exception fetching owner for list ${list.id}:`, ownerErr);
-          }
-
-          return {
-            ...list,
-            contact_count: contactCount,
-            owner_name: ownerName,
-          };
-        })
-      );
+      const listsWithCounts = (listsData || []).map((list) => ({
+        ...list,
+        contact_count: countByListId[list.id] ?? 0,
+        owner_name: nameByOwnerId[list.owner_id] ?? 'Unknown',
+      }));
 
       setLists(listsWithCounts);
     } catch (err) {

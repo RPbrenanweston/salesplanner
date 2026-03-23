@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
-import { createCalendarEvent, checkCalendarConnection } from '../lib/calendar';
+import { createCalendarEvent, getCalendarConnection } from '../lib/calendar';
 import { markActivityForSync } from '../lib/salesforce';
 import { DURATION, ACTIVITY_OUTCOME } from '../lib/constants';
 import { logError } from '../lib/error-logger';
@@ -45,39 +45,24 @@ export default function BookMeetingModal({
   const [description, setDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const [calendarDisconnected, setCalendarDisconnected] = useState(false);
-  const [checkingCalendar, setCheckingCalendar] = useState(false);
+  const [calendarStatus, setCalendarStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
 
   useEffect(() => {
-    if (isOpen) {
-      // Set defaults
-      const defaultTitle = `Meeting with ${contact.first_name} ${contact.last_name}`;
-      setTitle(defaultTitle);
+    if (!isOpen) return;
 
-      // Set default date to tomorrow
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      setDate(tomorrow.toISOString().split('T')[0]);
+    // Set form defaults
+    const defaultTitle = `Meeting with ${contact.first_name} ${contact.last_name}`;
+    setTitle(defaultTitle);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setDate(tomorrow.toISOString().split('T')[0]);
+    setTime('10:00');
 
-      // Set default time to 10:00 AM
-      setTime('10:00');
-
-      // Pre-check calendar connection
-      setCheckingCalendar(true);
-      setCalendarDisconnected(false);
-      checkCalendarConnection()
-        .then((provider) => {
-          if (!provider) {
-            setCalendarDisconnected(true);
-          }
-        })
-        .catch(() => {
-          setCalendarDisconnected(true);
-        })
-        .finally(() => {
-          setCheckingCalendar(false);
-        });
-    }
+    // Pre-check calendar connection before user fills in the form
+    setCalendarStatus('checking');
+    getCalendarConnection().then((connection) => {
+      setCalendarStatus(connection ? 'connected' : 'disconnected');
+    });
   }, [isOpen, contact]);
 
   const handleSave = async () => {
@@ -186,6 +171,22 @@ export default function BookMeetingModal({
           {error && !calendarDisconnected && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
               {error}
+            </div>
+          )}
+
+          {calendarStatus === 'checking' && (
+            <div className="p-3 bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 text-sm flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              Checking calendar connection…
+            </div>
+          )}
+
+          {calendarStatus === 'disconnected' && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-400 text-sm">
+              <strong>No calendar connected.</strong> Meeting will be logged as an activity but no calendar event will be created.{' '}
+              <a href="/settings" className="underline font-medium hover:text-amber-900 dark:hover:text-amber-300">
+                Connect a calendar in Settings →
+              </a>
             </div>
           )}
 

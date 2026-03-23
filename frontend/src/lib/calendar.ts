@@ -31,7 +31,7 @@ interface CalendarEventResponse {
  * Get user's connected calendar OAuth connection (Google or Outlook).
  * Uses getValidToken() which auto-refreshes expired tokens.
  */
-async function getCalendarConnection(): Promise<{
+export async function getCalendarConnection(): Promise<{
   provider: 'google_calendar' | 'outlook_calendar';
   accessToken: string;
 } | null> {

@@ -77,9 +77,15 @@ export default function ListDetailPage() {
   useEffect(() => {
     if (listId) {
       // Load list detail first, then contacts (contacts may need filter_criteria from list)
-      loadListDetail().then(() => loadContacts());
+      loadListDetail().then(() => loadContacts(sortField, sortDirection));
     }
   }, [listId]);
+
+  useEffect(() => {
+    if (!isLoading && contacts.length > 0) {
+      loadContacts(sortField, sortDirection);
+    }
+  }, [sortField, sortDirection]);
 
   useEffect(() => {
     if (!user) return;
@@ -118,28 +124,13 @@ export default function ListDetailPage() {
   }, [searchQuery, contacts]);
 
   useEffect(() => {
-    // Sort contacts whenever sortField or sortDirection changes
+    // Client-side sort only for derived last_activity_date field; other fields reload from server
+    if (sortField !== 'last_activity_date') return;
     const sorted = [...filteredContacts].sort((a, b) => {
-      let aVal: string | number | null;
-      let bVal: string | number | null;
-
-      if (sortField === 'name') {
-        aVal = `${a.first_name} ${a.last_name}`;
-        bVal = `${b.first_name} ${b.last_name}`;
-      } else if (sortField === 'last_activity_date') {
-        aVal = a.last_activity_date || '';
-        bVal = b.last_activity_date || '';
-      } else {
-        aVal = a[sortField] || '';
-        bVal = b[sortField] || '';
-      }
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        const comparison = aVal.localeCompare(bVal);
-        return sortDirection === 'asc' ? comparison : -comparison;
-      }
-
-      return 0;
+      const aVal = a.last_activity_date || '';
+      const bVal = b.last_activity_date || '';
+      const comparison = aVal.localeCompare(bVal);
+      return sortDirection === 'asc' ? comparison : -comparison;
     });
     setFilteredContacts(sorted);
   }, [sortField, sortDirection]);
@@ -160,7 +151,7 @@ export default function ListDetailPage() {
     }
   };
 
-  const loadContacts = async () => {
+  const loadContacts = async (sortBy: SortField = 'name', sortDir: SortDirection = 'asc') => {
     setIsLoading(true);
     setLoadError(null);
     try {
@@ -226,14 +217,22 @@ export default function ListDetailPage() {
       }
 
       // Fetch the actual contact records (chunk .in() for large lists)
+      // Server-side ORDER BY applied for non-derived fields
       const CHUNK_SIZE = 200;
+      const serverSortColumn = sortBy === 'name' ? 'first_name'
+        : sortBy === 'last_activity_date' ? null
+        : sortBy;
       let allContactsData: typeof contacts = [];
       for (let i = 0; i < contactIds.length; i += CHUNK_SIZE) {
         const chunk = contactIds.slice(i, i + CHUNK_SIZE);
-        const { data: contactsData, error: contactsError } = await supabase
+        let contactsQuery = supabase
           .from('contacts')
           .select('id, first_name, last_name, email, phone, company, title, created_at')
           .in('id', chunk);
+        if (serverSortColumn) {
+          contactsQuery = contactsQuery.order(serverSortColumn, { ascending: sortDir === 'asc' });
+        }
+        const { data: contactsData, error: contactsError } = await contactsQuery;
 
         if (contactsError) throw contactsError;
         allContactsData = allContactsData.concat(contactsData || []);

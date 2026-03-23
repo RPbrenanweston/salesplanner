@@ -18,13 +18,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import GmailOAuthButton from '../components/GmailOAuthButton'
-import OutlookOAuthButton from '../components/OutlookOAuthButton'
+import MicrosoftOAuthButton from '../components/MicrosoftOAuthButton'
 import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
-import OutlookCalendarOAuthButton from '../components/OutlookCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
-import AttioOAuthButton from '../components/AttioOAuthButton'
-import { isSalesforceConnected } from '../lib/salesforce'
-import { getAvailableAdapters } from '../lib/crm/registry'
+import OAuthErrorBoundary from '../components/OAuthErrorBoundary'
+import { toast } from '../hooks/use-toast'
 
 type Tab = 'profile' | 'organization' | 'team' | 'integrations' | 'pipeline' | 'billing'
 
@@ -97,6 +95,7 @@ export default function SettingsPage() {
   const [inviteTeamId, setInviteTeamId] = useState<string | null>(null)
   const [availableTeams, setAvailableTeams] = useState<{ id: string; name: string }[]>([])
   const [sendingInvite, setSendingInvite] = useState(false)
+  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null)
 
   // Profile state
   const [displayName, setDisplayName] = useState('')
@@ -130,6 +129,18 @@ export default function SettingsPage() {
   const [newDivisionName, setNewDivisionName] = useState('')
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamDivisionId, setNewTeamDivisionId] = useState<string | null>(null)
+
+  // Activity types management state
+  const [activityTypes, setActivityTypes] = useState<{
+    id: string
+    label: string
+    value: string
+    icon: string | null
+  }[]>([])
+  const [loadingActivityTypes, setLoadingActivityTypes] = useState(false)
+  const [newActivityLabel, setNewActivityLabel] = useState('')
+  const [newActivityValue, setNewActivityValue] = useState('')
+  const [savingActivityType, setSavingActivityType] = useState(false)
 
   // Load organization data + profile data
   useEffect(() => {
@@ -324,8 +335,22 @@ export default function SettingsPage() {
         if (members) {
           setTeamMembers(members)
         }
+
+        // Load activity types
+        setLoadingActivityTypes(true)
+        const { data: activityTypesData } = await supabase
+          .from('activity_types')
+          .select('id, label, value, icon')
+          .eq('org_id', userData.org_id)
+          .order('label')
+
+        if (activityTypesData) {
+          setActivityTypes(activityTypesData)
+        }
+        setLoadingActivityTypes(false)
       } catch (error) {
         console.error('Error loading hierarchy data:', error)
+        setLoadingActivityTypes(false)
       } finally {
         setLoadingHierarchy(false)
       }
@@ -512,7 +537,7 @@ export default function SettingsPage() {
       setSfAutoPush(newValue)
     } catch (error) {
       console.error('Failed to update SF auto-push setting:', error)
-      alert('Failed to update auto-push setting. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to update auto-push setting', description: 'Please try again.' })
     } finally {
       setSfAutoPushLoading(false)
     }
@@ -557,10 +582,10 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error('Sync failed')
 
       const result = await response.json()
-      alert(`Sync completed: ${result.synced} synced, ${result.failed} failed`)
+      toast({ title: `Sync completed: ${result.synced} synced, ${result.failed} failed` })
     } catch (error) {
       console.error('Manual sync error:', error)
-      alert('Manual sync failed. Please try again.')
+      toast({ variant: 'destructive', title: 'Manual sync failed', description: 'Please try again.' })
     }
   }
 
@@ -587,10 +612,10 @@ export default function SettingsPage() {
 
       await Promise.all(updates)
 
-      alert('Stage probabilities updated successfully')
+      toast({ title: 'Stage probabilities updated successfully' })
     } catch (error) {
       console.error('Error saving probabilities:', error)
-      alert('Failed to save probabilities. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to save probabilities', description: 'Please try again.' })
     } finally {
       setSavingStages(false)
     }
@@ -615,7 +640,7 @@ export default function SettingsPage() {
       window.location.href = url
     } catch (error) {
       console.error('Error opening customer portal:', error)
-      alert('Failed to open billing portal. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to open billing portal', description: 'Please try again.' })
     }
   }
 
@@ -638,25 +663,25 @@ export default function SettingsPage() {
 
       if (!response.ok) throw new Error('Failed to cancel subscription')
 
-      alert('Subscription cancelled. You will retain access until the end of your billing period.')
+      toast({ title: 'Subscription cancelled. You will retain access until the end of your billing period.' })
       // Reload billing data
       setActiveTab('billing')
     } catch (error) {
       console.error('Error cancelling subscription:', error)
-      alert('Failed to cancel subscription. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to cancel subscription', description: 'Please try again.' })
     }
   }
 
   const handleSendInvite = async () => {
     if (!inviteEmail || !orgId) {
-      alert('Please enter an email address')
+      toast({ variant: 'destructive', title: 'Please enter an email address' })
       return
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(inviteEmail)) {
-      alert('Please enter a valid email address')
+      toast({ variant: 'destructive', title: 'Please enter a valid email address' })
       return
     }
 
@@ -700,7 +725,7 @@ export default function SettingsPage() {
         throw new Error('Failed to send invitation email')
       }
 
-      alert(`Invitation sent to ${inviteEmail}`)
+      toast({ title: `Invitation sent to ${inviteEmail}` })
 
       // Reset form
       setInviteEmail('')
@@ -713,9 +738,9 @@ export default function SettingsPage() {
     } catch (error: any) {
       console.error('Error sending invitation:', error)
       if (error.message?.includes('duplicate')) {
-        alert('An invitation has already been sent to this email address')
+        toast({ variant: 'destructive', title: 'An invitation has already been sent to this email address' })
       } else {
-        alert('Failed to send invitation. Please try again.')
+        toast({ variant: 'destructive', title: 'Failed to send invitation', description: 'Please try again.' })
       }
     } finally {
       setSendingInvite(false)
@@ -737,10 +762,52 @@ export default function SettingsPage() {
 
       // Reload invitations
       setTeamInvitations(invites => invites.filter(i => i.id !== inviteId))
-      alert('Invitation cancelled')
+      toast({ title: 'Invitation cancelled' })
     } catch (error) {
       console.error('Error cancelling invitation:', error)
-      alert('Failed to cancel invitation. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to cancel invitation', description: 'Please try again.' })
+    }
+  }
+
+  const handleResendInvite = async (invite: { id: string; email: string; role: string }) => {
+    if (!orgId || !user) return
+    setResendingInviteId(invite.id)
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-team-invitation`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: invite.email,
+            org_id: orgId,
+            role: invite.role,
+            resend: true,
+          }),
+        }
+      )
+
+      if (!response.ok) throw new Error('Failed to resend invitation')
+
+      toast({ title: `Invitation resent to ${invite.email}` })
+
+      // Reload team data to get fresh invitation with new expires_at
+      const { data: invites } = await supabase
+        .from('team_invitations')
+        .select('id, email, role, status, invited_by, created_at, expires_at')
+        .eq('org_id', orgId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+
+      if (invites) setTeamInvitations(invites)
+    } catch (error) {
+      console.error('Error resending invitation:', error)
+      toast({ variant: 'destructive', title: 'Failed to resend invitation', description: 'Please try again.' })
+    } finally {
+      setResendingInviteId(null)
     }
   }
 
@@ -759,10 +826,10 @@ export default function SettingsPage() {
 
       setDivisions([...divisions, data])
       setNewDivisionName('')
-      alert('Division created successfully')
+      toast({ title: 'Division created successfully' })
     } catch (error) {
       console.error('Error creating division:', error)
-      alert('Failed to create division. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to create division', description: 'Please try again.' })
     }
   }
 
@@ -782,7 +849,7 @@ export default function SettingsPage() {
       setEditingDivisionName('')
     } catch (error) {
       console.error('Error renaming division:', error)
-      alert('Failed to rename division. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to rename division', description: 'Please try again.' })
     }
   }
 
@@ -802,10 +869,10 @@ export default function SettingsPage() {
       setDivisions(divisions.filter(d => d.id !== divisionId))
       // Update teams that were in this division (division_id will be set to null by ON DELETE SET NULL)
       setTeams(teams.map(t => t.division_id === divisionId ? { ...t, division_id: null } : t))
-      alert('Division deleted')
+      toast({ title: 'Division deleted' })
     } catch (error) {
       console.error('Error deleting division:', error)
-      alert('Failed to delete division. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to delete division', description: 'Please try again.' })
     }
   }
 
@@ -828,10 +895,10 @@ export default function SettingsPage() {
       setTeams([...teams, data])
       setNewTeamName('')
       setNewTeamDivisionId(null)
-      alert('Team created successfully')
+      toast({ title: 'Team created successfully' })
     } catch (error) {
       console.error('Error creating team:', error)
-      alert('Failed to create team. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to create team', description: 'Please try again.' })
     }
   }
 
@@ -851,7 +918,7 @@ export default function SettingsPage() {
       setEditingTeamName('')
     } catch (error) {
       console.error('Error renaming team:', error)
-      alert('Failed to rename team. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to rename team', description: 'Please try again.' })
     }
   }
 
@@ -871,10 +938,10 @@ export default function SettingsPage() {
       setTeams(teams.filter(t => t.id !== teamId))
       // Update users that were in this team
       setTeamMembers(teamMembers.map(m => m.team_id === teamId ? { ...m, team_id: null } : m))
-      alert('Team deleted')
+      toast({ title: 'Team deleted' })
     } catch (error) {
       console.error('Error deleting team:', error)
-      alert('Failed to delete team. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to delete team', description: 'Please try again.' })
     }
   }
 
@@ -890,7 +957,7 @@ export default function SettingsPage() {
       setTeams(teams.map(t => t.id === teamId ? { ...t, division_id: divisionId } : t))
     } catch (error) {
       console.error('Error assigning team to division:', error)
-      alert('Failed to assign team. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to assign team', description: 'Please try again.' })
     }
   }
 
@@ -906,7 +973,57 @@ export default function SettingsPage() {
       setTeamMembers(teamMembers.map(m => m.id === userId ? { ...m, team_id: newTeamId } : m))
     } catch (error) {
       console.error('Error reassigning user:', error)
-      alert('Failed to reassign user. Please try again.')
+      toast({ variant: 'destructive', title: 'Failed to reassign user', description: 'Please try again.' })
+    }
+  }
+
+  // Activity types management handlers
+  const handleAddActivityType = async () => {
+    if (!newActivityLabel.trim() || !newActivityValue.trim() || !orgId) return
+
+    setSavingActivityType(true)
+    try {
+      const { data, error } = await supabase
+        .from('activity_types')
+        .insert({
+          org_id: orgId,
+          label: newActivityLabel.trim(),
+          value: newActivityValue.trim().toLowerCase().replace(/\s+/g, '_'),
+          icon: null,
+        })
+        .select('id, label, value, icon')
+        .single()
+
+      if (error) throw error
+
+      setActivityTypes([...activityTypes, data])
+      setNewActivityLabel('')
+      setNewActivityValue('')
+      toast({ title: 'Activity type added' })
+    } catch (error) {
+      console.error('Error adding activity type:', error)
+      toast({ variant: 'destructive', title: 'Failed to add activity type', description: 'Please try again.' })
+    } finally {
+      setSavingActivityType(false)
+    }
+  }
+
+  const handleDeleteActivityType = async (typeId: string) => {
+    if (!confirm('Delete this activity type?')) return
+
+    try {
+      const { error } = await supabase
+        .from('activity_types')
+        .delete()
+        .eq('id', typeId)
+
+      if (error) throw error
+
+      setActivityTypes(activityTypes.filter((t) => t.id !== typeId))
+      toast({ title: 'Activity type removed' })
+    } catch (error) {
+      console.error('Error deleting activity type:', error)
+      toast({ variant: 'destructive', title: 'Failed to remove activity type', description: 'Please try again.' })
     }
   }
 
@@ -1023,6 +1140,7 @@ export default function SettingsPage() {
                     setTimeout(() => setProfileSaved(false), 3000)
                   } catch (err) {
                     console.error('Failed to save display name:', err)
+                    toast({ variant: 'destructive', title: 'Failed to save display name', description: 'Please try again.' })
                   } finally {
                     setSavingProfile(false)
                   }
@@ -1487,6 +1605,70 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Activity Types Management Section */}
+                {userRole === 'manager' && (
+                  <div className="glass-card p-4">
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white mb-1">
+                      Activity Types
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-white/50 mb-3">
+                      Configure the activity types available when logging activities.
+                    </p>
+
+                    {loadingActivityTypes ? (
+                      <div className="flex items-center gap-2 text-gray-400 dark:text-white/40 py-2">
+                        <div className="w-4 h-4 border-2 border-indigo-electric border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm">Loading...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 mb-4">
+                        {activityTypes.length === 0 ? (
+                          <p className="text-sm text-gray-500 dark:text-white/40 italic">No custom types configured. Using defaults.</p>
+                        ) : (
+                          activityTypes.map((type) => (
+                            <div key={type.id} className="flex items-center justify-between p-2 border border-gray-200 dark:border-white/10 rounded-md">
+                              <div>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">{type.label}</span>
+                                <span className="ml-2 text-xs text-gray-500 dark:text-white/50 font-mono">{type.value}</span>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteActivityType(type.id)}
+                                className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newActivityLabel}
+                        onChange={(e) => setNewActivityLabel(e.target.value)}
+                        placeholder="Label (e.g. LinkedIn)"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400"
+                      />
+                      <input
+                        type="text"
+                        value={newActivityValue}
+                        onChange={(e) => setNewActivityValue(e.target.value)}
+                        placeholder="Value (e.g. linkedin)"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400"
+                      />
+                      <button
+                        onClick={handleAddActivityType}
+                        disabled={savingActivityType || !newActivityLabel.trim() || !newActivityValue.trim()}
+                        className="px-3 py-1.5 text-sm bg-indigo-electric text-white rounded-md hover:bg-indigo-electric/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1558,12 +1740,21 @@ export default function SettingsPage() {
                               {new Date(invite.expires_at).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <button
-                                onClick={() => handleCancelInvite(invite.id)}
-                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                              >
-                                Cancel
-                              </button>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => handleResendInvite(invite)}
+                                  disabled={resendingInviteId === invite.id}
+                                  className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-50"
+                                >
+                                  {resendingInviteId === invite.id ? 'Sending...' : 'Resend'}
+                                </button>
+                                <button
+                                  onClick={() => handleCancelInvite(invite.id)}
+                                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1716,8 +1907,12 @@ export default function SettingsPage() {
               Email
             </h3>
             <div className="space-y-4">
-              <GmailOAuthButton />
-              <OutlookOAuthButton />
+              <OAuthErrorBoundary label="Gmail">
+                <GmailOAuthButton />
+              </OAuthErrorBoundary>
+              <OAuthErrorBoundary label="Outlook">
+                <MicrosoftOAuthButton integrationType="mail" />
+              </OAuthErrorBoundary>
             </div>
           </div>
 
@@ -1727,8 +1922,12 @@ export default function SettingsPage() {
               Calendar
             </h3>
             <div className="space-y-4">
-              <GoogleCalendarOAuthButton />
-              <OutlookCalendarOAuthButton />
+              <OAuthErrorBoundary label="Google Calendar">
+                <GoogleCalendarOAuthButton />
+              </OAuthErrorBoundary>
+              <OAuthErrorBoundary label="Outlook Calendar">
+                <MicrosoftOAuthButton integrationType="calendar" />
+              </OAuthErrorBoundary>
             </div>
           </div>
 
@@ -1741,12 +1940,9 @@ export default function SettingsPage() {
               <p className="text-sm text-gray-500 dark:text-white/40">No CRM integrations available.</p>
             )}
             <div className="space-y-4">
-              {getAvailableAdapters().map((adapter) => (
-                <div key={adapter.meta.provider}>
-                  {adapter.meta.provider === 'salesforce' && <SalesforceOAuthButton />}
-                  {adapter.meta.provider === 'attio' && <AttioOAuthButton />}
-                </div>
-              ))}
+              <OAuthErrorBoundary label="Salesforce">
+                <SalesforceOAuthButton />
+              </OAuthErrorBoundary>
 
               {/* Salesforce Activity Sync Settings */}
               <div className="glass-card p-4">

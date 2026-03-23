@@ -32,23 +32,30 @@ interface EmailActivity {
   }
 }
 
+const EMAIL_PAGE_SIZE = 25
+
 export default function Email() {
   const { user } = useAuth()
   const [emails, setEmails] = useState<EmailActivity[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [page, setPage] = useState(0)
   const [activeFilter, setActiveFilter] = useState<EmailFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showComposeModal, setShowComposeModal] = useState(false)
 
   useEffect(() => {
     if (user) {
-      loadEmails()
+      setPage(0)
+      setEmails([])
+      loadEmails(0, true)
     }
   }, [user])
 
-  const loadEmails = async () => {
+  const loadEmails = async (pageNum: number, reset = false) => {
     if (!user) return
-    setLoading(true)
+    if (reset) setLoading(true); else setLoadingMore(true)
 
     try {
       const { data, error } = await supabase
@@ -64,14 +71,23 @@ export default function Email() {
         .eq('user_id', user.id)
         .eq('type', 'email')
         .order('created_at', { ascending: false })
+        .range(pageNum * EMAIL_PAGE_SIZE, (pageNum + 1) * EMAIL_PAGE_SIZE - 1)
 
       if (error) throw error
-      setEmails((data as unknown as EmailActivity[]) || [])
+      const fetched = (data as unknown as EmailActivity[]) || []
+      setEmails((prev) => reset ? fetched : [...prev, ...fetched])
+      setHasMore(fetched.length === EMAIL_PAGE_SIZE)
     } catch (error) {
       console.error('Error loading emails:', error)
     } finally {
-      setLoading(false)
+      if (reset) setLoading(false); else setLoadingMore(false)
     }
+  }
+
+  const loadMore = () => {
+    const nextPage = page + 1
+    setPage(nextPage)
+    loadEmails(nextPage)
   }
 
   const filteredEmails = emails.filter((email) => {
@@ -277,6 +293,19 @@ export default function Email() {
         </div>
       )}
 
+      {/* Load more */}
+      {hasMore && !searchQuery && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-6 py-2 text-sm font-medium text-indigo-electric border border-indigo-electric rounded-lg hover:bg-indigo-electric/10 disabled:opacity-50 transition-colors"
+          >
+            {loadingMore ? 'Loading...' : 'Load more'}
+          </button>
+        </div>
+      )}
+
       {/* Compose Email Modal */}
       {showComposeModal && (
         <ComposeEmailModal
@@ -284,7 +313,7 @@ export default function Email() {
           onClose={() => setShowComposeModal(false)}
           onSuccess={() => {
             setShowComposeModal(false)
-            loadEmails()
+            loadEmails(0, true)
           }}
         />
       )}

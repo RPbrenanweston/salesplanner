@@ -1,0 +1,1266 @@
+{
+  "project": "SalesBlock.io — Feature Roadmap PRD",
+  "branchName": "ralph/salesblock-roadmap",
+  "description": "Comprehensive PRD for the SalesBlock feature roadmap. 4 phases: Stabilization, Sales Planner + Attio, HubSpot + Sequencer + Cockpit 2.0, Data Enrichment. ~115 stories. Derived from positioning documents, competitive analysis, CRM market research, and super-productivity fork exploration.",
+  "techStack": {
+    "frontend": "React 18 + TypeScript 5.3 + Vite 5.1 + TanStack Query v5 + Tailwind 3 + Shadcn/ui",
+    "backend": "Supabase (PostgreSQL + Auth + RLS + Edge Functions + Storage)",
+    "integrations": "Gmail, Outlook, Google Calendar, Outlook Calendar, Salesforce (existing). Attio, HubSpot, Pipedrive, Close, Dynamics 365 (roadmap).",
+    "payments": "Stripe",
+    "testing": "Vitest + @testing-library/react",
+    "superProductivityFork": "https://github.com/RPbrenanweston/super-productivity-salesblock.git — Angular 21 + NgRx. Port timer logic and planner data model to React hooks."
+  },
+  "strategicGuardrails": [
+    "No set-and-forget automation — sequencer is human-enabled, every touch requires rep judgment",
+    "No generic task/project management — day planner is sales-specific blocks only",
+    "No CRM replacement — syncs WITH CRMs, does not replace them",
+    "No manager surveillance — analytics serve reps first, coaching > monitoring",
+    "No built-in dialer/call recording — partnership play, tel: links delegate to user's dialer",
+    "No LinkedIn automation — social logging is manual and intentional",
+    "No single-vendor data lock-in — waterfall enrichment with BYOK by design",
+    "Analytics = pipeline coaching — focus on account metrics that move the needle, not vanity metrics"
+  ],
+  "crmIntegrationPriority": [
+    { "rank": 1, "crm": "Salesforce", "phase": "Done", "method": "Native", "rationale": "21% market share, enterprise credibility" },
+    { "rank": 2, "crm": "Attio", "phase": "Phase 1", "method": "Native", "rationale": "Dogfooding (RPBW uses Attio), 4x ARR growth, App Store distribution channel" },
+    { "rank": 3, "crm": "HubSpot", "phase": "Phase 2", "method": "Native", "rationale": "62% SMB share, best API, detectable via BuiltWith for technographic GTM" },
+    { "rank": 4, "crm": "Pipedrive", "phase": "Phase 2", "method": "Native", "rationale": "SMB #3, excellent API, sales-focused user base = exact ICP" },
+    { "rank": 5, "crm": "Close", "phase": "Phase 3", "method": "Native", "rationale": "Inside-sales ICP overlap, quality API" },
+    { "rank": 6, "crm": "Dynamics 365", "phase": "Phase 3", "method": "Native or Nango", "rationale": "Enterprise expansion, complex Azure AD auth" },
+    { "rank": 7, "crm": "Long-tail (Zoho, Freshsales, etc.)", "phase": "Phase 4", "method": "Nango if adopted", "rationale": "On-demand based on customer signals" }
+  ],
+  "enrichmentProviderPriority": [
+    { "tier": "Testing", "providers": ["LeadMagic"], "notes": "RPBW has API access now" },
+    { "tier": "Tier 1 (baseline)", "providers": ["Apollo", "Hunter"], "notes": "Cheap, first in waterfall" },
+    { "tier": "Tier 2 (mid-tier)", "providers": ["People Data Labs", "Lusha"], "notes": "Phone + deeper company data" },
+    { "tier": "Verification", "providers": ["Debounce", "NeverBounce"], "notes": "Email SMTP validation" },
+    { "tier": "Phone Intent", "providers": ["TitanX", "SureConnect"], "notes": "Dial-to-connect scoring, premium" },
+    { "tier": "BYOK", "providers": ["ZoomInfo", "Cognism", "any"], "notes": "Customer-supplied API keys, anti-lock-in" }
+  ],
+  "userStories": [
+    {
+      "id": "P0-001",
+      "title": "Fix CSV import duplicate handling in list_contacts",
+      "description": "As a user importing contacts via CSV, I need duplicate contacts already in the list to be silently skipped so the import doesn't fail or create duplicates.",
+      "acceptanceCriteria": [
+        "ImportCSVModal.tsx uses ON CONFLICT (list_id, contact_id) DO NOTHING on list_contacts insert",
+        "Import completes successfully even when contacts already exist in the list",
+        "Import summary shows count of skipped duplicates",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/components/ImportCSVModal.tsx"],
+      "notes": "FIX-008 from prd-prelaunch-fixes.json. Current bulk insert fails silently when contact already exists in list."
+    },
+    {
+      "id": "P0-002",
+      "title": "Fix Pipeline drag StrictMode double-fire + optimistic rollback",
+      "description": "As a user dragging deals on the pipeline kanban, I need the drag to execute exactly once and roll back on failure so deal stages don't get corrupted.",
+      "acceptanceCriteria": [
+        "onDragEnd in Pipeline.tsx is guarded with useRef idempotency token",
+        "Deal stage update is optimistic with rollback on Supabase failure",
+        "In React StrictMode, drag fires only once regardless of double-invoke",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/pages/Pipeline.tsx"],
+      "notes": "FIX-009. @dnd-kit onDragEnd fires twice in StrictMode dev."
+    },
+    {
+      "id": "P0-003",
+      "title": "Fix BookMeetingModal silent failure on expired calendar token",
+      "description": "As a user booking a meeting, I need to see an error and be prompted to reconnect if my calendar token has expired, rather than the modal silently failing.",
+      "acceptanceCriteria": [
+        "BookMeetingModal checks token expiry before attempting calendar API call",
+        "If token expired, shows 'Calendar disconnected — reconnect in Settings' message with link",
+        "If token refresh fails, same error message shown",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/components/BookMeetingModal.tsx", "frontend/src/lib/calendar.ts"],
+      "notes": "FIX-010. Currently fails silently — user thinks meeting was booked but it wasn't."
+    },
+    {
+      "id": "P0-004",
+      "title": "Fix ContactDetailPage crash on direct navigation",
+      "description": "As a user navigating directly to a contact detail URL, the page should load without crashing, even without router history state.",
+      "acceptanceCriteria": [
+        "ContactDetailPage fetches contact by ID from URL params if no history state",
+        "Back button falls back to /contacts list if no history",
+        "Loading state shown while fetching",
+        "404 shown if contact ID doesn't exist or isn't in user's org",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/pages/ContactDetailPage.tsx"],
+      "notes": "FIX-011. Currently crashes with undefined error when navigated to directly."
+    },
+    {
+      "id": "P0-005",
+      "title": "Add idempotency key to Stripe webhook handler",
+      "description": "As an operator, I need Stripe webhooks to be processed exactly once so subscriptions aren't double-activated on retry.",
+      "acceptanceCriteria": [
+        "Edge function stores processed event IDs in a stripe_webhook_events table",
+        "Before processing, checks if event_id already processed — skips if so",
+        "checkout.session.completed, customer.subscription.updated, invoice.payment_failed all guarded",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["supabase/functions/stripe-webhook/index.ts"],
+      "notes": "FIX-012. Stripe retries webhooks on timeout — current handler can double-process."
+    },
+    {
+      "id": "P0-006",
+      "title": "Add ON CONFLICT guards to Salesforce sync and email reply tracker",
+      "description": "As a user with Salesforce connected, I need activity sync and email reply tracking to handle retries without creating duplicate records.",
+      "acceptanceCriteria": [
+        "sync-activities-to-salesforce edge function uses ON CONFLICT on salesforce_task_id",
+        "check-email-replies edge function uses ON CONFLICT on thread_id + reply timestamp",
+        "Retry of either function doesn't create duplicate activity/reply records",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["supabase/functions/sync-activities-to-salesforce/index.ts", "supabase/functions/check-email-replies/index.ts"],
+      "notes": "FIX-013. Both edge functions insert records on retry without checking for duplicates."
+    },
+    {
+      "id": "P0-007",
+      "title": "Fix team invitation orphaned row on email failure",
+      "description": "As an admin inviting a team member, I need the invitation to roll back if the email fails to send, so there's no orphaned invitation record.",
+      "acceptanceCriteria": [
+        "Invitation insert and email send are wrapped in a transaction or the invitation has a status field",
+        "If email send fails, invitation row is either deleted or marked as 'failed'",
+        "UI shows clear error message if invitation email couldn't be sent",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/pages/SettingsPage.tsx"],
+      "notes": "FIX-014. Currently creates invitation row then tries to send email — if email fails, orphaned row remains."
+    },
+    {
+      "id": "P0-008",
+      "title": "Fix concurrent OAuth token refresh race condition",
+      "description": "As a user with OAuth connections, I need simultaneous API calls that detect an expired token to coordinate so only one refresh occurs.",
+      "acceptanceCriteria": [
+        "token-refresh.ts implements a mutex/queue pattern: first caller refreshes, others wait for the result",
+        "No duplicate refresh requests are sent to the OAuth provider",
+        "After refresh, all queued callers receive the new token",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/lib/token-refresh.ts"],
+      "notes": "FIX-015. Multiple concurrent calls can all detect expired token and race to refresh."
+    },
+    {
+      "id": "P0-009",
+      "title": "Add pre-check for Salesforce push when disconnected",
+      "description": "As a user, I need the Salesforce activity push to check connection status before attempting to sync, showing a clear message if disconnected.",
+      "acceptanceCriteria": [
+        "Before pushing activity to Salesforce, check oauth_connections for active Salesforce connection",
+        "If disconnected, show toast: 'Salesforce not connected — connect in Settings to sync activities'",
+        "Auto-push toggle in Settings is disabled when Salesforce is disconnected",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/lib/salesforce.ts", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "FIX-016. Currently fails silently when Salesforce is disconnected."
+    },
+    {
+      "id": "P0-010",
+      "title": "Add confirmation dialogs to all delete actions",
+      "description": "As a user, I need to confirm before deleting SalesBlocks, Scripts, Goals, and Email Templates so I don't accidentally lose data.",
+      "acceptanceCriteria": [
+        "Delete SalesBlock shows confirmation dialog with session title",
+        "Delete Call Script shows confirmation with script name",
+        "Delete Goal shows confirmation with metric name",
+        "Delete Email Template shows confirmation with template name",
+        "All dialogs have Cancel and Delete buttons, Cancel is default focus",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/pages/SalesBlocks.tsx", "frontend/src/pages/Scripts.tsx", "frontend/src/pages/Goals.tsx", "frontend/src/pages/EmailTemplates.tsx"],
+      "notes": "FIX-017. All delete buttons currently fire immediately without confirmation."
+    },
+    {
+      "id": "P0-011",
+      "title": "Fix useTheme hook dependency array + 4 P3 UX bugs",
+      "description": "Fix remaining P3 UX issues: useTheme listener leak (FIX-018), Arena void-700 class (FIX-019), ProtectedRoute redirect race (FIX-020), TrialExpiryBanner persistence (FIX-021), Team invitation resend (FIX-025).",
+      "acceptanceCriteria": [
+        "useTheme effect has correct dependency array, listener doesn't re-register on state change",
+        "Arena page uses valid Tailwind class instead of bg-void-700",
+        "ProtectedRoute waits for auth loading to resolve before redirecting",
+        "TrialExpiryBanner dismiss persisted to localStorage, doesn't reappear on reload",
+        "Team invitation has resend button and 72h expiry enforcement",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/hooks/useTheme.ts", "frontend/src/pages/Arena.tsx", "frontend/src/components/ProtectedRoute.tsx", "frontend/src/components/TrialExpiryBanner.tsx", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "Bundled P3 fixes. Each is small but causes visible UX breakage."
+    },
+    {
+      "id": "P0-012",
+      "title": "Wire ported analytics computation to Analytics page",
+      "description": "As a user viewing Analytics, I need the ported analytics computation module connected to the Analytics page for accurate metric calculation.",
+      "acceptanceCriteria": [
+        "Analytics page imports from ported-features/08-analytics-computation/ or the code is moved to lib/analytics/",
+        "Sales metrics, distribution, and timeline computations use the ported module",
+        "Analytics page renders correct data with the new computation layer",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/pages/Analytics.tsx", "frontend/src/ported-features/08-analytics-computation/"],
+      "notes": "Ported features exist but aren't wired into the live app."
+    },
+
+    {
+      "id": "P1-001",
+      "title": "Create timer state machine with Pomodoro mode",
+      "description": "As a rep, I need a Pomodoro timer (25min work + 5min break) so I can execute focused prospecting sessions with structured breaks.",
+      "acceptanceCriteria": [
+        "useTimer hook implements state machine: idle → running → paused → break → running → completed",
+        "Pomodoro mode: 25min work, 5min short break, 15min long break every 4 cycles",
+        "Timer displays remaining time, current cycle number, work/break state",
+        "Pause/resume functionality",
+        "Audio notification on timer completion (optional, respects browser permissions)",
+        "Timer state persists across component re-renders but NOT across page navigation",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/hooks/useTimer.ts"],
+      "notes": "Port logic from super-productivity fork: /tmp/super-productivity-salesblock/src/app/features/focus-mode/focus-mode.model.ts. Reimplement as React hook, not Angular/NgRx."
+    },
+    {
+      "id": "P1-002",
+      "title": "Add 90-minute sprint timer mode",
+      "description": "As a rep, I need a 90-minute sprint timer (90min work + 15min break) for deep work prospecting sessions that match ultradian rhythm research.",
+      "acceptanceCriteria": [
+        "useTimer hook supports 'sprint' mode: 90min work, 15min break",
+        "Sprint mode uses same state machine as Pomodoro but with different durations",
+        "Break duration configurable (default 15min)",
+        "Sprint count tracked per day for debrief",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/hooks/useTimer.ts"],
+      "notes": "90-minute sprints are the core SalesBlock session duration. Matches ultradian rhythm research for sustained focus."
+    },
+    {
+      "id": "P1-003",
+      "title": "Add Flowtime and Custom countdown timer modes",
+      "description": "As a rep, I need a Flowtime mode (continuous timer, no forced breaks) and a Custom countdown mode (any duration) for flexibility.",
+      "acceptanceCriteria": [
+        "useTimer hook supports 'flowtime' mode: continuous timer, manual break trigger",
+        "useTimer hook supports 'custom' mode: user sets duration in minutes",
+        "Flowtime shows elapsed time counting up",
+        "Custom shows countdown from user-set duration",
+        "Both modes support pause/resume",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/hooks/useTimer.ts"],
+      "notes": "Port logic from super-productivity fork flowtime and countdown modes."
+    },
+    {
+      "id": "P1-004",
+      "title": "Create Day Planner page with draggable time blocks",
+      "description": "As a rep, I need a Day Planner page showing my full day as a timeline with draggable sales blocks so I can plan my selling day.",
+      "acceptanceCriteria": [
+        "New route /planner renders DayPlanner.tsx",
+        "Day timeline shows hours from 7am to 7pm (configurable)",
+        "Existing SalesBlocks for today appear as colored blocks on the timeline",
+        "Calendar events (from connected Google/Outlook calendar) appear as grey blocks",
+        "Available selling time = total hours minus calendar events minus breaks",
+        "Available hours number displayed prominently at top",
+        "Sidebar nav includes Planner link",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/pages/DayPlanner.tsx", "frontend/src/App.tsx", "frontend/src/components/AppLayout.tsx"],
+      "notes": "Core feature. Port available hours calculation from super-productivity fork. Use @hello-pangea/dnd (already in project) for drag-drop."
+    },
+    {
+      "id": "P1-005",
+      "title": "Create sales block types with default configurations",
+      "description": "As a rep, I need sales-specific block types (Prospecting, Follow-Up, Pipeline Review, Meeting Prep, Admin) so my planner organizes my day by selling activity type.",
+      "acceptanceCriteria": [
+        "SessionType extended: 'call' | 'email' | 'social' | 'prospecting' | 'follow_up' | 'pipeline_review' | 'meeting_prep' | 'admin'",
+        "Each block type has default duration: Prospecting=90min, Follow-Up=45min, Pipeline Review=30min, Meeting Prep=15min, Admin=25min",
+        "Each block type has a distinct color in the planner timeline",
+        "Block type determines which contact queue behavior is used (prospecting=new contacts, follow_up=overdue contacts)",
+        "Create SalesBlock modal includes block type selector",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/types/domain.ts", "frontend/src/types/enums.ts", "frontend/src/pages/DayPlanner.tsx", "frontend/src/components/CreateSalesBlockModal.tsx"],
+      "notes": "Extend the existing SessionType. Do NOT make this generic task management — these are sales-specific block types only."
+    },
+    {
+      "id": "P1-006",
+      "title": "Build Day Plan data model and useDayPlan hook",
+      "description": "As a rep, I need my daily plan to persist so I can create a plan in the morning and track actual execution throughout the day.",
+      "acceptanceCriteria": [
+        "New Supabase migration creates salesblock_day_plans table: id, org_id, user_id, plan_date, planned_blocks JSONB, actual_blocks JSONB, available_hours_minutes, notes, created_at, updated_at",
+        "RLS policy: users can only read/write their own day plans within their org",
+        "useDayPlan hook: createPlan, updatePlan, getPlansForDate, addBlockToPlan, removeBlockFromPlan",
+        "Planned blocks JSONB structure: [{block_type, start_time, end_time, duration_minutes, salesblock_id?, timer_mode}]",
+        "Actual blocks auto-populated when SalesBlock sessions start/complete",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["supabase/migrations/YYYYMMDD_create_day_plans.sql", "frontend/src/hooks/useDayPlan.ts", "frontend/src/types/domain.ts"],
+      "notes": "Port data model concepts from super-productivity fork planner.model.ts. Keep it sales-specific."
+    },
+    {
+      "id": "P1-007",
+      "title": "Build follow-up cadence engine",
+      "description": "As a rep, I need the system to track days since last contact and surface overdue follow-ups in my morning planner view.",
+      "acceptanceCriteria": [
+        "lib/cadence.ts implements: getContactsNeedingFollowUp(orgId, userId, daysThreshold)",
+        "Query: contacts where latest activity is older than configurable threshold (default: 7 days for prospects, 30 days for active deals, 90 days for closed-won)",
+        "Thresholds configurable per pipeline stage in Settings",
+        "Results grouped by urgency: overdue (>2x threshold), due soon (>threshold), upcoming (>0.75x threshold)",
+        "Planner morning view shows overdue count badge",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/lib/cadence.ts", "frontend/src/pages/DayPlanner.tsx"],
+      "notes": "This is the foundation for the human-enabled sequencer in Phase 2. Keep it simple: days since last touch + configurable thresholds."
+    },
+    {
+      "id": "P1-008",
+      "title": "Build pre-flight briefing (morning planner view)",
+      "description": "As a rep starting my day, I need a morning briefing showing today's blocks, overdue follow-ups, meetings, and goal progress so I can plan effectively.",
+      "acceptanceCriteria": [
+        "DayPlanner page has a collapsible 'Morning Briefing' section at top",
+        "Shows: today's scheduled SalesBlocks with times, overdue follow-up count, calendar meetings, goal progress bars (daily targets)",
+        "Quick actions: 'Create Prospecting Block', 'Create Follow-Up Block' buttons",
+        "If no plan exists for today, shows 'Plan Your Day' prompt with suggested blocks based on overdue follow-ups",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/pages/DayPlanner.tsx", "frontend/src/components/planner/MorningBriefing.tsx"],
+      "notes": "Transform the existing Home dashboard concept into an actionable morning planning tool."
+    },
+    {
+      "id": "P1-009",
+      "title": "Build daily debrief view",
+      "description": "As a rep ending my day, I need a debrief showing blocks completed, contacts worked, meetings booked, and plan adherence.",
+      "acceptanceCriteria": [
+        "DayPlanner page has a 'Daily Debrief' section that activates after last block completes or at end of day",
+        "Shows: planned blocks vs completed blocks, total contacts worked, calls/emails/meetings logged, meetings booked, plan adherence percentage",
+        "Plan adherence = (completed blocks / planned blocks) * 100",
+        "Comparison to daily goals: on track / behind / exceeded",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/pages/DayPlanner.tsx", "frontend/src/components/planner/DailyDebrief.tsx"],
+      "notes": "Closes the plan → execute → review loop. This data feeds into Phase 2 pipeline coaching analytics."
+    },
+    {
+      "id": "P1-010",
+      "title": "Build in-session calendar availability panel",
+      "description": "As a rep in a SalesBlock session, I need to toggle a week/month calendar view to see my availability for booking meetings without leaving the session.",
+      "acceptanceCriteria": [
+        "SalesBlockSessionPage has a toggleable CalendarAvailabilityPanel (collapsed by default)",
+        "Panel shows week view of connected calendar (Google or Outlook)",
+        "Busy times shown as blocks, free times highlighted",
+        "Rep can see: 'Free 2-4 Wed, Thu, and until 4 Fri' at a glance",
+        "Click on free slot opens BookMeetingModal with that time pre-filled",
+        "Toggle between week and month view",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/components/session/CalendarAvailabilityPanel.tsx", "frontend/src/pages/SalesBlockSessionPage.tsx", "frontend/src/lib/calendar.ts"],
+      "notes": "Uses existing calendar integration (Google Calendar + Outlook Calendar OAuth already built). Extends existing BookMeetingModal and Insert Availability features."
+    },
+    {
+      "id": "P1-011",
+      "title": "Create CrmAdapter TypeScript interface",
+      "description": "As a developer, I need a unified CRM adapter interface so all CRM integrations follow the same pattern and share common entity types.",
+      "acceptanceCriteria": [
+        "New directory: frontend/src/lib/crm/",
+        "frontend/src/lib/crm/types.ts defines: CrmAdapter interface, CrmContact, CrmCompany, CrmDeal, CrmActivity, CrmImportOptions",
+        "CrmAdapter interface includes: connect(), disconnect(), isConnected(), importContacts(), pushActivity(), importDeals(), pushDeal()",
+        "All CRM entity types map cleanly to existing SalesBlock domain types (Contact, Deal, Activity)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/lib/crm/types.ts"],
+      "notes": "Foundation for all CRM integrations. Design the interface before implementing any adapter."
+    },
+    {
+      "id": "P1-012",
+      "title": "Refactor Salesforce integration into CrmAdapter pattern",
+      "description": "As a developer, I need the existing Salesforce integration refactored into the CrmAdapter pattern so it serves as the template for all future CRM adapters.",
+      "acceptanceCriteria": [
+        "frontend/src/lib/salesforce.ts code moved to frontend/src/lib/crm/adapters/salesforce.ts",
+        "SalesforceAdapter class implements CrmAdapter interface",
+        "All existing Salesforce functionality preserved: OAuth, contact import, activity push, SOQL queries",
+        "ImportSalesforceModal uses SalesforceAdapter instead of direct salesforce.ts imports",
+        "Settings page Salesforce integration section uses adapter",
+        "Zero regressions: all existing Salesforce features still work",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/lib/crm/adapters/salesforce.ts", "frontend/src/lib/salesforce.ts", "frontend/src/components/ImportSalesforceModal.tsx", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "Pure refactor — no new functionality. This proves the adapter abstraction works before building Attio."
+    },
+    {
+      "id": "P1-013",
+      "title": "Create CRM adapter registry",
+      "description": "As a developer, I need a registry that maps provider names to adapter instances so the Settings > Integrations page can dynamically render available CRMs.",
+      "acceptanceCriteria": [
+        "frontend/src/lib/crm/registry.ts exports: registerAdapter(), getAdapter(), getAvailableAdapters()",
+        "Salesforce adapter auto-registered on import",
+        "Settings > Integrations page uses registry to render connected/available CRMs",
+        "Each adapter provides: displayName, iconUrl, description, scopes needed",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/lib/crm/registry.ts", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "Enables the integration settings page to dynamically show all available CRM connections."
+    },
+    {
+      "id": "P1-014",
+      "title": "Widen oauth_connections provider CHECK constraint",
+      "description": "As a developer, I need the oauth_connections table to support new CRM providers so we can store Attio, HubSpot, Pipedrive, and Close OAuth tokens.",
+      "acceptanceCriteria": [
+        "New Supabase migration alters oauth_connections.provider CHECK constraint",
+        "Allowed values: gmail, outlook, google_calendar, outlook_calendar, salesforce, attio, hubspot, pipedrive, close",
+        "Migration is backwards-compatible (existing rows unaffected)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["supabase/migrations/YYYYMMDD_widen_oauth_providers.sql"],
+      "notes": "Must be done before any new CRM integration can store tokens."
+    },
+    {
+      "id": "P1-015",
+      "title": "Build Attio OAuth connection flow",
+      "description": "As a user, I need to connect my Attio account via OAuth in Settings so SalesBlock can sync with my Attio CRM.",
+      "acceptanceCriteria": [
+        "AttioOAuthButton component in Settings > Integrations",
+        "OAuth 2.0 flow with Attio API: authorization URL, callback handler, token exchange",
+        "CSRF nonce validation on callback (following existing pattern from oauth-csrf.ts)",
+        "Access token + refresh token stored in oauth_connections with provider='attio'",
+        "Connected state shown with Attio email/workspace name",
+        "Disconnect button removes oauth_connection row",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/components/AttioOAuthButton.tsx", "frontend/src/pages/AttioOAuthCallback.tsx", "frontend/src/pages/SettingsPage.tsx", "frontend/src/App.tsx"],
+      "notes": "Follow existing OAuth patterns from GmailOAuthButton.tsx and SalesforceOAuthButton.tsx. Attio API docs: https://docs.attio.com/"
+    },
+    {
+      "id": "P1-016",
+      "title": "Build Attio CRM adapter",
+      "description": "As a developer, I need an Attio adapter implementing CrmAdapter so all Attio data operations go through the unified interface.",
+      "acceptanceCriteria": [
+        "frontend/src/lib/crm/adapters/attio.ts implements CrmAdapter interface",
+        "Maps Attio People → CrmContact (name, email, phone, company, title)",
+        "Maps Attio Companies → CrmCompany",
+        "Maps Attio Deals → CrmDeal (if Attio workspace uses deals)",
+        "Maps SalesBlock Activity → Attio Note format for push",
+        "Handles Attio API pagination (cursor-based)",
+        "Handles rate limiting (Attio: 100 req/s)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/lib/crm/adapters/attio.ts"],
+      "notes": "Attio REST API is developer-first, well-documented. Use Attio MCP server tools for testing if available."
+    },
+    {
+      "id": "P1-017",
+      "title": "Build Attio contact sync (import + bidirectional)",
+      "description": "As a user with Attio connected, I need to import People records from Attio and keep them synced with SalesBlock contacts.",
+      "acceptanceCriteria": [
+        "ImportAttioModal component allows user to search/filter Attio People",
+        "Import maps Attio fields to SalesBlock Contact fields with preview",
+        "Duplicate detection by email before import",
+        "Imported contacts have source='attio' and attio_id stored",
+        "Incremental sync: new/updated Attio records pulled on schedule or manual trigger",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/components/ImportAttioModal.tsx", "frontend/src/lib/crm/adapters/attio.ts"],
+      "notes": "Contact.source enum needs extending to include 'attio'. Add attio_id column to contacts table (nullable, unique per org)."
+    },
+    {
+      "id": "P1-018",
+      "title": "Build Attio activity push",
+      "description": "As a user with Attio connected, I need SalesBlock activities to automatically push to Attio as Notes on the corresponding People record.",
+      "acceptanceCriteria": [
+        "After logging an activity in SalesBlock, if Attio is connected AND auto-push is enabled, create a Note on the Attio People record",
+        "Note content includes: activity type, outcome, notes text, timestamp",
+        "Push is async (doesn't block activity logging UI)",
+        "Failed pushes are retried once, then marked as failed with error stored",
+        "Auto-push toggle in Settings > Integrations > Attio",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/lib/crm/adapters/attio.ts", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "Follow same async push pattern as Salesforce activity push. Use Attio Notes API."
+    },
+    {
+      "id": "P1-019",
+      "title": "Build Attio deal sync",
+      "description": "As a user with Attio connected, I need SalesBlock pipeline deals to map to Attio Deals for bidirectional stage tracking.",
+      "acceptanceCriteria": [
+        "Settings > Integrations > Attio includes deal stage mapping UI",
+        "User maps SalesBlock pipeline stages to Attio deal stages",
+        "When deal moves stage in SalesBlock, Attio deal updates (if mapped)",
+        "When deal stage changes in Attio, SalesBlock deal updates (on next sync)",
+        "Unmapped stages are skipped without error",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 1,
+      "passes": false,
+      "files": ["frontend/src/lib/crm/adapters/attio.ts", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "Bidirectional deal sync. Attio may or may not have deals configured in every workspace — handle gracefully."
+    },
+
+    {
+      "id": "P2-001",
+      "title": "Build HubSpot OAuth + CRM adapter",
+      "description": "As a user, I need to connect my HubSpot account and have contacts, companies, deals, and activities sync between SalesBlock and HubSpot.",
+      "acceptanceCriteria": [
+        "HubSpotOAuthButton in Settings with OAuth 2.0 flow (scopes: crm.objects.contacts.read/write, crm.objects.deals.read/write, crm.objects.companies.read)",
+        "HubSpot adapter implements CrmAdapter interface",
+        "Contact import from HubSpot with field mapping and duplicate detection",
+        "Activity push as HubSpot Engagements (Calls, Emails, Notes, Meetings)",
+        "Deal sync: bidirectional pipeline stage mapping",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/components/HubSpotOAuthButton.tsx", "frontend/src/pages/HubSpotOAuthCallback.tsx", "frontend/src/lib/crm/adapters/hubspot.ts", "frontend/src/components/ImportHubSpotModal.tsx"],
+      "notes": "HubSpot CRM API v3. 62% SMB market share. Use private app or OAuth app — OAuth preferred for multi-tenant. Rate limit: 100 requests/10 seconds."
+    },
+    {
+      "id": "P2-002",
+      "title": "Build Pipedrive OAuth + CRM adapter",
+      "description": "As a user, I need to connect Pipedrive and sync Persons, Organizations, and Deals with SalesBlock.",
+      "acceptanceCriteria": [
+        "PipedriveOAuthButton in Settings with OAuth 2.0 flow",
+        "Pipedrive adapter implements CrmAdapter: maps Persons → Contact, Organizations → Company, Deals → Deal",
+        "Activity push as Pipedrive Activities",
+        "Contact import with duplicate detection",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/components/PipedriveOAuthButton.tsx", "frontend/src/lib/crm/adapters/pipedrive.ts"],
+      "notes": "Pipedrive API v2. Rate limit: 100 req/10s per token. Webhook support for real-time updates."
+    },
+    {
+      "id": "P2-003",
+      "title": "Build cadence builder UI and data model",
+      "description": "As a rep or manager, I need to create multi-step cadences that define a sequence of touches (call, email, LinkedIn) with timing between steps.",
+      "acceptanceCriteria": [
+        "New Supabase migration: cadences table (id, org_id, name, description, steps JSONB, is_active, is_shared, owner_id, created_at)",
+        "Steps JSONB: [{step_number, channel, delay_days, template_id?, script_id?, instructions}]",
+        "Cadence builder page/modal: add steps, set channel (call/email/social), set delay days, assign template/script",
+        "Pre-built templates: New Prospect (8-touch), 30-Day Follow-Up, Quarterly Account Review, Lapsed Client Re-engagement, Post-Meeting Nurture",
+        "RLS: org-scoped, shared/personal cadences",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["supabase/migrations/YYYYMMDD_create_cadences.sql", "frontend/src/pages/Cadences.tsx", "frontend/src/components/CadenceBuilderModal.tsx", "frontend/src/types/domain.ts"],
+      "notes": "This is the foundation of the human-enabled sequencer. Steps define WHAT to do and WHEN — the rep decides HOW and executes manually."
+    },
+    {
+      "id": "P2-004",
+      "title": "Build cadence enrollment and step tracking",
+      "description": "As a rep, I need to enroll contacts into a cadence and track which step each contact is on.",
+      "acceptanceCriteria": [
+        "New Supabase migration: cadence_enrollments table (id, org_id, cadence_id, contact_id, user_id, current_step, status enum ['active','paused','completed','exited'], enrolled_at, next_due_at, completed_at)",
+        "Enroll contacts individually or from a list into a cadence",
+        "System calculates next_due_at based on cadence step delays",
+        "Contact detail page shows cadence enrollment status and current step",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["supabase/migrations/YYYYMMDD_create_cadence_enrollments.sql", "frontend/src/lib/cadence.ts", "frontend/src/pages/ContactDetailPage.tsx"],
+      "notes": "This enables the daily queue generation — query enrollments where next_due_at <= today AND status = 'active'."
+    },
+    {
+      "id": "P2-005",
+      "title": "Build SalesBlock auto-generation from cadence batches",
+      "description": "As a rep, when enough contacts reach the same cadence step type (e.g., 15 email follow-ups due), the system should suggest creating a SalesBlock session for that batch.",
+      "acceptanceCriteria": [
+        "Morning planner queries cadence_enrollments where next_due_at <= today, grouped by channel",
+        "If group count >= configurable threshold (default: 5), show 'Create [Channel] Block' suggestion",
+        "Suggestion shows: '12 follow-up emails due — Create Email Block (45min)'",
+        "Clicking suggestion creates a SalesBlock with those contacts as the queue",
+        "Pipeline becomes self-managing: follow-up blocks, review blocks, re-engagement blocks emerge from cadence data",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/pages/DayPlanner.tsx", "frontend/src/components/planner/CadenceSuggestions.tsx", "frontend/src/lib/cadence.ts"],
+      "notes": "This is the key differentiator: cadences don't just track — they generate focused execution sessions. The pipeline manages itself."
+    },
+    {
+      "id": "P2-006",
+      "title": "Build daily queue → planner integration",
+      "description": "As a rep, my morning planner should surface cadence tasks grouped by type so I see: '12 follow-up emails due, 8 prospecting calls due, 3 quarterly reviews due'.",
+      "acceptanceCriteria": [
+        "DayPlanner morning briefing includes 'Cadence Queue' section",
+        "Groups due cadence tasks by channel: calls, emails, social",
+        "Shows count and list of contacts per channel group",
+        "Each group has a 'Create Block' action that pre-populates a SalesBlock with those contacts",
+        "Overdue items (past due date) highlighted separately",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/pages/DayPlanner.tsx", "frontend/src/components/planner/CadenceQueueSection.tsx"],
+      "notes": "Bridges cadence enrollment data into the planner. Rep sees what needs doing and creates focused blocks."
+    },
+    {
+      "id": "P2-007",
+      "title": "Build cadence execution in SalesBlock session",
+      "description": "As a rep working a SalesBlock session, I need to see cadence context for each contact and mark steps complete as I execute them.",
+      "acceptanceCriteria": [
+        "Session cockpit right panel shows cadence badge if contact is enrolled in a cadence",
+        "Badge shows: cadence name, current step number/total, channel, last touch date",
+        "After logging an activity that matches the cadence step channel, prompt: 'Mark cadence step complete?'",
+        "Marking complete advances contact to next step, updates next_due_at",
+        "If outcome is 'meeting_booked', auto-exit cadence with status='completed'",
+        "If outcome is 'not_interested', prompt to exit cadence",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/pages/SalesBlockSessionPage.tsx", "frontend/src/components/session/CadenceContextBadge.tsx"],
+      "notes": "Every touch is human-executed. The system just tracks progression and suggests next steps."
+    },
+    {
+      "id": "P2-008",
+      "title": "Build manual cadence progression and outcome branching",
+      "description": "As a rep, I need to manually progress contacts through cadence steps, skip steps, pause enrollments, or exit contacts from cadences based on outcomes.",
+      "acceptanceCriteria": [
+        "Contact detail page shows cadence controls: Advance, Skip Step, Pause, Resume, Exit",
+        "Outcome branching: Meeting Booked → auto-exit (completed), Not Interested → prompt exit, Call Back Later → custom reschedule (updates next_due_at to specific date)",
+        "Paused contacts don't appear in daily queue",
+        "Exited contacts show cadence history but no pending actions",
+        "Bulk operations: select multiple contacts → advance/pause/exit all",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/pages/ContactDetailPage.tsx", "frontend/src/components/CadenceControlPanel.tsx"],
+      "notes": "Rep has full control. The system never auto-progresses or auto-exits without rep input."
+    },
+    {
+      "id": "P2-009",
+      "title": "Build pipeline workflow templates",
+      "description": "As a manager or rep, I need pre-built cadence templates for common sales workflows so I don't have to create every cadence from scratch.",
+      "acceptanceCriteria": [
+        "5 pre-built templates seeded on org creation: New Prospect (8-touch: Day 1 Call, Day 2 Email, Day 4 LinkedIn, Day 7 Call, Day 10 Email, Day 14 Call, Day 21 Email, Day 30 Call), 30-Day Follow-Up (3-touch), Quarterly Account Review (2-touch), Lapsed Client Re-engagement (5-touch), Post-Meeting Nurture (3-touch)",
+        "Templates appear in cadence builder as starting points",
+        "Templates are customizable — user can modify steps before saving",
+        "Templates are org-level (shared) and marked is_template=true",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/components/CadenceBuilderModal.tsx", "supabase/migrations/YYYYMMDD_seed_cadence_templates.sql"],
+      "notes": "30-day follow-ups, quarterly reviews, lapsed client blocks — these are the self-managing pipeline workflows."
+    },
+    {
+      "id": "P2-010",
+      "title": "Build pipeline coaching analytics",
+      "description": "As a rep or manager, I need analytics that show real account metrics (response rates, time-to-meeting, re-engagement success) instead of vanity metrics, so I can improve execution quality.",
+      "acceptanceCriteria": [
+        "New Analytics tab: 'Pipeline Coach'",
+        "Response rate by cadence step: which steps get the best response?",
+        "Time-to-meeting by cadence type: how many days from enrollment to meeting booked?",
+        "Re-engagement success rate: what % of lapsed clients re-engage?",
+        "Follow-up interval analysis: which delay between steps produces best outcomes?",
+        "Cadence completion rate: what % of enrolled contacts complete the full cadence?",
+        "Drop-off analysis: at which step do most contacts exit?",
+        "All metrics filterable by date range, cadence, rep",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/pages/Analytics.tsx", "frontend/src/components/analytics/PipelineCoachTab.tsx", "frontend/src/lib/analytics/cadence-metrics.ts"],
+      "notes": "This is the 'pipeline coach' vision. Focus on account metrics that move the needle — not clever call openers or vanity activity counts."
+    },
+    {
+      "id": "P2-011",
+      "title": "Build structured dispositions for session cockpit",
+      "description": "As a rep in a session, I need session-type-specific disposition buttons so I can quickly log outcomes without typing.",
+      "acceptanceCriteria": [
+        "Call block: Dial, Connect, Voicemail, No Answer, Wrong Number buttons",
+        "Email block: Sent, Replied, Bounced buttons",
+        "Social block: Request Sent, Message Sent, Engaged buttons",
+        "Disposition creates activity record with matching type + outcome",
+        "Selected disposition is visually highlighted",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/components/session/DispositionButtons.tsx", "frontend/src/pages/SalesBlockSessionPage.tsx"],
+      "notes": "Replaces generic outcome dropdown with quick-tap buttons. Uses existing session_type to determine which buttons to show."
+    },
+    {
+      "id": "P2-012",
+      "title": "Build connected flow checklist",
+      "description": "As a rep who connects with a prospect on a call, I need a progress checklist tracking: Intro Given, Conversation Held, Asked for Meeting, Meeting Booked.",
+      "acceptanceCriteria": [
+        "When disposition is 'Connect', show ConnectedFlowPanel with checkboxes",
+        "Checkboxes: Intro Given, Conversation Held, Asked for Meeting, Meeting Booked, Objection (with text field)",
+        "Checking items updates progress_flags on the activity record",
+        "Progress flags feed into 7-rate debrief funnel",
+        "Panel is collapsible and stays visible until contact is completed",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/components/session/ConnectedFlowPanel.tsx", "frontend/src/pages/SalesBlockSessionPage.tsx"],
+      "notes": "Uses existing ProgressFlags interface in domain.ts. May already be partially implemented — check session cockpit components."
+    },
+    {
+      "id": "P2-013",
+      "title": "Build research panel in session cockpit",
+      "description": "As a rep, I need a collapsible research panel in the session cockpit where I can view and add company/contact research notes.",
+      "acceptanceCriteria": [
+        "Collapsible side panel in session cockpit showing research entries for current contact/company",
+        "Add research note: select level (contact/company), category (news/pain_points/tech_stack/funding/general), enter content",
+        "Research entries persist in research_entries table (migration already exists)",
+        "Panel shows most recent entries first",
+        "Manual entry only — AI-assisted research is future state",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/pages/SalesBlockSessionPage.tsx", "frontend/src/components/session/ResearchPanel.tsx"],
+      "notes": "Uses existing ResearchEntry type and research_entries table. Manual entry now, AI enrichment in Phase 4."
+    },
+    {
+      "id": "P2-014",
+      "title": "Build calendar availability panel in session cockpit",
+      "description": "As a rep in a session trying to book a meeting, I need a toggleable week/month calendar view showing my availability without leaving the session.",
+      "acceptanceCriteria": [
+        "Toggleable panel in session cockpit (button: 'Show Calendar')",
+        "Shows week view by default, toggle to month",
+        "Busy times from connected calendar shown as blocks",
+        "Free time slots highlighted",
+        "Click free slot → opens BookMeetingModal with time pre-filled and current contact as attendee",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/components/session/CalendarAvailabilityPanel.tsx", "frontend/src/pages/SalesBlockSessionPage.tsx"],
+      "notes": "Duplicate of P1-010 if not completed in Phase 1. May be implemented there — check before starting."
+    },
+    {
+      "id": "P2-015",
+      "title": "Build 7-rate debrief funnel",
+      "description": "As a rep completing a session, I need a funnel visualization showing: Dials → Connects → Intros → Conversations → Asks → Meetings → Deals.",
+      "acceptanceCriteria": [
+        "Session completion page shows 7-stage funnel computed from session activities + progress_flags",
+        "Dials = total call activities, Connects = outcome='connect' or better, Intros = intro_given flag, Conversations = conversation_held flag, Asks = asked_for_meeting flag, Meetings = meeting_booked flag or outcome='meeting_booked', Deals = deals created during session",
+        "Funnel shows counts and conversion rates between stages",
+        "Comparison to previous session averages",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 2,
+      "passes": false,
+      "files": ["frontend/src/components/session/DebriefFunnel.tsx", "frontend/src/pages/SalesBlockSessionPage.tsx"],
+      "notes": "May be partially implemented already — check existing DebriefFunnel.tsx component."
+    },
+    {
+      "id": "P2-016",
+      "title": "Complete remaining P3/P4 feature improvements",
+      "description": "Complete FEAT-004 through FEAT-019 from prd-prelaunch-fixes.json: analytics time filter, arena leaderboard, pipeline totals, scripts search, email template preview, OAuth consolidation, etc.",
+      "acceptanceCriteria": [
+        "FEAT-004: Analytics time-range filter + sparkline trends",
+        "FEAT-006: Arena real-time leaderboard + time-range filter",
+        "FEAT-007: Pipeline deal value column totals + empty states",
+        "FEAT-008: Goals timezone bug + empty state",
+        "FEAT-009: SalesBlocks status filter tabs + empty state",
+        "FEAT-010: Scripts search + categories",
+        "FEAT-011: Email template preview + search/filter",
+        "FEAT-012: Template insertion dropdown in ComposeEmailModal",
+        "All typecheck pass"
+      ],
+      "priority": 3,
+      "phase": 2,
+      "passes": false,
+      "files": ["See prd-prelaunch-fixes.json for individual file references"],
+      "notes": "Parallel work alongside sequencer and cockpit 2.0. Each FEAT is independent."
+    },
+
+    {
+      "id": "P3-001",
+      "title": "Build waterfall enrichment orchestration engine",
+      "description": "As a developer, I need a waterfall enrichment engine that sequentially queries data providers, stops on first hit, and tracks credit usage.",
+      "acceptanceCriteria": [
+        "frontend/src/lib/enrichment/engine.ts implements: enrichContact(contactId, dataType, options)",
+        "Waterfall logic: query Provider A → if no result → query Provider B → ... → stop on first hit",
+        "Circuit breaker: if provider fails 3x in 5min, skip for 15min",
+        "Rate limiter: per-provider request throttling",
+        "Credit metering: each lookup costs N credits, deducted from user's allocation",
+        "Result caching: if contact already enriched for this data type, serve cached at zero cost (dedup guard)",
+        "Failed lookups still count against credits (documented behavior)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/enrichment/engine.ts", "frontend/src/lib/enrichment/types.ts"],
+      "notes": "Architecture: orchestration engine → provider adapters → normalization → verification → credit billing. Start simple, iterate."
+    },
+    {
+      "id": "P3-002",
+      "title": "Build LeadMagic enrichment provider adapter",
+      "description": "As a user, I need LeadMagic as the first enrichment provider so I can test waterfall enrichment with real data.",
+      "acceptanceCriteria": [
+        "frontend/src/lib/enrichment/providers/leadmagic.ts implements EnrichmentProvider interface",
+        "Supports: email lookup, phone lookup, company data",
+        "API key stored in org settings (not oauth_connections — LeadMagic uses API keys)",
+        "Handles LeadMagic API response format → normalized CrmContact fields",
+        "Rate limiting per LeadMagic API docs",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/enrichment/providers/leadmagic.ts", "frontend/src/lib/enrichment/types.ts"],
+      "notes": "RPBW has LeadMagic API access for immediate testing. First provider to prove the waterfall architecture."
+    },
+    {
+      "id": "P3-003",
+      "title": "Build enrichment provider adapters for Apollo + Hunter",
+      "description": "As a user, I need Apollo and Hunter as Tier 1 (baseline) enrichment providers in the waterfall.",
+      "acceptanceCriteria": [
+        "Apollo adapter: email enrichment, phone enrichment, company enrichment via Apollo API",
+        "Hunter adapter: email finder, email verifier via Hunter API",
+        "Both implement EnrichmentProvider interface",
+        "API keys stored in org settings",
+        "Both handle their specific rate limits and response formats",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/enrichment/providers/apollo.ts", "frontend/src/lib/enrichment/providers/hunter.ts"],
+      "notes": "Tier 1 = cheap, first in waterfall. These run before more expensive providers."
+    },
+    {
+      "id": "P3-004",
+      "title": "Build enrichment provider adapters for PDL + Lusha",
+      "description": "As a user, I need People Data Labs and Lusha as Tier 2 (mid-tier) enrichment providers for phone numbers and deeper company data.",
+      "acceptanceCriteria": [
+        "PDL adapter: person enrichment (email → phone, company, title), company enrichment",
+        "Lusha adapter: direct dial phone lookup (Lusha's strength)",
+        "Both implement EnrichmentProvider interface",
+        "Both registered in waterfall as Tier 2 (run after Tier 1 fails)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/enrichment/providers/pdl.ts", "frontend/src/lib/enrichment/providers/lusha.ts"],
+      "notes": "Tier 2 = medium cost, run only if Tier 1 didn't return results."
+    },
+    {
+      "id": "P3-005",
+      "title": "Build email verification layer (Debounce/NeverBounce)",
+      "description": "As a user, I need enriched email addresses to be verified via SMTP check so I don't waste effort on invalid emails.",
+      "acceptanceCriteria": [
+        "Verification adapter for Debounce (primary) and NeverBounce (fallback)",
+        "After waterfall finds an email, auto-verify via SMTP check",
+        "Verification result stored: valid, invalid, catch-all, unknown",
+        "Invalid emails flagged in contact record",
+        "Verification costs separate credits from enrichment",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/enrichment/providers/debounce.ts", "frontend/src/lib/enrichment/verification.ts"],
+      "notes": "Verification runs AFTER enrichment finds data. Prevents wasting cadence steps on bad emails."
+    },
+    {
+      "id": "P3-006",
+      "title": "Build enrichment UI (Enrich button + results display)",
+      "description": "As a rep, I need an 'Enrich' button on contact detail that shows available data points, estimated credit cost, and enrichment results.",
+      "acceptanceCriteria": [
+        "Contact detail page has 'Enrich' button",
+        "Click shows modal: available data types (email, phone, company), estimated credit cost per type, current provider waterfall",
+        "After enrichment: results displayed with confidence score and source provider",
+        "Enriched fields auto-populate contact record (with confirmation)",
+        "Credit usage shown: 'Used 3 credits (2 lookups + 1 verification)'",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/pages/ContactDetailPage.tsx", "frontend/src/components/EnrichContactModal.tsx"],
+      "notes": "Make credit costs transparent. Rep should know exactly what enrichment will cost before confirming."
+    },
+    {
+      "id": "P3-007",
+      "title": "Build waterfall configuration UI",
+      "description": "As an org admin, I need to configure the waterfall provider order and enable/disable providers per data type.",
+      "acceptanceCriteria": [
+        "Settings > Data Providers page",
+        "Drag-to-reorder providers in the waterfall per data type (email waterfall, phone waterfall, company waterfall)",
+        "Enable/disable individual providers",
+        "Show provider status: connected (API key valid), disconnected, rate-limited",
+        "Cheapest-first is the default order",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/pages/SettingsPage.tsx", "frontend/src/components/settings/DataProvidersTab.tsx"],
+      "notes": "Org admin controls. Individual reps use the waterfall as configured — they can't change provider order."
+    },
+    {
+      "id": "P3-008",
+      "title": "Build BYOK (Bring Your Own Key) provider setup",
+      "description": "As an org admin, I need to add my own API keys for ZoomInfo, Cognism, or other data providers so my team can use our existing subscriptions through SalesBlock.",
+      "acceptanceCriteria": [
+        "Settings > Data Providers > 'Add Custom Provider' button",
+        "Select provider type from supported list (ZoomInfo, Cognism, or generic REST API)",
+        "Enter API key/credentials (stored encrypted in Supabase)",
+        "Test connection button validates the key",
+        "Custom providers appear in waterfall config as premium tier",
+        "BYOK providers are org-owned (all reps can use if enabled)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/components/settings/BYOKProviderSetup.tsx", "frontend/src/lib/enrichment/providers/byok.ts"],
+      "notes": "Anti-lock-in: customers who already pay for ZoomInfo/Cognism don't need to re-buy through SalesBlock's waterfall."
+    },
+    {
+      "id": "P3-009",
+      "title": "Build credit system with per-rep allocation",
+      "description": "As an org admin, I need to allocate monthly enrichment credits per rep and track usage, so I can control data spend.",
+      "acceptanceCriteria": [
+        "New Supabase migration: enrichment_credits table (org_id, user_id, monthly_allocation, used_this_month, reset_date)",
+        "New: enrichment_transactions table (id, org_id, user_id, contact_id, provider, data_type, credits_used, result_status, created_at)",
+        "Settings > Data Providers > Credit Allocation section: set per-rep monthly credits",
+        "Dashboard widget shows remaining credits for current rep",
+        "When credits exhausted, enrichment blocked with 'Contact admin for more credits' message",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 3,
+      "passes": false,
+      "files": ["supabase/migrations/YYYYMMDD_create_enrichment_credits.sql", "frontend/src/components/settings/CreditAllocationTab.tsx", "frontend/src/lib/enrichment/credits.ts"],
+      "notes": "Org guardrails. This is what differentiates SalesBlock from Clay — Ramp-level spend controls on enrichment."
+    },
+    {
+      "id": "P3-010",
+      "title": "Build tiered autonomy and dedup guard for enrichment",
+      "description": "As an org admin, I need tiered enrichment access (self-serve Tier 1, allocation-based Tier 2, admin-approval bulk) and automatic deduplication.",
+      "acceptanceCriteria": [
+        "Self-serve: Tier 1 providers (Apollo, Hunter) available to all reps, no approval needed, deducts from allocation",
+        "Standard: Tier 2 providers (PDL, Lusha) deduct from monthly allocation, no approval needed",
+        "Premium: Phone intent scoring (TitanX/SureConnect) requires manager approval or premium credit pool",
+        "Bulk: enriching 1000+ contacts at once requires admin approval",
+        "Dedup guard: if contact was enriched by ANY rep in the org within 30 days, serve cached result at zero credit cost",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/enrichment/engine.ts", "frontend/src/lib/enrichment/credits.ts"],
+      "notes": "Balance rep autonomy with org cost control. The dedup guard alone can save significant credit waste."
+    },
+    {
+      "id": "P3-011",
+      "title": "Build enrichment → pipeline analytics",
+      "description": "As a manager, I need to see which enrichment provider's data leads to meetings and deals so we can auto-optimize the waterfall ordering.",
+      "acceptanceCriteria": [
+        "Analytics > Enrichment ROI tab",
+        "Track: credits spent per provider, contacts enriched per provider, meetings booked from enriched contacts (by provider), deals created from enriched contacts (by provider)",
+        "Cost-per-meeting by provider: which provider's data produces meetings most efficiently?",
+        "Recommendation engine: suggest reordering waterfall based on ROI data",
+        "Date range filter",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/pages/Analytics.tsx", "frontend/src/components/analytics/EnrichmentROITab.tsx"],
+      "notes": "This is the moat: neither Clay nor ZoomInfo tracks which provider's data actually converts to pipeline."
+    },
+    {
+      "id": "P3-012",
+      "title": "Build phone intent scoring integration (TitanX/SureConnect)",
+      "description": "As a rep, I need contacts scored by answer likelihood so I can prioritize who to call first in my session.",
+      "acceptanceCriteria": [
+        "TitanX or SureConnect adapter implementing EnrichmentProvider for phone intent",
+        "Score contacts on likelihood to answer (0-100 scale)",
+        "Score displayed on contact detail and in session queue",
+        "Session queue can be sorted by phone intent score (highest first)",
+        "Premium tier: requires credits from premium pool or manager approval",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/enrichment/providers/titanx.ts", "frontend/src/pages/SalesBlockSessionPage.tsx"],
+      "notes": "TitanX claims 20-30% connect rates vs 3-5% industry. SureConnect is pay-as-you-go alternative at $0.19/validation."
+    },
+    {
+      "id": "P3-013",
+      "title": "Build smart queue ordering by dial-to-connect probability",
+      "description": "As a rep in a call session, I need contacts ordered by predicted connect rate so I maximize productive conversations.",
+      "acceptanceCriteria": [
+        "Session contact queue supports sort by phone_intent_score (descending)",
+        "Default sort: phone intent score if available, then last activity date, then alphabetical",
+        "Sort toggle in session cockpit: 'Best to reach first' vs 'Cadence order' vs 'Alphabetical'",
+        "Visual indicator on contacts with high intent scores",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/pages/SalesBlockSessionPage.tsx"],
+      "notes": "Depends on P3-012 phone intent scoring being available."
+    },
+    {
+      "id": "P3-014",
+      "title": "Build connect rate tracking and bad data feedback loop",
+      "description": "As a manager, I need to track actual connect rates by data provider and get alerts when rates drop below threshold.",
+      "acceptanceCriteria": [
+        "Track: actual connect rate per data provider (connects / dials using that provider's phone data)",
+        "Analytics dashboard shows connect rate by provider over time",
+        "Alert: if connect rate drops below configurable threshold (default: 5%), show warning",
+        "Warning suggests: 'Phone data quality from [Provider] has dropped. Consider re-enriching with alternative provider.'",
+        "One-click re-enrichment with next provider in waterfall",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/enrichment/analytics.ts", "frontend/src/pages/Analytics.tsx"],
+      "notes": "Closes the feedback loop: enrichment → execution → measurement → optimization."
+    },
+    {
+      "id": "P3-015",
+      "title": "Build Close CRM native integration",
+      "description": "As a user with Close CRM, I need to connect Close and sync Leads, Contacts, Opportunities, and Activities with SalesBlock.",
+      "acceptanceCriteria": [
+        "Close adapter implements CrmAdapter via Nango or native OAuth",
+        "Maps Close Leads → Contact, Opportunities → Deal",
+        "Activity push as Close Activities",
+        "Contact import with duplicate detection",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/crm/adapters/close.ts", "frontend/src/components/CloseOAuthButton.tsx"],
+      "notes": "Close user base is exact SalesBlock ICP — inside sales teams doing high-volume outbound."
+    },
+    {
+      "id": "P3-016",
+      "title": "Build Dynamics 365 integration",
+      "description": "As a user with Microsoft Dynamics 365, I need to connect Dynamics and sync contacts, accounts, and activities.",
+      "acceptanceCriteria": [
+        "Dynamics 365 adapter using Azure AD OAuth (via Microsoft Graph or Dataverse API)",
+        "Maps Dynamics Contacts/Accounts → SalesBlock Contact/Company",
+        "Activity push as Dynamics Activities",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/lib/crm/adapters/dynamics.ts", "frontend/src/components/DynamicsOAuthButton.tsx"],
+      "notes": "Complex Azure AD auth. Enterprise expansion play. Consider Nango here if native is too complex."
+    },
+    {
+      "id": "P3-017",
+      "title": "Build weekly and monthly planner views",
+      "description": "As a rep, I need week-at-a-glance and month views in the planner for longer-term pipeline planning.",
+      "acceptanceCriteria": [
+        "DayPlanner page has view toggle: Day | Week | Month",
+        "Week view: 5-day grid showing daily block allocation, meetings, and goal progress per day",
+        "Month view: calendar grid showing block counts per day, meetings, and overdue follow-ups",
+        "Click on a day navigates to day view for that date",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/pages/DayPlanner.tsx", "frontend/src/components/planner/WeekView.tsx", "frontend/src/components/planner/MonthView.tsx"],
+      "notes": "Extends day planner to week/month for pipeline planning visibility."
+    },
+    {
+      "id": "P3-018",
+      "title": "Build template blocks for planner",
+      "description": "As a rep, I need to save block configurations as templates so I can quickly apply my regular schedule.",
+      "acceptanceCriteria": [
+        "Save current day plan as template: 'Monday AM Prospecting: 90min sprint + discovery script'",
+        "Apply template to any day: creates SalesBlocks with pre-configured type, duration, script, list",
+        "Templates are personal (per-user)",
+        "Template CRUD: create, edit, delete, reorder",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 3,
+      "passes": false,
+      "files": ["frontend/src/components/planner/BlockTemplates.tsx", "frontend/src/hooks/useDayPlan.ts"],
+      "notes": "Reduces friction for reps who have a regular weekly schedule."
+    },
+
+    {
+      "id": "P4-001",
+      "title": "Build AI-assisted research panel (future state)",
+      "description": "As a rep, I need AI-powered research summaries in the cockpit research panel so I have instant context before calling a prospect.",
+      "acceptanceCriteria": [
+        "Research panel has 'AI Research' button that triggers LLM-powered web search",
+        "Returns: company summary, recent news, funding status, tech stack, potential pain points",
+        "Results cached per company (shared across reps in org)",
+        "AI-suggested talking points based on research",
+        "Credit cost for AI research (separate from data enrichment)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 4,
+      "passes": false,
+      "files": ["frontend/src/components/session/ResearchPanel.tsx"],
+      "notes": "Future state. Manual research first (Phase 2), AI-assisted later."
+    },
+    {
+      "id": "P4-002",
+      "title": "Build team planner (manager view)",
+      "description": "As a manager, I need to see my team's daily plans side-by-side, assign blocks to reps, and identify coverage gaps.",
+      "acceptanceCriteria": [
+        "Team Planner page: team members' daily plans shown side-by-side",
+        "Manager can assign blocks to reps with specific lists and scripts",
+        "Coverage analysis: accounts/contacts not worked in X days highlighted",
+        "Filtering by team, date range",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 4,
+      "passes": false,
+      "files": ["frontend/src/pages/TeamPlanner.tsx"],
+      "notes": "Manager view is downstream of rep planner. Coaching > surveillance."
+    },
+    {
+      "id": "P4-003",
+      "title": "Build session quality scoring",
+      "description": "As a rep, I need my sessions scored on execution quality so I can track improvement over time.",
+      "acceptanceCriteria": [
+        "Quality score per session: (contacts worked / total) * connection_rate_bonus * meeting_rate_bonus",
+        "Score displayed on session completion and in session history",
+        "Trend chart: session quality over last 30 sessions",
+        "Comparison to team average",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 4,
+      "passes": false,
+      "files": ["frontend/src/lib/analytics/session-quality.ts", "frontend/src/pages/Analytics.tsx"],
+      "notes": "Part of the pipeline coaching vision."
+    },
+    {
+      "id": "P4-004",
+      "title": "Build planner adherence tracking",
+      "description": "As a rep, I need to see how well I follow my planned schedule so I can improve my time management.",
+      "acceptanceCriteria": [
+        "Planner adherence = (completed blocks matching planned time ± 15min) / planned blocks * 100",
+        "Adherence score shown in daily debrief",
+        "Weekly adherence trend in Analytics",
+        "No punitive framing — coaching-oriented: 'Your best sessions happen in morning blocks'",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 4,
+      "passes": false,
+      "files": ["frontend/src/lib/analytics/planner-adherence.ts", "frontend/src/pages/Analytics.tsx"],
+      "notes": "Connects planned vs actual execution. Coaching, not surveillance."
+    }
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "project": "SalesBlock.io — Account Intelligence Notes",
+  "branchName": "claude/cranky-swirles",
+  "description": "Build the Account Intelligence Notes UI: account-level and prospect-level note-taking with intelligence signals, timeline, and framework dimensions. Schema already exists (20260315000000_create_accounts_intelligence.sql).",
+  "userStories": [
+    {
+      "id": "ACCT-001",
+      "title": "Add Accounts route, page, and nav item",
+      "description": "As a user, I need an Accounts page in the main navigation so I can view and manage company accounts that group my contacts.",
+      "acceptanceCriteria": [
+        "ROUTES.ACCOUNTS = '/accounts' added to routes.ts",
+        "ROUTES.ACCOUNT_DETAIL = (accountId) => `/accounts/${accountId}` added",
+        "AccountsPage.tsx created with list of accounts fetched from Supabase accounts table",
+        "Each row shows: name, domain, contact count, last signal date",
+        "Nav item 'Accounts' added to AppLayout.tsx after 'Lists'",
+        "Route registered in App.tsx wrapped in ProtectedRoute",
+        "Empty state shows 'No accounts yet — create your first account' with CTA",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "files": ["frontend/src/lib/routes.ts", "frontend/src/pages/AccountsPage.tsx", "frontend/src/components/AppLayout.tsx", "frontend/src/App.tsx"],
+      "notes": "Follow existing page patterns (Lists.tsx, Contacts). Use org_id pattern from NEXT_SESSION.md. Accounts table already has RLS."
+    },
+    {
+      "id": "ACCT-002",
+      "title": "Create Account modal with name, domain, industry",
+      "description": "As a user, I need to create new accounts so I can group contacts under a company and start tracking intelligence.",
+      "acceptanceCriteria": [
+        "CreateAccountModal.tsx with fields: name (required), domain, industry, employee_count_range",
+        "Modal opens from AccountsPage 'Create Account' button",
+        "On submit, inserts into accounts table with org_id and created_by from auth context",
+        "Duplicate name within org shows validation error (unique constraint)",
+        "After creation, account appears in list without page reload (invalidate query)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "files": ["frontend/src/components/CreateAccountModal.tsx", "frontend/src/pages/AccountsPage.tsx"],
+      "notes": "Follow CreateSalesBlockModal.tsx pattern. Use existing Modal.tsx and shadcn/ui form components."
+    },
+    {
+      "id": "ACCT-003",
+      "title": "Build AccountDetailPage with tabs layout",
+      "description": "As a user, I need an account detail page with tabs for Intelligence, Contacts, and Timeline so I can manage all account information in one place.",
+      "acceptanceCriteria": [
+        "AccountDetailPage.tsx renders at /accounts/:accountId",
+        "Page header shows account name, domain, industry, employee range, edit button",
+        "Three tabs: Intelligence (default), Contacts, Timeline",
+        "Intelligence tab is initially empty with placeholder",
+        "Contacts tab shows contacts where account_id matches, with count badge",
+        "Timeline tab shows timeline_events for this account, sorted by created_at DESC",
+        "Back navigation to /accounts",
+        "404 state if account not found or wrong org",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "files": ["frontend/src/pages/AccountDetailPage.tsx"],
+      "notes": "Follow ContactDetailPage.tsx pattern for tabs and layout. Route already defined in ACCT-001."
+    },
+    {
+      "id": "ACCT-004",
+      "title": "Build account-level intelligence signals panel",
+      "description": "As a user, I need to add and view account-level intelligence signals (business context, problem fit, pain evidence, buying readiness, etc.) so I can build a strategic picture of the account.",
+      "acceptanceCriteria": [
+        "IntelligenceSignalsPanel.tsx component used in AccountDetailPage Intelligence tab",
+        "Shows existing signals grouped by signal_type, filtered by level='account'",
+        "Each signal card shows: signal_type label, content, confidence (1-5 stars), source badge, created_at",
+        "Add Signal button opens inline form with: signal_type dropdown (account-level types only), content textarea, confidence slider (1-5), evidence_reference optional text",
+        "Signal is saved to intelligence_signals table with account_id, org_id, level='account', created_by",
+        "Edit and delete actions on own signals",
+        "Timeline event created on signal_created",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "files": ["frontend/src/components/intelligence/IntelligenceSignalsPanel.tsx"],
+      "notes": "Signal types for account level: business_context, problem_fit, pain_evidence, economic_impact, buying_readiness, stakeholder_coverage. Create timeline_event on insert."
+    },
+    {
+      "id": "ACCT-005",
+      "title": "Link contacts to accounts with purpose classification",
+      "description": "As a user, I need to link existing contacts to an account and classify their purpose (prospect, intel source, internal champion) so I can map the stakeholder landscape.",
+      "acceptanceCriteria": [
+        "Contacts tab on AccountDetailPage shows linked contacts with purpose badges",
+        "Link Contact button opens a searchable contact picker (contacts in same org without an account_id)",
+        "When linking, user selects contact_purpose from dropdown: prospect, intel_source, internal_champion",
+        "Contact's account_id and contact_purpose are updated in contacts table",
+        "Unlink action sets account_id to null and contact_purpose to 'unknown'",
+        "Contact count on AccountsPage list updates after linking",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "files": ["frontend/src/components/intelligence/AccountContactsPanel.tsx", "frontend/src/pages/AccountDetailPage.tsx"],
+      "notes": "contact_purpose enum: prospect, intel_source, internal_champion, unknown. Show classification_changed timeline event when purpose changes."
+    },
+    {
+      "id": "ACCT-006",
+      "title": "Build prospect-level intelligence signals on ContactDetailPage",
+      "description": "As a user viewing a contact's detail page, I need to add prospect-level intelligence signals (role relevance, influence level, engagement, etc.) so I can track what I know about each individual.",
+      "acceptanceCriteria": [
+        "ProspectSignalsPanel.tsx component added to ContactDetailPage below existing Contact Notes section",
+        "Shows signals where contact_id matches AND level='prospect'",
+        "Signal types: role_relevance, influence_level, problem_awareness, relationship_strength, engagement",
+        "Each signal shows: type label, content, confidence, source badge, date",
+        "Add Signal inline form same pattern as account-level panel",
+        "Prospect classification dropdown: champion, influencer, connector, blocker, low_relevance",
+        "Classification stored on the signal's classification column",
+        "Only shows if contact has an account_id (otherwise shows 'Link to an account to track intelligence')",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "files": ["frontend/src/components/intelligence/ProspectSignalsPanel.tsx", "frontend/src/pages/ContactDetailPage.tsx"],
+      "notes": "Prospect signals require account_id on the contact. Show a CTA to link contact to account if not linked."
+    },
+    {
+      "id": "ACCT-007",
+      "title": "Build framework dimension notes (SPIN/BANT/MEDDIC)",
+      "description": "As a user, I need to capture framework-specific notes (e.g. BANT: budget, authority, need, timeline) against an account so I can systematically qualify opportunities.",
+      "acceptanceCriteria": [
+        "FrameworkNotesPanel.tsx component added to AccountDetailPage Intelligence tab (below signals)",
+        "Organization's default_framework determines which framework dimensions to show",
+        "BANT shows: Budget, Authority, Need, Timeline sections",
+        "SPIN shows: Situation, Problem, Implication, Need-Payoff sections",
+        "MEDDIC shows: Metrics, Economic Buyer, Decision Criteria, Decision Process, Identify Pain, Champion sections",
+        "Each dimension is an editable text area that saves as an intelligence_signal with signal_type='fw_{framework}_{dimension}'",
+        "Framework selector in account header allows switching (updates org default if changed)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "files": ["frontend/src/components/intelligence/FrameworkNotesPanel.tsx", "frontend/src/pages/AccountDetailPage.tsx"],
+      "notes": "Framework types stored as fw_bant_budget, fw_spin_situation etc. in intelligence_signals. If no default_framework on org, prompt user to choose one."
+    },
+    {
+      "id": "ACCT-008",
+      "title": "Build account timeline feed",
+      "description": "As a user, I need to see a chronological timeline of all intelligence activity on an account (signals created, classifications changed, framework reviews) so I can track the account's evolution.",
+      "acceptanceCriteria": [
+        "AccountTimelinePanel.tsx component used in Timeline tab of AccountDetailPage",
+        "Fetches timeline_events for the account, ordered by created_at DESC",
+        "Each event shows: icon by event_type, title, body preview, actor name, timestamp",
+        "Events grouped by date (Today, Yesterday, March 15, etc.)",
+        "Clicking a signal_created event navigates to that signal in the Intelligence tab",
+        "Pagination with 'Load more' after 20 events",
+        "Empty state: 'No activity yet — add your first intelligence signal'",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "files": ["frontend/src/components/intelligence/AccountTimelinePanel.tsx"],
+      "notes": "Follow ContactActivityTimeline.tsx pattern. Event types: signal_created, signal_updated, signal_deleted, classification_changed, engagement_event, research_note, ai_suggestion, framework_review."
+    }
+  ]
+}

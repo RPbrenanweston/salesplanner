@@ -12,7 +12,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Target, Trash2, TrendingUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
+import { toast } from '../hooks/use-toast'
 
 interface Goal {
   id: string
@@ -106,13 +106,15 @@ export default function Goals() {
     const now = new Date()
     let startDate: Date
 
+    // Use UTC boundaries to avoid local-timezone day-boundary miscount
     if (goal.period === 'daily') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
     } else if (goal.period === 'weekly') {
-      const dayOfWeek = now.getDay()
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0)
+      const dayOfWeek = now.getUTCDay()
+      const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1 // Monday = start of week
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysBack))
     } else { // monthly
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
     }
 
     // Calculate based on metric type
@@ -232,14 +234,14 @@ export default function Goals() {
 
       if (error) {
         console.error('Error deleting goal:', error)
-        alert('Failed to delete goal')
+        toast({ variant: 'destructive', title: 'Failed to delete goal', description: error.message })
         return
       }
 
       loadGoals()
     } catch (error) {
       console.error('Error deleting goal:', error)
-      alert('Failed to delete goal')
+      toast({ variant: 'destructive', title: 'Failed to delete goal', description: error instanceof Error ? error.message : undefined })
     }
   }
 
