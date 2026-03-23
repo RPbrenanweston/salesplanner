@@ -181,9 +181,10 @@ export async function fetchAttioPeople(
     const result = (await response.json()) as AttioQueryResponse;
 
     for (const record of result.data) {
-      const v = record.values;
+      const v = record.values ?? {};
+      console.log('[Attio debug] fetchAttioPeople record.values:', v, 'record.id:', record.id);
       people.push({
-        externalId: record.id.record_id,
+        externalId: record.id?.record_id ?? '',
         firstName: extractFirstName(v.name),
         lastName: extractLastName(v.name),
         email: extractEmail(v.email_addresses),
@@ -230,9 +231,10 @@ export async function fetchAttioCompanies(
     const result = (await response.json()) as AttioQueryResponse;
 
     for (const record of result.data) {
-      const v = record.values;
+      const v = record.values ?? {};
+      console.log('[Attio debug] fetchAttioCompanies record.values:', v, 'record.id:', record.id);
       companies.push({
-        externalId: record.id.record_id,
+        externalId: record.id?.record_id ?? '',
         name: extractValue(v.name),
         domain: extractDomain(v.domains),
         industry: extractValue(v.categories),
@@ -270,9 +272,13 @@ export async function fetchAttioLists(
   }
 
   const result = (await response.json()) as AttioListsResponse;
+  console.log('[Attio debug] fetchAttioLists raw result.data:', JSON.stringify(result.data?.slice(0, 3)));
 
   return (result.data || [])
-    .filter((entry) => entry != null && entry.name != null)
+    .filter((entry) => {
+      console.log('[Attio debug] fetchAttioLists entry:', entry, 'entry.name:', entry?.name);
+      return entry != null && entry.name != null;
+    })
     .map((entry) => ({
       id: typeof entry.id === 'string' ? entry.id : entry.id?.list_id ?? '',
       name: entry.name ?? 'Unnamed List',
@@ -315,7 +321,8 @@ export async function fetchAttioListEntries(
     const result = (await response.json()) as AttioListEntriesResponse;
 
     for (const entry of result.data) {
-      const v = entry.values;
+      const v = entry.values ?? {};
+      console.log('[Attio debug] fetchAttioListEntries entry.values:', v, 'entry.record_id:', entry.record_id);
       people.push({
         externalId: entry.record_id || entry.parent_record_id,
         firstName: extractFirstName(v.name),
