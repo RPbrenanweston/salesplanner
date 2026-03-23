@@ -102,6 +102,7 @@ export default function ImportAttioModal({
       setAttioLists(lists);
     } catch (err) {
       console.error('Failed to load Attio lists:', err);
+      setError(`Failed to load Attio lists: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsLoadingLists(false);
     }

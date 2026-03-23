@@ -123,7 +123,7 @@ interface AttioQueryResponse {
 }
 
 interface AttioListApiEntry {
-  id: { list_id: string };
+  id: string | { list_id: string };
   api_slug: string;
   name: string;
 }
@@ -271,11 +271,13 @@ export async function fetchAttioLists(
 
   const result = (await response.json()) as AttioListsResponse;
 
-  return result.data.map((entry) => ({
-    id: entry.id.list_id,
-    name: entry.name,
-    apiSlug: entry.api_slug,
-  }));
+  return (result.data || [])
+    .filter((entry) => entry != null && entry.name != null)
+    .map((entry) => ({
+      id: typeof entry.id === 'string' ? entry.id : entry.id?.list_id ?? '',
+      name: entry.name ?? 'Unnamed List',
+      apiSlug: entry.api_slug ?? '',
+    }));
 }
 
 /**
