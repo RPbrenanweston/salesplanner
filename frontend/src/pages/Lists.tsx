@@ -45,6 +45,8 @@ export default function Lists() {
   const [isImportSalesforceModalOpen, setIsImportSalesforceModalOpen] = useState(false);
   const [isImportAttioModalOpen, setIsImportAttioModalOpen] = useState(false);
   const [attioConnected, setAttioConnected] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState('');
+  const [currentOrgId, setCurrentOrgId] = useState('');
   const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
   const [isListBuilderOpen, setIsListBuilderOpen] = useState(false);
   const [isCreateSalesBlockOpen, setIsCreateSalesBlockOpen] = useState(false);
@@ -74,6 +76,15 @@ export default function Lists() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setCurrentUserId(user.id);
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('org_id')
+        .eq('id', user.id)
+        .single();
+      if (profile?.org_id) setCurrentOrgId(profile.org_id);
+
       const { data } = await supabase
         .from('oauth_connections')
         .select('id')
@@ -384,6 +395,8 @@ export default function Lists() {
         isOpen={isImportAttioModalOpen}
         onClose={() => setIsImportAttioModalOpen(false)}
         onSuccess={handleImportComplete}
+        userId={currentUserId}
+        orgId={currentOrgId}
       />
     </div>
   );
