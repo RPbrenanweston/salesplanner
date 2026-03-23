@@ -131,7 +131,7 @@ interface AttioApiRecord {
 
 interface AttioQueryResponse {
   data: AttioApiRecord[];
-  next_page_offset: number | null;
+  next_page_offset: number | string | null;
 }
 
 interface AttioListApiEntry {
@@ -156,7 +156,7 @@ interface AttioListEntryRecord {
 
 interface AttioListEntriesResponse {
   data: AttioListEntryRecord[];
-  next_page_offset: number | null;
+  next_page_offset: number | string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -175,16 +175,19 @@ export async function fetchAttioPeople(
   if (!token) throw new Error('No Attio connection found. Please connect Attio first.');
 
   const people: AttioPerson[] = [];
-  let offset: number | null = 0;
+  let offset: number | string | null = 0;
 
   while (offset !== null) {
+    const body: Record<string, unknown> = { limit: 500 };
+    if (offset !== 0) body.offset = offset;
+
     const response = await fetch(`${ATTIO_API}/objects/people/records/query`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ offset }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -193,6 +196,7 @@ export async function fetchAttioPeople(
     }
 
     const result = (await response.json()) as AttioQueryResponse;
+    console.log(`[Attio] People page: ${result.data.length} records, next_page_offset: ${result.next_page_offset}`);
 
     for (const record of result.data) {
       if (!record) continue;
@@ -226,16 +230,19 @@ export async function fetchAttioCompanies(
   if (!token) throw new Error('No Attio connection found. Please connect Attio first.');
 
   const companies: AttioCompany[] = [];
-  let offset: number | null = 0;
+  let offset: number | string | null = 0;
 
   while (offset !== null) {
+    const body: Record<string, unknown> = { limit: 500 };
+    if (offset !== 0) body.offset = offset;
+
     const response = await fetch(`${ATTIO_API}/objects/companies/records/query`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ offset }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -244,6 +251,7 @@ export async function fetchAttioCompanies(
     }
 
     const result = (await response.json()) as AttioQueryResponse;
+    console.log(`[Attio] Companies page: ${result.data.length} records, next_page_offset: ${result.next_page_offset}`);
 
     // Debug: log first record to understand API response shape
     if (companies.length === 0 && result.data.length > 0) {
@@ -351,7 +359,7 @@ export async function fetchAttioListEntriesAsCompanies(
 /** Extract parent_record_ids from all list entries (paginated) */
 async function fetchListParentRecordIds(token: string, listId: string): Promise<string[]> {
   const ids: string[] = [];
-  let offset: number | null = 0;
+  let offset: number | string | null = 0;
 
   while (offset !== null) {
     const response = await fetch(`${ATTIO_API}/lists/${listId}/entries/query`, {
