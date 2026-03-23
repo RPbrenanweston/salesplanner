@@ -14,32 +14,38 @@ CREATE TABLE IF NOT EXISTS account_list_items (
 -- RLS policies for account_list_items (match list_contacts patterns)
 ALTER TABLE account_list_items ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view account list items in their org"
-  ON account_list_items FOR SELECT
-  USING (
-    list_id IN (
-      SELECT id FROM lists WHERE org_id IN (
-        SELECT org_id FROM users WHERE id = auth.uid()
+DO $$ BEGIN
+  CREATE POLICY "Users can view account list items in their org"
+    ON account_list_items FOR SELECT
+    USING (
+      list_id IN (
+        SELECT id FROM lists WHERE org_id IN (
+          SELECT org_id FROM users WHERE id = auth.uid()
+        )
       )
-    )
-  );
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY "Users can insert account list items in their org"
-  ON account_list_items FOR INSERT
-  WITH CHECK (
-    list_id IN (
-      SELECT id FROM lists WHERE org_id IN (
-        SELECT org_id FROM users WHERE id = auth.uid()
+DO $$ BEGIN
+  CREATE POLICY "Users can insert account list items in their org"
+    ON account_list_items FOR INSERT
+    WITH CHECK (
+      list_id IN (
+        SELECT id FROM lists WHERE org_id IN (
+          SELECT org_id FROM users WHERE id = auth.uid()
+        )
       )
-    )
-  );
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE POLICY "Users can delete account list items in their org"
-  ON account_list_items FOR DELETE
-  USING (
-    list_id IN (
-      SELECT id FROM lists WHERE org_id IN (
-        SELECT org_id FROM users WHERE id = auth.uid()
+DO $$ BEGIN
+  CREATE POLICY "Users can delete account list items in their org"
+    ON account_list_items FOR DELETE
+    USING (
+      list_id IN (
+        SELECT id FROM lists WHERE org_id IN (
+          SELECT org_id FROM users WHERE id = auth.uid()
+        )
       )
-    )
-  );
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
