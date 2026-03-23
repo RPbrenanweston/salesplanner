@@ -72,6 +72,8 @@ export default function ListDetailPage() {
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pageSize, setPageSize] = useState<number>(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const listDetailRef = useRef<ListDetail | null>(null);
 
   useEffect(() => {
@@ -121,6 +123,7 @@ export default function ListDetailPage() {
       });
       setFilteredContacts(filtered);
     }
+    setCurrentPage(1); // Reset to page 1 on search change
   }, [searchQuery, contacts]);
 
   useEffect(() => {
@@ -273,6 +276,20 @@ export default function ListDetailPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Pagination computed values
+  const totalPages = Math.ceil(filteredContacts.length / pageSize);
+  const paginatedContacts = filteredContacts.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+  const paginationStart = filteredContacts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const paginationEnd = Math.min(currentPage * pageSize, filteredContacts.length);
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
   };
 
   const handleSort = (field: SortField) => {
@@ -507,25 +524,25 @@ export default function ListDetailPage() {
                 </th>
                 <th
                   onClick={() => handleSort('name')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[200px]"
                 >
                   Name <SortIcon field="name" />
                 </th>
                 <th
                   onClick={() => handleSort('company')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[180px]"
                 >
                   Company <SortIcon field="company" />
                 </th>
                 <th
                   onClick={() => handleSort('title')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 max-w-[150px]"
                 >
                   Title <SortIcon field="title" />
                 </th>
                 <th
                   onClick={() => handleSort('email')}
-                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150"
+                  className="px-6 py-3 text-left vv-section-title cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors duration-150 min-w-[200px]"
                 >
                   Email <SortIcon field="email" />
                 </th>
@@ -541,7 +558,7 @@ export default function ListDetailPage() {
                 >
                   Last Activity <SortIcon field="last_activity_date" />
                 </th>
-                <th className="px-6 py-3 text-right vv-section-title">
+                <th className="px-6 py-3 text-right vv-section-title sticky right-0 bg-gray-50 dark:bg-white/5">
                   Actions
                 </th>
               </tr>
@@ -581,7 +598,7 @@ export default function ListDetailPage() {
                   </td>
                 </tr>
               ) : (
-                filteredContacts.map((contact) => (
+                paginatedContacts.map((contact) => (
                   <tr key={contact.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150">
                     <td className="px-3 py-4 w-10">
                       <input
@@ -591,7 +608,7 @@ export default function ListDetailPage() {
                         className="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-indigo-electric focus:ring-indigo-electric cursor-pointer"
                       />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
                       <button
                         onClick={() =>
                           navigate(`/contacts/${contact.id}`, {
@@ -603,17 +620,17 @@ export default function ListDetailPage() {
                         {contact.first_name} {contact.last_name}
                       </button>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap min-w-[180px]">
                       <div className="text-sm text-gray-600 dark:text-white/50">
                         {contact.company || '—'}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-white/50">
+                    <td className="px-6 py-4 max-w-[150px]">
+                      <div className="text-sm text-gray-600 dark:text-white/50 truncate" title={contact.title || undefined}>
                         {contact.title || '—'}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap min-w-[200px]">
                       <a
                         href={`mailto:${contact.email}`}
                         className="text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors duration-150"
@@ -621,7 +638,7 @@ export default function ListDetailPage() {
                         {contact.email}
                       </a>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {contact.phone ? (
                         <a
                           href={`tel:${contact.phone}`}
@@ -633,12 +650,12 @@ export default function ListDetailPage() {
                         <span className="text-sm text-gray-400 dark:text-white/30">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-600 dark:text-white/40 font-mono">
                         {formatDate(contact.last_activity_date ?? null)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-void-950 group-hover:bg-gray-50 dark:group-hover:bg-white/[0.08]">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleEmailClick(contact)}
@@ -676,6 +693,48 @@ export default function ListDetailPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        {filteredContacts.length > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.02]">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500 dark:text-white/40">Rows per page</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="px-2 py-1 text-sm border border-gray-300 dark:border-white/10 rounded-md bg-white dark:bg-white/5 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-electric focus:outline-none"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+              <span className="text-sm text-gray-500 dark:text-white/40">
+                Showing {paginationStart}–{paginationEnd} of {filteredContacts.length} contacts
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-white/10 rounded-md text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600 dark:text-white/50 px-2">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-white/10 rounded-md text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Email Modal */}
