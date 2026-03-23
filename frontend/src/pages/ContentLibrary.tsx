@@ -57,16 +57,29 @@ export default function ContentLibrary() {
 
   // Common state
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [orgId, setOrgId] = useState<string>('');
 
   useEffect(() => {
     loadCurrentUser();
-    loadTemplates();
-    loadScripts();
   }, []);
+
+  useEffect(() => {
+    if (orgId) {
+      loadTemplates();
+      loadScripts();
+    }
+  }, [orgId]);
 
   async function loadCurrentUser() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) setCurrentUserId(user.id);
+    if (!user) return;
+    setCurrentUserId(user.id);
+    const { data: userData } = await supabase
+      .from('users')
+      .select('org_id')
+      .eq('id', user.id)
+      .single();
+    if (userData?.org_id) setOrgId(userData.org_id);
   }
 
   // ─── Templates Logic ───
@@ -76,6 +89,7 @@ export default function ContentLibrary() {
       const { data, error } = await supabase
         .from('email_templates')
         .select('*')
+        .eq('org_id', orgId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -111,6 +125,7 @@ export default function ContentLibrary() {
       const { data, error } = await supabase
         .from('call_scripts')
         .select('*')
+        .eq('org_id', orgId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -167,7 +182,7 @@ export default function ContentLibrary() {
           </div>
           <div>
             <h1 className="text-3xl font-black font-display text-white">Content Armory</h1>
-            <p className="text-white/60 mt-1">Manage email templates and call scripts</p>
+            <p className="text-white/60 mt-1">Unified view of email templates and call scripts — track usage metrics, share with your team, and manage all content in one place.</p>
           </div>
         </div>
       </div>

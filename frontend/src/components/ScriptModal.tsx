@@ -27,12 +27,14 @@ interface CallScript {
   name: string;
   content: string;
   is_shared: boolean;
+  category?: string | null;
 }
 
 export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModalProps) {
   const [name, setName] = useState('');
   const [content, setContent] = useState('');
   const [isShared, setIsShared] = useState(false);
+  const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Load existing script if editing
@@ -44,6 +46,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
       setName('');
       setContent('');
       setIsShared(false);
+      setCategory('');
     }
   }, [isOpen, scriptId]);
 
@@ -61,6 +64,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
       setName(script.name);
       setContent(DOMPurify.sanitize(script.content));
       setIsShared(script.is_shared);
+      setCategory(script.category || '');
     } catch (error) {
       logError(error, 'ScriptModal.loadScript');
       alert('Failed to load script');
@@ -91,6 +95,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
             name,
             content,
             is_shared: isShared,
+            category: category.trim() || null,
           })
           .eq('id', scriptId);
 
@@ -105,6 +110,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
             name,
             content,
             is_shared: isShared,
+            category: category.trim() || null,
           });
 
         if (error) throw error;
@@ -124,6 +130,7 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
     setName('');
     setContent('');
     setIsShared(false);
+    setCategory('');
     onClose();
   }
 
@@ -158,6 +165,21 @@ export function ScriptModal({ isOpen, onClose, onSuccess, scriptId }: ScriptModa
               required
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               placeholder="e.g., Discovery Call Script"
+            />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Category <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="e.g., Cold Outreach, Discovery, Follow-up"
             />
           </div>
 

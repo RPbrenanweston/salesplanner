@@ -19,12 +19,14 @@ interface TodaysSalesBlocksSectionProps {
   salesblocks: SalesBlock[]
   onStartBlock: (id: string) => void
   onScheduleBlock: () => void
+  loading?: boolean
 }
 
 export function TodaysSalesBlocksSection({
   salesblocks,
   onStartBlock,
   onScheduleBlock,
+  loading = false,
 }: TodaysSalesBlocksSectionProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
@@ -33,10 +35,22 @@ export function TodaysSalesBlocksSection({
         Today's SalesBlocks
       </h2>
 
-      {salesblocks.length === 0 ? (
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 animate-pulse">
+              <div className="flex justify-between">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20" />
+              </div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32 mt-2" />
+            </div>
+          ))}
+        </div>
+      ) : salesblocks.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500 dark:text-gray-400 mb-4">
-            No salesblocks scheduled for today
+            No sessions today
           </p>
           <button
             onClick={onScheduleBlock}

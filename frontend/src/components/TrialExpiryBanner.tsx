@@ -14,10 +14,25 @@ import { supabase } from '../lib/supabase';
 import { DURATION, SUBSCRIPTION_STATUS } from '../lib/constants';
 import { ROUTES } from '../lib/routes';
 
+const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function getDismissKey(orgId: string, trialEndsAt: string): string {
+  return `trial_banner_dismissed:${orgId}:${trialEndsAt}`;
+}
+
+function isBannerDismissed(orgId: string, trialEndsAt: string): boolean {
+  const key = getDismissKey(orgId, trialEndsAt);
+  const stored = localStorage.getItem(key);
+  if (!stored) return false;
+  const { dismissedAt } = JSON.parse(stored);
+  return Date.now() - dismissedAt < DISMISS_TTL_MS;
+}
+
 export default function TrialExpiryBanner() {
   const [showBanner, setShowBanner] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [trialExpired, setTrialExpired] = useState(false);
+  const [dismissKey, setDismissKey] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +46,7 @@ export default function TrialExpiryBanner() {
 
       const { data: userData } = await supabase
         .from('users')
-        .select('subscription_status, trial_ends_at')
+        .select('subscription_status, trial_ends_at, org_id')
         .eq('id', user.id)
         .single();
 
@@ -45,6 +60,14 @@ export default function TrialExpiryBanner() {
 
       if (!userData.trial_ends_at) {
         setShowBanner(false);
+        return;
+      }
+
+      const key = getDismissKey(userData.org_id, userData.trial_ends_at);
+      setDismissKey(key);
+
+      // Don't show if dismissed within the last 24 hours
+      if (isBannerDismissed(userData.org_id, userData.trial_ends_at)) {
         return;
       }
 
@@ -70,6 +93,9 @@ export default function TrialExpiryBanner() {
   };
 
   const handleDismiss = () => {
+    if (dismissKey) {
+      localStorage.setItem(dismissKey, JSON.stringify({ dismissedAt: Date.now() }));
+    }
     setShowBanner(false);
   };
 

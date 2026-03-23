@@ -8,8 +8,8 @@
 // edge:frontend/src/hooks/useAuth.ts -> READS
 // edge:compose-email#1 -> STEP_IN
 // prompt: Validate connected email provider before rendering compose form. Clarify HTML vs plain text rendering. Add template insertion from EmailTemplates.
-import { useState, useEffect } from 'react';
-import { X, Mail, Calendar } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Mail, Calendar, FileText, Search, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { getFreeBusySlots, formatAvailabilityText } from '../lib/calendar';
@@ -52,6 +52,8 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
   const [error, setError] = useState('');
   const [oauthConnection, setOauthConnection] = useState<OAuthConnection | null>(null);
   const [isInsertingAvailability, setIsInsertingAvailability] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState('');
 
   useEffect(() => {
     if (isOpen && user) {
@@ -115,18 +117,22 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
     setBody(filledBody);
   };
 
-  const handleTemplateChange = (templateId: string) => {
-    setSelectedTemplateId(templateId);
-    if (templateId) {
-      const template = templates.find((t) => t.id === templateId);
-      if (template) {
-        fillTemplate(template);
-      }
-    } else {
-      setSubject('');
-      setBody('');
+  const filteredTemplates = useMemo(() => {
+    const q = templateSearch.toLowerCase();
+    return templates.filter(t => !q || t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q));
+  }, [templates, templateSearch]);
+
+  const handleTemplateSelect = (template: EmailTemplate) => {
+    if (body.trim()) {
+      const confirmed = window.confirm('This will replace the current email body. Continue?');
+      if (!confirmed) return;
     }
+    setSelectedTemplateId(template.id);
+    fillTemplate(template);
+    setShowTemplatePicker(false);
+    setTemplateSearch('');
   };
+
 
   const sendViaGmail = async (accessToken: string) => {
     // Create RFC 2822 formatted message
@@ -335,6 +341,8 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
     setBody('');
     setSelectedTemplateId('');
     setError('');
+    setShowTemplatePicker(false);
+    setTemplateSearch('');
     onClose();
   };
 
@@ -371,22 +379,72 @@ export default function ComposeEmailModal({ isOpen, onClose, contact, onSuccess 
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Use Template (optional)
-            </label>
-            <select
-              value={selectedTemplateId}
-              onChange={(e) => handleTemplateChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
-            >
-              <option value="">-- No template --</option>
-              {templates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}
-                </option>
-              ))}
-            </select>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Template
+                {selectedTemplateId && (
+                  <span className="ml-2 text-xs text-blue-600 dark:text-blue-400 font-normal">
+                    {templates.find(t => t.id === selectedTemplateId)?.name}
+                  </span>
+                )}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowTemplatePicker(!showTemplatePicker)}
+                className="flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+              >
+                <FileText className="w-4 h-4" />
+                Insert Template
+              </button>
+            </div>
+
+            {showTemplatePicker && (
+              <div className="absolute left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl overflow-hidden">
+                <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={templateSearch}
+                      onChange={(e) => setTemplateSearch(e.target.value)}
+                      placeholder="Search templates..."
+                      className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredTemplates.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500">No templates found</p>
+                  ) : (
+                    filteredTemplates.map(t => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleTemplateSelect(t)}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-start justify-between gap-3 group"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{t.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{t.subject}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 flex-shrink-0 mt-0.5" />
+                      </button>
+                    ))
+                  )}
+                </div>
+                <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => { setShowTemplatePicker(false); setTemplateSearch(''); }}
+                    className="w-full py-1.5 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

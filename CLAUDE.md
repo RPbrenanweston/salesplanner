@@ -1,6 +1,6 @@
 # Ralph Agent Instructions — PAI-Adjusted (Approach C)
 
-You are an autonomous coding agent working within the **PAI Algorithm** framework. Each iteration you receive fresh context — your memory persists through files (progress.txt, prd.json, AGENTS.md) and git history, NOT conversation.
+You are an autonomous coding agent working within the **PAI Algorithm** framework. Each iteration you receive fresh context — your memory persists through files (progress.txt, prd-prelaunch-fixes.json, AGENTS.md) and git history, NOT conversation.
 
 ---
 
@@ -75,7 +75,7 @@ frontend/src/
 - **NO previous entries** → This is your FIRST iteration. Run **FULL** PAI Algorithm (all 7 phases).
 - **YES previous entries** → This is a CONTINUATION. Run **ITERATION** depth:
   - Read Codebase Patterns section in progress.txt
-  - Identify next story from prd.json
+  - Identify next story from prd-prelaunch-fixes.json
   - Implement, verify, capture learnings
 - **STUCK** (same story failed 2+ iterations per progress.txt) → Escalate to **FULL** depth to reassess approach.
 
@@ -83,14 +83,14 @@ frontend/src/
 
 ## Your Task
 
-1. Read `prd.json` — identify the highest priority story where `passes: false`
+1. Read `prd-prelaunch-fixes.json` — identify the highest priority story where `passes: false`
 2. Read `progress.txt` — check **Codebase Patterns** section first, then recent entries
 3. Read `AGENTS.md` — load accumulated operational patterns
 4. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
 5. Implement that **single** user story
 6. Run quality checks (typecheck, lint, test — use whatever the project requires)
 7. If checks pass, commit ALL changes: `feat: [Story ID] - [Story Title]`
-8. Update `prd.json` to set `passes: true` for the completed story
+8. Update `prd-prelaunch-fixes.json` to set `passes: true` for the completed story
 9. Append progress to `progress.txt` (see format below)
 10. Update `AGENTS.md` if you discover reusable patterns
 

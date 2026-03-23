@@ -19,9 +19,10 @@ import { formatTimeAgo } from '../lib/time'
 
 interface ActivityFeedSectionProps {
   activities: Activity[]
+  loading?: boolean
 }
 
-export function ActivityFeedSection({ activities }: ActivityFeedSectionProps) {
+export function ActivityFeedSection({ activities, loading = false }: ActivityFeedSectionProps) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -29,9 +30,21 @@ export function ActivityFeedSection({ activities }: ActivityFeedSectionProps) {
         Recent Activity
       </h2>
 
-      {activities.length === 0 ? (
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-lg animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40" />
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-56" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : activities.length === 0 ? (
         <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-          No recent activities
+          No recent activity
         </p>
       ) : (
         <div className="space-y-3">

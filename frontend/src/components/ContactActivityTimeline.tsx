@@ -23,49 +23,76 @@ interface Activity {
 
 interface ContactActivityTimelineProps {
   contactId: string;
+  userId?: string;
   filterType?: 'call' | 'email' | 'social' | 'meeting' | 'note' | 'all';
   showAddNote?: boolean;
   onActivityLogged?: () => void;
 }
 
+const PAGE_SIZE = 20;
+
 export default function ContactActivityTimeline({
   contactId,
+  userId,
   filterType = 'all',
   showAddNote = true,
   onActivityLogged,
 }: ContactActivityTimelineProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<typeof filterType>(filterType);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
 
   useEffect(() => {
-    loadActivities();
+    setCursor(null);
+    setActivities([]);
+    loadActivities(null, true);
   }, [contactId, selectedFilter]);
 
-  const loadActivities = async () => {
-    setLoading(true);
+  const loadActivities = async (afterCursor: string | null, reset = false) => {
+    if (reset) setLoading(true); else setLoadingMore(true);
     try {
       let query = supabase
         .from('activities')
         .select('id, type, outcome, notes, created_at, duration_seconds')
         .eq('contact_id', contactId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
+
+      if (afterCursor) {
+        query = query.lt('created_at', afterCursor);
+      }
 
       if (selectedFilter !== 'all') {
         query = query.eq('type', selectedFilter);
       }
 
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
-      setActivities(data || []);
+      const fetched = data || [];
+      setActivities((prev) => reset ? fetched : [...prev, ...fetched]);
+      setHasMore(fetched.length === PAGE_SIZE);
+      if (fetched.length > 0) {
+        setCursor(fetched[fetched.length - 1].created_at);
+      }
     } catch (err) {
       logError(err, 'ContactActivityTimeline.loadActivities');
     } finally {
-      setLoading(false);
+      if (reset) setLoading(false); else setLoadingMore(false);
     }
+  };
+
+  const loadMore = () => {
+    loadActivities(cursor);
   };
 
   const handleAddNote = async () => {
@@ -97,7 +124,7 @@ export default function ContactActivityTimeline({
 
       setNoteText('');
       setIsAddingNote(false);
-      loadActivities();
+      loadActivities(null, true);
       onActivityLogged?.();
     } catch (err) {
       logError(err, 'ContactActivityTimeline.handleAddNote');
@@ -378,6 +405,17 @@ export default function ContactActivityTimeline({
               </div>
             );
           })
+        )}
+
+        {/* Load more */}
+        {hasMore && (
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="w-full py-2 text-sm text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+          >
+            {loadingMore ? 'Loading...' : 'Load more'}
+          </button>
         )}
       </div>
     </div>

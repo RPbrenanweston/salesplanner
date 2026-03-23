@@ -61,7 +61,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
     `CSV Import — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
   );
   const [lists, setLists] = useState<any[]>([]);
-  const [importProgress, setImportProgress] = useState({ imported: 0, skipped: 0, errors: 0 });
+  const [importProgress, setImportProgress] = useState({ imported: 0, updated: 0, skipped: 0, failed: 0, total: 0 });
   const [error, setError] = useState<string>('');
   const [errorDetails, setErrorDetails] = useState<Array<{ row: number; email: string; reason: string }>>([]);
   const [importedListName, setImportedListName] = useState<string>('');
@@ -193,7 +193,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
 
   const handleImport = async () => {
     setStep('importing');
-    setImportProgress({ imported: 0, skipped: 0, errors: 0 });
+    setImportProgress({ imported: 0, updated: 0, skipped: 0, failed: 0, total: 0 });
     setErrorDetails([]);
     setImportedListName('');
     setError('');
@@ -280,103 +280,123 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
         setImportedListName(autoListName);
       }
 
+      const BATCH_SIZE = 500;
       let imported = 0;
+      let updated = 0;
       let skipped = 0;
-      let errors = 0;
+      let failed = 0;
       const rowErrors: Array<{ row: number; email: string; reason: string }> = [];
-      const contactsToAddToList: string[] = []; // Track IDs of skipped/updated contacts
+      const contactsToAddToList: string[] = [];
 
-      for (let rowIndex = 0; rowIndex < csvData.length; rowIndex++) {
-        const row = csvData[rowIndex];
-        try {
-          const contact: ContactRow = {};
-
-          // Map CSV columns to DB fields
-          for (const [csvCol, dbField] of Object.entries(mappingMap)) {
-            const val = row[csvCol];
-            if (val !== undefined && val !== null && String(val).trim() !== '') {
-              contact[dbField] = String(val).trim();
-            }
+      // Build mapped contact rows (skip rows with no email)
+      type MappedRow = ContactRow & { _rowIndex: number };
+      const mappedRows: MappedRow[] = [];
+      for (let i = 0; i < csvData.length; i++) {
+        const row = csvData[i];
+        const contact: ContactRow = {};
+        for (const [csvCol, dbField] of Object.entries(mappingMap)) {
+          const val = row[csvCol];
+          if (val !== undefined && val !== null && String(val).trim() !== '') {
+            contact[dbField] = String(val).trim();
           }
+        }
+        if (!contact.email) {
+          failed++;
+          rowErrors.push({ row: i + 1, email: '(missing)', reason: 'No email address found in row' });
+          continue;
+        }
+        if (!contact.first_name) contact.first_name = '';
+        if (!contact.last_name) contact.last_name = '';
+        mappedRows.push({ ...contact, _rowIndex: i });
+      }
 
-          // Email is required
-          if (!contact.email) {
-            errors++;
-            rowErrors.push({ row: rowIndex + 1, email: '(missing)', reason: 'No email address found in row' });
-            continue;
-          }
+      const totalValid = mappedRows.length;
+      setImportProgress({ imported, updated, skipped, failed, total: csvData.length });
 
-          // Ensure NOT NULL fields have defaults
-          if (!contact.first_name) contact.first_name = '';
-          if (!contact.last_name) contact.last_name = '';
-
-          // Check for duplicate
-          const { data: existing } = await supabase
-            .from('contacts')
-            .select('id')
-            .eq('org_id', orgId)
-            .eq('email', contact.email)
-            .maybeSingle();
-
-          if (existing) {
-            if (duplicateStrategy === 'skip') {
-              skipped++;
-              // Track for list assignment (always — no orphans)
-              contactsToAddToList.push(existing.id);
-              continue;
-            } else if (duplicateStrategy === 'update') {
-              const { error: updateError } = await supabase
-                .from('contacts')
-                .update({ ...contact, updated_at: new Date().toISOString() })
-                .eq('id', existing.id);
-
-              if (updateError) {
-                console.error('Update error:', updateError);
-                errors++;
-                rowErrors.push({ row: rowIndex + 1, email: contact.email || '', reason: `Update failed: ${updateError.message}` });
-              } else {
-                imported++;
-                // Track for list assignment (always — no orphans)
-                contactsToAddToList.push(existing.id);
-              }
-              continue;
-            }
-          }
-
-          // Insert new contact
-          const { data: newContact, error: insertError } = await supabase
-            .from('contacts')
-            .insert({
-              ...contact,
-              org_id: orgId,
-              source: 'csv',
-              created_by: currentUser.id,
-            })
-            .select('id')
-            .single();
-
-          if (insertError) {
-            console.error('Insert error:', insertError);
-            errors++;
-            rowErrors.push({ row: rowIndex + 1, email: contact.email || '', reason: `Insert failed: ${insertError.message}` });
-          } else {
-            imported++;
-
-            // Track for list assignment (always — no orphans)
-            if (newContact) {
-              contactsToAddToList.push(newContact.id);
-            }
-          }
-
-          setImportProgress({ imported, skipped, errors });
-        } catch (rowErr) {
-          console.error('Row processing error:', rowErr);
-          errors++;
-          const rowEmail = row?.email || row?.Email || '(unknown)';
-          rowErrors.push({ row: rowIndex + 1, email: String(rowEmail), reason: `Unexpected error: ${rowErr instanceof Error ? rowErr.message : 'Unknown'}` });
-          setImportProgress({ imported, skipped, errors });
+      // Batch duplicate-check in chunks to avoid large IN clauses
+      const emailMap = new Map<string, string>(); // email → existing contact id
+      for (let i = 0; i < mappedRows.length; i += BATCH_SIZE) {
+        const chunk = mappedRows.slice(i, i + BATCH_SIZE);
+        const emails = chunk.map((r) => r.email as string);
+        const { data: existing } = await supabase
+          .from('contacts')
+          .select('id, email')
+          .eq('org_id', orgId)
+          .in('email', emails);
+        for (const row of existing || []) {
+          emailMap.set(row.email, row.id);
         }
       }
+
+      // Separate rows into new vs existing
+      const toInsert: MappedRow[] = [];
+      const toUpdate: MappedRow[] = [];
+      const toSkip: { id: string }[] = [];
+
+      for (const row of mappedRows) {
+        const existingId = emailMap.get(row.email as string);
+        if (existingId) {
+          if (duplicateStrategy === 'skip') {
+            skipped++;
+            toSkip.push({ id: existingId });
+            contactsToAddToList.push(existingId);
+          } else if (duplicateStrategy === 'update') {
+            toUpdate.push({ ...row, _existingId: existingId } as any);
+            contactsToAddToList.push(existingId);
+          } else {
+            // create — allow duplicate
+            toInsert.push(row);
+          }
+        } else {
+          toInsert.push(row);
+        }
+      }
+
+      setImportProgress({ imported, updated, skipped, failed, total: csvData.length });
+
+      // Batch insert new contacts in chunks of BATCH_SIZE
+      for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+        const chunk = toInsert.slice(i, i + BATCH_SIZE);
+        const rows = chunk.map(({ _rowIndex: _, ...rest }) => ({
+          ...rest,
+          org_id: orgId,
+          source: 'csv',
+          created_by: currentUser.id,
+        }));
+        const { data: inserted, error: insertError } = await supabase
+          .from('contacts')
+          .insert(rows)
+          .select('id');
+        if (insertError) {
+          console.error('Batch insert error:', insertError);
+          failed += chunk.length;
+          chunk.forEach((r) => rowErrors.push({ row: r._rowIndex + 1, email: r.email as string, reason: `Insert failed: ${insertError.message}` }));
+        } else {
+          imported += (inserted || []).length;
+          for (const c of inserted || []) contactsToAddToList.push(c.id);
+        }
+        setImportProgress({ imported, updated, skipped, failed, total: totalValid });
+      }
+
+      // Batch update existing contacts one-by-one (Supabase doesn't support batch UPDATE with different values)
+      for (let i = 0; i < toUpdate.length; i++) {
+        const row = toUpdate[i] as any;
+        const { _rowIndex, _existingId, ...contactData } = row;
+        const { error: updateError } = await supabase
+          .from('contacts')
+          .update({ ...contactData, updated_at: new Date().toISOString() })
+          .eq('id', _existingId);
+        if (updateError) {
+          failed++;
+          rowErrors.push({ row: _rowIndex + 1, email: contactData.email || '', reason: `Update failed: ${updateError.message}` });
+        } else {
+          updated++;
+        }
+        // Update progress every 50 updates
+        if (i % 50 === 0) setImportProgress({ imported, updated, skipped, failed, total: totalValid });
+      }
+
+      setImportProgress({ imported, updated, skipped, failed, total: totalValid });
 
       // Persist error details to state for display in completion step
       setErrorDetails(rowErrors);
@@ -394,20 +414,22 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
             position: 0,
           }));
 
-          const { error: batchError } = await supabase.from('list_contacts').insert(listContactsToInsert);
+          const { error: batchError } = await supabase
+            .from('list_contacts')
+            .upsert(listContactsToInsert, { onConflict: 'list_id,contact_id', ignoreDuplicates: true });
           if (batchError) {
             console.error(`Batch ${i / BATCH_SIZE + 1} list assignment error:`, batchError);
             listAssignmentErrors += batch.length;
           }
         }
 
-        // Update errors if any batch failed
+        // Update failed count if any list assignment batch failed
         if (listAssignmentErrors > 0) {
-          setImportProgress({ imported, skipped, errors: errors + listAssignmentErrors });
+          failed += listAssignmentErrors;
         }
       }
 
-      setImportProgress({ imported, skipped, errors });
+      setImportProgress({ imported, updated, skipped, failed, total: totalValid });
       setStep('complete');
     } catch (err) {
       console.error('Import failed:', err);
@@ -426,7 +448,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
     setNewListName(
       `CSV Import — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
     );
-    setImportProgress({ imported: 0, skipped: 0, errors: 0 });
+    setImportProgress({ imported: 0, updated: 0, skipped: 0, failed: 0, total: 0 });
     setErrorDetails([]);
     setImportedListName('');
     setError('');
@@ -684,13 +706,29 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
 
           {/* Importing Step */}
           {step === 'importing' && (
-            <div className="space-y-4 text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Importing contacts...</p>
-              <div className="text-sm space-y-1">
-                <p className="text-green-600 dark:text-green-400">✓ Imported: {importProgress.imported}</p>
+            <div className="space-y-4 py-8">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-3"></div>
+                <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Importing contacts...</p>
+                {importProgress.total > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {importProgress.imported + importProgress.updated + importProgress.skipped + importProgress.failed} of {importProgress.total} processed
+                  </p>
+                )}
+              </div>
+              {importProgress.total > 0 && (
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.round(((importProgress.imported + importProgress.updated + importProgress.skipped + importProgress.failed) / importProgress.total) * 100)}%` }}
+                  />
+                </div>
+              )}
+              <div className="text-sm space-y-1 text-center">
+                <p className="text-green-600 dark:text-green-400">✓ Inserted: {importProgress.imported}</p>
+                <p className="text-blue-600 dark:text-blue-400">↻ Updated: {importProgress.updated}</p>
                 <p className="text-yellow-600 dark:text-yellow-400">⊘ Skipped: {importProgress.skipped}</p>
-                <p className="text-red-600 dark:text-red-400">✗ Errors: {importProgress.errors}</p>
+                <p className="text-red-600 dark:text-red-400">✗ Failed: {importProgress.failed}</p>
               </div>
             </div>
           )}
@@ -715,9 +753,10 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
               )}
 
               <div className="text-sm space-y-1 text-gray-600 dark:text-gray-300">
-                <p className="text-green-600 dark:text-green-400">✓ Imported: {importProgress.imported}</p>
+                <p className="text-green-600 dark:text-green-400">✓ Inserted: {importProgress.imported}</p>
+                <p className="text-blue-600 dark:text-blue-400">↻ Updated: {importProgress.updated}</p>
                 <p className="text-yellow-600 dark:text-yellow-400">⊘ Skipped (duplicates): {importProgress.skipped}</p>
-                <p className="text-red-600 dark:text-red-400">✗ Errors: {importProgress.errors}</p>
+                <p className="text-red-600 dark:text-red-400">✗ Failed: {importProgress.failed}</p>
               </div>
 
               {importedListName && (
@@ -757,7 +796,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
 
               <button
                 onClick={() => {
-                  if (importProgress.imported > 0 || importProgress.skipped > 0) {
+                  if (importProgress.imported > 0 || importProgress.updated > 0 || importProgress.skipped > 0) {
                     onImportComplete();
                   }
                   handleClose();

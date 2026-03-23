@@ -8,11 +8,11 @@
 // edge:frontend/src/components/ContactActivityTimeline.tsx -> RELATES
 // edge:log-activity#1 -> STEP_IN
 // prompt: Pre-check Salesforce connection before calling markActivityForSync. Make activity types configurable via org settings. Add outcome field for calls.
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { markActivityForSync } from '../lib/salesforce';
-import { AttioAdapter } from '../lib/crm/adapters/attio';
+import { markActivityForSync, getSalesforceConnection } from '../lib/salesforce';
+import { toast } from '../hooks/use-toast';
 
 interface LogActivityModalProps {
   isOpen: boolean;
@@ -24,6 +24,21 @@ interface LogActivityModalProps {
   activityType: 'call' | 'email' | 'social' | 'note';
   onSuccess: () => void;
 }
+
+interface ActivityTypeConfig {
+  id: string;
+  label: string;
+  value: string;
+  icon: string | null;
+}
+
+const DEFAULT_ACTIVITY_TYPES: ActivityTypeConfig[] = [
+  { id: 'default-call', label: 'Call', value: 'call', icon: null },
+  { id: 'default-email', label: 'Email', value: 'email', icon: null },
+  { id: 'default-meeting', label: 'Meeting', value: 'meeting', icon: null },
+  { id: 'default-note', label: 'Note', value: 'note', icon: null },
+  { id: 'default-social', label: 'Social', value: 'social', icon: null },
+]
 
 const outcomeOptions: Record<string, string[]> = {
   call: ['no_answer', 'voicemail', 'connect', 'conversation', 'meeting_booked', 'not_interested', 'follow_up', 'other'],
@@ -56,6 +71,30 @@ export default function LogActivityModal({
   const [outcome, setOutcome] = useState<string>('other');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [salesforceConnected, setSalesforceConnected] = useState(false);
+  const [orgActivityTypes, setOrgActivityTypes] = useState<ActivityTypeConfig[]>(DEFAULT_ACTIVITY_TYPES);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    getSalesforceConnection().then((conn) => setSalesforceConnected(!!conn));
+    loadActivityTypes();
+  }, [isOpen]);
+
+  const loadActivityTypes = async () => {
+    if (!orgId) return;
+    try {
+      const { data } = await supabase
+        .from('activity_types')
+        .select('id, label, value, icon')
+        .eq('org_id', orgId)
+        .order('label');
+      if (data && data.length > 0) {
+        setOrgActivityTypes(data);
+      }
+    } catch {
+      // Fall back to defaults silently
+    }
+  };
 
   const resetAndClose = () => {
     setOutcome('other');
@@ -78,8 +117,8 @@ export default function LogActivityModal({
 
       if (error) throw error;
 
-      // Mark for Salesforce sync if auto-push enabled
-      if (data?.id) {
+      // Mark for Salesforce sync only if a connection is confirmed
+      if (data?.id && salesforceConnected) {
         markActivityForSync(data.id); // Non-blocking, logs errors internally
       }
 
@@ -115,7 +154,7 @@ export default function LogActivityModal({
       resetAndClose();
     } catch (error) {
       console.error('Error logging activity:', error);
-      alert('Failed to log activity');
+      toast({ variant: 'destructive', title: 'Failed to log activity', description: error instanceof Error ? error.message : undefined });
     } finally {
       setSaving(false);
     }
@@ -123,7 +162,8 @@ export default function LogActivityModal({
 
   if (!isOpen) return null;
 
-  const typeLabel = activityType.charAt(0).toUpperCase() + activityType.slice(1);
+  const typeConfig = orgActivityTypes.find((t) => t.value === activityType);
+  const typeLabel = typeConfig?.label ?? (activityType.charAt(0).toUpperCase() + activityType.slice(1));
   const availableOutcomes = outcomeOptions[activityType] || ['other'];
 
   return (

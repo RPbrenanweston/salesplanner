@@ -9,10 +9,11 @@
 // edge:frontend/src/App.tsx -> RELATES
 // edge:email-templates#1 -> STEP_IN
 // prompt: Add error toast on delete failure. Verify RLS on email_templates scopes to org_id. Add template preview and search/filter.
-import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, Share2, Lock } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Pencil, Trash2, Share2, Lock, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { TemplateModal } from '../components/TemplateModal'
+import { toast } from '../hooks/use-toast'
 import DOMPurify from 'dompurify'
 import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
 
@@ -36,11 +37,20 @@ export default function EmailTemplates() {
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
     loadTemplates()
     loadCurrentUser()
   }, [])
+
+  const filteredTemplates = useMemo(() => {
+    const q = searchQuery.toLowerCase()
+    return templates.filter(t =>
+      !q || t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q)
+    )
+  }, [templates, searchQuery])
 
   const loadCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -50,10 +60,23 @@ export default function EmailTemplates() {
   const loadTemplates = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('org_id')
+        .eq('id', user.id)
+        .single()
+
+      let query = supabase
         .from('email_templates')
         .select('*')
         .order('created_at', { ascending: false })
+
+      if (userData?.org_id) query = query.eq('org_id', userData.org_id)
+
+      const { data, error } = await query
 
       if (error) throw error
       setTemplates(data || [])
@@ -78,7 +101,7 @@ export default function EmailTemplates() {
       loadTemplates()
     } catch (err) {
       console.error('Error deleting template:', err)
-      alert('Failed to delete template')
+      toast({ variant: 'destructive', title: 'Failed to delete template', description: 'Please try again.' })
     }
   }
 
@@ -130,6 +153,18 @@ export default function EmailTemplates() {
         </button>
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-white/30 pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search templates by name or subject..."
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-electric/40"
+        />
+      </div>
+
       {loadError && (
         <div className="rounded-lg bg-red-alert/10 border border-red-alert/30 p-4 m-4">
           <p className="text-sm text-red-alert">{loadError}</p>
@@ -151,9 +186,14 @@ export default function EmailTemplates() {
             Create Your First Template
           </button>
         </div>
+      ) : filteredTemplates.length === 0 ? (
+        <div className="glass-card text-center py-12">
+          <p className="font-display font-semibold text-gray-900 dark:text-white mb-1">No templates match your search</p>
+          <button onClick={() => setSearchQuery('')} className="text-indigo-electric hover:text-indigo-electric/70 text-sm transition-colors">Clear search</button>
+        </div>
       ) : (
         <div className="grid gap-4">
-          {templates.map((template) => (
+          {filteredTemplates.map((template) => (
             <div
               key={template.id}
               className="glass-card p-4 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
@@ -208,17 +248,39 @@ export default function EmailTemplates() {
                 </div>
               </div>
 
-              <div className="flex gap-6 text-xs text-gray-400 dark:text-white/30 font-mono border-t border-gray-200 dark:border-white/10 pt-3">
-                <div>
-                  <span className="font-semibold">Used:</span> {template.times_used}
+              <div className="flex items-center justify-between border-t border-gray-200 dark:border-white/10 pt-3">
+                <div className="flex gap-6 text-xs text-gray-400 dark:text-white/30 font-mono">
+                  <div>
+                    <span className="font-semibold">Used:</span> {template.times_used}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Reply Rate:</span> {calculateReplyRate(template)}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Replies:</span> {template.reply_count}
+                  </div>
                 </div>
-                <div>
-                  <span className="font-semibold">Reply Rate:</span> {calculateReplyRate(template)}
-                </div>
-                <div>
-                  <span className="font-semibold">Replies:</span> {template.reply_count}
-                </div>
+                <button
+                  onClick={() => setExpandedId(expandedId === template.id ? null : template.id)}
+                  className="flex items-center gap-1 text-xs text-indigo-electric hover:text-indigo-electric/70 transition-colors font-medium"
+                >
+                  {expandedId === template.id ? (
+                    <><ChevronUp className="w-3.5 h-3.5" /> Hide Preview</>
+                  ) : (
+                    <><ChevronDown className="w-3.5 h-3.5" /> Preview</>
+                  )}
+                </button>
               </div>
+
+              {expandedId === template.id && (
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-white/30 uppercase tracking-wider mb-2">Preview</p>
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none text-sm text-gray-700 dark:text-white/70 bg-gray-50 dark:bg-white/5 rounded-lg p-4 overflow-auto max-h-64"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(template.body) }}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
