@@ -274,7 +274,7 @@ export default function ImportAttioModal({
         }
 
         // Create the list with list_type: 'contacts'
-        const { data: newList } = await supabase.from('lists').insert({
+        const { data: newList, error: listError } = await supabase.from('lists').insert({
           name: listName.trim(),
           description: selectedListName ? `Imported from Attio list: ${selectedListName}` : 'Imported from Attio',
           org_id: userData.org_id,
@@ -283,6 +283,8 @@ export default function ImportAttioModal({
           list_type: 'contacts',
           filter_criteria: { filters: [], autoRefresh: false },
         }).select('id').single();
+
+        if (listError) throw new Error(`Failed to create list: ${listError.message}`);
 
         if (newList && importedContactIds.length > 0) {
           // Deduplicate before linking — same contact may appear multiple times in Attio list
@@ -345,7 +347,7 @@ export default function ImportAttioModal({
         }
 
         // Create the list with list_type: 'accounts'
-        const { data: newList } = await supabase.from('lists').insert({
+        const { data: newList, error: listError } = await supabase.from('lists').insert({
           name: listName.trim(),
           description: selectedListName ? `Imported from Attio list: ${selectedListName}` : 'Imported from Attio',
           org_id: userData.org_id,
@@ -354,6 +356,8 @@ export default function ImportAttioModal({
           list_type: 'accounts',
           filter_criteria: { filters: [], autoRefresh: false },
         }).select('id').single();
+
+        if (listError) throw new Error(`Failed to create list: ${listError.message}`);
 
         if (newList && importedAccountIds.length > 0) {
           // Deduplicate before linking — same account may appear multiple times in Attio list
