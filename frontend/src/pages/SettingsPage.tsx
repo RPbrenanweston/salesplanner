@@ -23,6 +23,7 @@ import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import OutlookCalendarOAuthButton from '../components/OutlookCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
 import { isSalesforceConnected } from '../lib/salesforce'
+import { getAvailableAdapters } from '../lib/crm/registry'
 
 type Tab = 'profile' | 'organization' | 'team' | 'integrations' | 'pipeline' | 'billing'
 
@@ -1690,13 +1691,20 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* CRM */}
+          {/* CRM — rendered from adapter registry */}
           <div>
             <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
               CRM
             </h3>
+            {getAvailableAdapters().length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-white/40">No CRM integrations available.</p>
+            )}
             <div className="space-y-4">
-              <SalesforceOAuthButton />
+              {getAvailableAdapters().map((adapter) => (
+                <div key={adapter.meta.provider}>
+                  {adapter.meta.provider === 'salesforce' && <SalesforceOAuthButton />}
+                </div>
+              ))}
 
               {/* Salesforce Activity Sync Settings */}
               <div className="glass-card p-4">
