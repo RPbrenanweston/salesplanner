@@ -307,7 +307,8 @@ export default function ImportAttioModal({
             .single();
 
           if (listError) {
-            console.error('Failed to create list:', listError);
+            console.error('Failed to create list:', listError, JSON.stringify(listError));
+            setError(`List created but contacts may not be linked: ${listError.message}`);
           } else if (newList) {
             // 3. Link contacts to the list via junction table
             const listContactRows = importedContactIds.map((contactId, index) => ({
@@ -326,7 +327,7 @@ export default function ImportAttioModal({
                 console.error('Failed to link contacts to list:', linkError);
               }
             }
-            console.log(`[Attio] Created list "${listName}" with ${importedContactIds.length} contacts`);
+            console.log(`[Attio] Created list "${listName}" (ID: ${newList.id}) with ${importedContactIds.length} contacts linked via list_contacts`);
           }
         }
       } else {
