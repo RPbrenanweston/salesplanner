@@ -58,50 +58,60 @@ async function getAttioToken(userId: string, orgId: string): Promise<string | nu
   return data.access_token;
 }
 
-/** Extract a plain string from an Attio values array entry */
+/**
+ * Extract a plain string from an Attio values array entry.
+ * Attio values are arrays like: [{ value: "x", active_from: "...", ... }]
+ * Different field types use different keys for the actual value.
+ */
 function extractValue(valuesArray: unknown): string {
   if (!Array.isArray(valuesArray) || valuesArray.length === 0) return '';
   const first = valuesArray[0] as Record<string, unknown>;
-  // Different Attio field types store the value under different keys
-  if (typeof first.value === 'string') return first.value;
-  if (typeof first.first_name === 'string') return first.first_name;
-  if (typeof first.last_name === 'string') return first.last_name;
-  if (typeof first.email_address === 'string') return first.email_address;
-  if (typeof first.domain === 'string') return first.domain;
-  if (typeof first.full_name === 'string') return first.full_name;
+  if (!first || typeof first !== 'object') return '';
+  // Check known value keys in priority order
+  for (const key of ['value', 'first_name', 'last_name', 'email_address', 'domain', 'full_name', 'phone_number']) {
+    if (typeof first[key] === 'string') return first[key] as string;
+  }
+  // Fallback: find any string value that isn't metadata
+  const metaKeys = new Set(['active_from', 'active_until', 'attribute_type', 'created_by_actor', 'id', 'type']);
+  for (const [k, v] of Object.entries(first)) {
+    if (typeof v === 'string' && !metaKeys.has(k) && v.length > 0 && !v.startsWith('20')) return v;
+  }
   return '';
 }
 
-/** Extract email specifically — Attio stores emails under email_address */
 function extractEmail(valuesArray: unknown): string {
   if (!Array.isArray(valuesArray) || valuesArray.length === 0) return '';
   const first = valuesArray[0] as Record<string, unknown>;
+  if (!first || typeof first !== 'object') return '';
   if (typeof first.email_address === 'string') return first.email_address;
   if (typeof first.value === 'string') return first.value;
+  if (typeof first.original_email_address === 'string') return first.original_email_address;
   return '';
 }
 
-/** Extract domain from Attio domains array */
 function extractDomain(valuesArray: unknown): string {
   if (!Array.isArray(valuesArray) || valuesArray.length === 0) return '';
   const first = valuesArray[0] as Record<string, unknown>;
+  if (!first || typeof first !== 'object') return '';
   if (typeof first.domain === 'string') return first.domain;
+  if (typeof first.root_domain === 'string') return first.root_domain;
   if (typeof first.value === 'string') return first.value;
   return '';
 }
 
-/** Extract first name from Attio name field */
 function extractFirstName(valuesArray: unknown): string {
   if (!Array.isArray(valuesArray) || valuesArray.length === 0) return '';
   const first = valuesArray[0] as Record<string, unknown>;
+  if (!first || typeof first !== 'object') return '';
   if (typeof first.first_name === 'string') return first.first_name;
+  if (typeof first.value === 'string') return first.value;
   return '';
 }
 
-/** Extract last name from Attio name field */
 function extractLastName(valuesArray: unknown): string {
   if (!Array.isArray(valuesArray) || valuesArray.length === 0) return '';
   const first = valuesArray[0] as Record<string, unknown>;
+  if (!first || typeof first !== 'object') return '';
   if (typeof first.last_name === 'string') return first.last_name;
   return '';
 }
@@ -174,7 +184,7 @@ export async function fetchAttioPeople(
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ limit: 500, offset }),
+      body: JSON.stringify({ offset }),
     });
 
     if (!response.ok) {
@@ -225,7 +235,7 @@ export async function fetchAttioCompanies(
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ limit: 500, offset }),
+      body: JSON.stringify({ offset }),
     });
 
     if (!response.ok) {
@@ -234,6 +244,11 @@ export async function fetchAttioCompanies(
     }
 
     const result = (await response.json()) as AttioQueryResponse;
+
+    // Debug: log first record to understand API response shape
+    if (companies.length === 0 && result.data.length > 0) {
+      console.log('[Attio] First company record shape:', JSON.stringify(result.data[0], null, 2).slice(0, 2000));
+    }
 
     for (const record of result.data) {
       if (!record) continue;
