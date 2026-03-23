@@ -44,6 +44,11 @@ export default function SettingsPage() {
   const [sfAutoPushLoading, setSfAutoPushLoading] = useState(false)
   const [sfConnected, setSfConnected] = useState(false)
 
+  // Attio auto-push toggle state
+  const [attioAutoPush, setAttioAutoPush] = useState(false)
+  const [attioAutoPushLoading, setAttioAutoPushLoading] = useState(false)
+  const [attioConnected, setAttioConnected] = useState(false)
+
   // Pipeline stages state
   const [pipelineStages, setPipelineStages] = useState<{
     id: string
@@ -150,7 +155,7 @@ export default function SettingsPage() {
 
       const { data: orgData } = await supabase
         .from('organizations')
-        .select('name, logo_url, sf_auto_push_activities')
+        .select('name, logo_url, sf_auto_push_activities, attio_auto_push_activities')
         .eq('id', profileData.org_id)
         .single()
 
@@ -158,11 +163,23 @@ export default function SettingsPage() {
         setOrgName(orgData.name || '')
         setLogoUrl(orgData.logo_url)
         setSfAutoPush(orgData.sf_auto_push_activities || false)
+        setAttioAutoPush(orgData.attio_auto_push_activities || false)
       }
 
       // Check Salesforce connection status
       const connected = await isSalesforceConnected()
       setSfConnected(connected)
+
+      // Check Attio connection status
+      if (user && profileData.org_id) {
+        const { data: attioConn } = await supabase
+          .from('oauth_connections')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('provider', 'attio')
+          .maybeSingle()
+        setAttioConnected(!!attioConn)
+      }
     }
 
     loadOrgData()
@@ -498,6 +515,29 @@ export default function SettingsPage() {
       alert('Failed to update auto-push setting. Please try again.')
     } finally {
       setSfAutoPushLoading(false)
+    }
+  }
+
+  const handleAttioAutoPushToggle = async () => {
+    if (!orgId) return
+
+    setAttioAutoPushLoading(true)
+    try {
+      const newValue = !attioAutoPush
+
+      const { error } = await supabase
+        .from('organizations')
+        .update({ attio_auto_push_activities: newValue })
+        .eq('id', orgId)
+
+      if (error) throw error
+
+      setAttioAutoPush(newValue)
+    } catch (error) {
+      console.error('Failed to update Attio auto-push setting:', error)
+      alert('Failed to update auto-push setting. Please try again.')
+    } finally {
+      setAttioAutoPushLoading(false)
     }
   }
 
@@ -1753,6 +1793,40 @@ export default function SettingsPage() {
                     Manually sync pending activities
                   </span>
                 </div>
+              </div>
+
+              {/* Attio Activity Sync Settings */}
+              <div className="glass-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                      Auto-push Activities to Attio
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-white/50 mt-1">
+                      Automatically create Attio Notes when you log activities in SalesBlock
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAttioAutoPushToggle}
+                    disabled={attioAutoPushLoading || !attioConnected}
+                    title={!attioConnected ? 'Attio not connected — connect above to enable' : undefined}
+                    className={`${
+                      attioAutoPush && attioConnected ? 'bg-indigo-electric' : 'dark:bg-white/10 bg-gray-300'
+                    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50`}
+                  >
+                    <span
+                      className={`${
+                        attioAutoPush && attioConnected ? 'translate-x-6' : 'translate-x-1'
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                    />
+                  </button>
+                </div>
+
+                {!attioConnected && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Attio not connected &mdash; connect above to sync activities
+                  </p>
+                )}
               </div>
             </div>
           </div>
