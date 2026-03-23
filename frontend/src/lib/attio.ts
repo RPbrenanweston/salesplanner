@@ -128,7 +128,8 @@ interface AttioListApiEntry {
   id: string | { list_id: string };
   api_slug: string;
   name: string;
-  parent_object: string;
+  /** Array of parent object slugs, e.g. ["people"] or ["companies"] */
+  parent_object: string[];
 }
 
 interface AttioListsResponse {
@@ -278,12 +279,16 @@ export async function fetchAttioLists(
 
   const result = (await response.json()) as AttioListsResponse;
 
-  return (result.data ?? []).filter(Boolean).map((entry) => ({
-    id: typeof entry.id === 'string' ? entry.id : entry.id?.list_id ?? '',
-    name: entry.name ?? 'Untitled',
-    apiSlug: entry.api_slug ?? '',
-    parentObject: entry.parent_object ?? 'people',
-  }));
+  return (result.data ?? []).filter(Boolean).map((entry) => {
+    // parent_object is an array like ["people"] or ["companies"]
+    const parentArr = Array.isArray(entry.parent_object) ? entry.parent_object : [];
+    return {
+      id: typeof entry.id === 'string' ? entry.id : entry.id?.list_id ?? '',
+      name: entry.name ?? 'Untitled',
+      apiSlug: entry.api_slug ?? '',
+      parentObject: parentArr[0] ?? 'people',
+    };
+  });
 }
 
 /**
