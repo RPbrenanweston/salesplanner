@@ -113,8 +113,8 @@ interface AttioRecordValues {
 }
 
 interface AttioApiRecord {
-  id: { record_id: string };
-  values: AttioRecordValues;
+  id: string | { record_id: string };
+  values?: AttioRecordValues;
 }
 
 interface AttioQueryResponse {
@@ -123,7 +123,7 @@ interface AttioQueryResponse {
 }
 
 interface AttioListApiEntry {
-  id: { list_id: string };
+  id: string | { list_id: string };
   api_slug: string;
   name: string;
 }
@@ -181,9 +181,11 @@ export async function fetchAttioPeople(
     const result = (await response.json()) as AttioQueryResponse;
 
     for (const record of result.data) {
-      const v = record.values;
+      if (!record) continue;
+      const v = record.values ?? {};
+      const recordId = typeof record.id === 'string' ? record.id : record.id?.record_id ?? '';
       people.push({
-        externalId: record.id.record_id,
+        externalId: recordId,
         firstName: extractFirstName(v.name),
         lastName: extractLastName(v.name),
         email: extractEmail(v.email_addresses),
@@ -230,9 +232,11 @@ export async function fetchAttioCompanies(
     const result = (await response.json()) as AttioQueryResponse;
 
     for (const record of result.data) {
-      const v = record.values;
+      if (!record) continue;
+      const v = record.values ?? {};
+      const recordId = typeof record.id === 'string' ? record.id : record.id?.record_id ?? '';
       companies.push({
-        externalId: record.id.record_id,
+        externalId: recordId,
         name: extractValue(v.name),
         domain: extractDomain(v.domains),
         industry: extractValue(v.categories),
@@ -271,10 +275,10 @@ export async function fetchAttioLists(
 
   const result = (await response.json()) as AttioListsResponse;
 
-  return result.data.map((entry) => ({
-    id: entry.id.list_id,
-    name: entry.name,
-    apiSlug: entry.api_slug,
+  return (result.data ?? []).filter(Boolean).map((entry) => ({
+    id: typeof entry.id === 'string' ? entry.id : entry.id?.list_id ?? '',
+    name: entry.name ?? 'Untitled',
+    apiSlug: entry.api_slug ?? '',
   }));
 }
 
@@ -313,9 +317,10 @@ export async function fetchAttioListEntries(
     const result = (await response.json()) as AttioListEntriesResponse;
 
     for (const entry of result.data) {
-      const v = entry.values;
+      if (!entry) continue;
+      const v = entry.values ?? {};
       people.push({
-        externalId: entry.record_id || entry.parent_record_id,
+        externalId: entry.record_id || entry.parent_record_id || '',
         firstName: extractFirstName(v.name),
         lastName: extractLastName(v.name),
         email: extractEmail(v.email_addresses),
