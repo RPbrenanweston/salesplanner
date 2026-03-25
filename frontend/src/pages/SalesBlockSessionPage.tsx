@@ -60,6 +60,8 @@ interface SessionContact {
   notes: string | null
   linkedin_url: string | null
   hasActivity?: boolean
+  activityCount?: number
+  lastActivityAt?: string | null
 }
 
 interface SalesBlockData {
@@ -272,16 +274,45 @@ export default function SalesBlockSessionPage() {
 
         if (contactsError) throw contactsError
 
-        // Activity status for each contact
-        const contactsWithActivity = await Promise.all(
-          (contactsData || []).map(async (contact) => {
-            const { count } = await supabase
-              .from('activities')
-              .select('id', { count: 'exact', head: true })
-              .eq('contact_id', contact.id)
-            return { ...contact, hasActivity: (count ?? 0) > 0 }
-          })
-        )
+        // Batch activity check — single query instead of N+1
+        const { data: activityData } = await supabase
+          .from('activities')
+          .select('contact_id, created_at')
+          .in('contact_id', contactIds)
+          .order('created_at', { ascending: false })
+
+        // Build map: contact_id → { count, lastActivityAt }
+        const activityMap = new Map<string, { count: number; lastActivityAt: string }>()
+        for (const a of activityData || []) {
+          const existing = activityMap.get(a.contact_id)
+          if (existing) {
+            existing.count++
+          } else {
+            activityMap.set(a.contact_id, { count: 1, lastActivityAt: a.created_at })
+          }
+        }
+
+        const contactsWithActivity = (contactsData || []).map((contact) => {
+          const activity = activityMap.get(contact.id)
+          return {
+            ...contact,
+            hasActivity: !!activity,
+            activityCount: activity?.count ?? 0,
+            lastActivityAt: activity?.lastActivityAt ?? null,
+          }
+        })
+
+        // Smart sort: unworked contacts first (by original position),
+        // then worked contacts sorted by oldest activity first (due for follow-up)
+        contactsWithActivity.sort((a, b) => {
+          if (!a.hasActivity && b.hasActivity) return -1
+          if (a.hasActivity && !b.hasActivity) return 1
+          // Both worked — oldest activity first (needs follow-up soonest)
+          if (a.lastActivityAt && b.lastActivityAt) {
+            return new Date(a.lastActivityAt).getTime() - new Date(b.lastActivityAt).getTime()
+          }
+          return 0
+        })
 
         setContacts(contactsWithActivity)
 
@@ -743,7 +774,14 @@ export default function SalesBlockSessionPage() {
                     </p>
                   </div>
                   {contact.hasActivity && (
-                    <Check className="w-4 h-4 text-emerald-signal flex-shrink-0 ml-1.5" />
+                    <span className="flex items-center gap-1 flex-shrink-0 ml-1.5">
+                      {(contact.activityCount ?? 0) > 1 && (
+                        <span className="text-[10px] font-mono text-emerald-signal bg-emerald-signal/10 rounded-full px-1.5 py-0.5">
+                          {contact.activityCount}x
+                        </span>
+                      )}
+                      <Check className="w-4 h-4 text-emerald-signal" />
+                    </span>
                   )}
                 </div>
               </div>
