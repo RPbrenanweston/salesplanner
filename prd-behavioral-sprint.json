@@ -1,0 +1,210 @@
+{
+  "project": "SalesBlock.io — Behavioral Design Sprint",
+  "branchName": "ralph/behavioral-sprint",
+  "description": "Transform SalesBlock from passive execution tool into active habit-building cockpit. Applies Fogg (Tiny Habits), Clear (Atomic Habits), and Eyal (Hooked) behavioral design principles. 4 features + visual cue improvements for the notes system.",
+  "techStack": {
+    "frontend": "React 18 + TypeScript 5.3 + Vite 5.1 + TanStack Query v5 + Tailwind 3",
+    "backend": "Supabase (PostgreSQL + Auth + RLS + Edge Functions)",
+    "existing": "Day Planner, SalesBlocks, Goals, Analytics, Knowledge Graph Notes already built"
+  },
+  "designPrinciples": [
+    "Goldilocks Zone: targets 4% above current capacity — stretch without breaking",
+    "Tiny Habits: lowest-friction entry point to break cold start inertia",
+    "Implementation Intentions: specific time + place commitments are 3x more effective than vague plans",
+    "Identity-based change: 'I am a top prospector' > 'I want to make 50 calls'",
+    "Visual feedback must be immediate, obvious, and celebratory",
+    "Every interaction should reduce friction to the next action"
+  ],
+  "userStories": [
+    {
+      "id": "BH-001",
+      "title": "Visual typing cues for [[wikilink]] and #tag in NoteBlockEditor",
+      "description": "As a rep typing notes, I need clear visual cues showing that [[ triggers entity linking and # triggers tagging, similar to how @ works in email or / shows commands in Slack.",
+      "acceptanceCriteria": [
+        "Placeholder text reads: 'Type a note... Use [[ to link people & accounts, # for tags'",
+        "When user types [[ a subtle inline indicator appears (e.g., blue underline or highlight on the [[ characters)",
+        "Autocomplete dropdown has a header showing 'Link to...' with entity type icons",
+        "When user types # a tag-colored indicator appears on the # character",
+        "Tag autocomplete shows existing tags with color dots, plus 'Create new tag' option",
+        "Empty state in autocomplete shows 'Keep typing to search...' not blank",
+        "Keyboard hints shown: arrow keys to navigate, Enter to select, Esc to dismiss",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/components/intelligence/NoteBlockEditor.tsx"],
+      "notes": "Currently [[ triggers autocomplete but there's no visual indicator that this is possible. New users won't discover the feature. Reference: Gmail @ mention UX, Notion / command UX, Obsidian [[ link UX."
+    },
+    {
+      "id": "BH-002",
+      "title": "Bring NoteBlockEditor to ContactDetailPage",
+      "description": "As a rep viewing a contact, I need the graph-native NoteBlockEditor replacing the flat notes field so I can create linked notes with [[ references directly from the contact view.",
+      "acceptanceCriteria": [
+        "ContactDetailPage 'Contact Notes' section uses NoteBlockEditor instead of flat textarea",
+        "NoteBlockEditor receives contactId prop — notes are scoped to this contact AND the contact's account",
+        "If contact has no account_id, notes are created with account_id = null (contact-only notes)",
+        "BacklinksPanel appears below notes showing what references this contact",
+        "[[ autocomplete works within contact notes, searching accounts, other contacts, deals",
+        "Existing flat notes data is preserved (read-only display above new editor if notes field has content)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/pages/ContactDetailPage.tsx", "frontend/src/components/intelligence/NoteBlockEditor.tsx", "frontend/src/components/intelligence/BacklinksPanel.tsx"],
+      "notes": "Currently ContactDetailPage has a flat textarea for notes. Replace with NoteBlockEditor but handle the case where contact has no account_id (knowledge graph notes require account_id in the current schema — may need to make it nullable or create an 'unlinked' account)."
+    },
+    {
+      "id": "BH-003",
+      "title": "Bring NoteBlockEditor to SalesBlock session cockpit",
+      "description": "As a rep in a SalesBlock session working a contact, I need to see and add graph-native notes about the current contact/account without leaving the session.",
+      "acceptanceCriteria": [
+        "SalesBlockSessionPage right panel includes a collapsible 'Notes' section",
+        "NoteBlockEditor pre-scoped to current contact's account_id and contact_id",
+        "Recent notes for this contact/account shown (last 5, expandable)",
+        "BacklinksPanel shows what references the current contact",
+        "Notes persist after session ends (they're in note_blocks table, not session-scoped)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": false,
+      "files": ["frontend/src/pages/SalesBlockSessionPage.tsx", "frontend/src/components/intelligence/NoteBlockEditor.tsx"],
+      "notes": "This closes the loop: rep sees knowledge context DURING the session, not just when preparing."
+    },
+    {
+      "id": "BH-004",
+      "title": "Goldilocks Adaptive Goal System — weekly growth targets",
+      "description": "As a rep starting my week, I need the system to propose stretch goals that are 4% above my recent average, with a safety valve for bad weeks.",
+      "acceptanceCriteria": [
+        "New component: WeeklyGrowthGoalCard shown on Dashboard and Day Planner on Mondays",
+        "System calculates 7-day rolling average for calls, emails, meetings from activities table",
+        "Proposed target = rolling average * 1.04 (4% stretch), rounded to nearest whole number",
+        "If previous week attainment was < 60%, show 'Stability Mode' option (maintain current target)",
+        "User can accept, adjust, or dismiss the proposed target",
+        "Accepted target creates/updates a weekly goal in the goals table with metric and period",
+        "Progress bar shows current week progress vs accepted target throughout the week",
+        "New Supabase migration: add goal_source column to goals ('manual' | 'adaptive_suggested')",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": [
+        "frontend/src/components/productivity/WeeklyGrowthGoalCard.tsx",
+        "frontend/src/hooks/useAdaptiveGoals.ts",
+        "frontend/src/lib/queries/goalQueries.ts",
+        "frontend/src/pages/DayPlannerPage.tsx",
+        "supabase/migrations/YYYYMMDD_add_adaptive_goals.sql"
+      ],
+      "notes": "Based on Goldilocks Zone research: peak performance happens at ~4% above current capacity. This replaces arbitrary goal-setting with data-driven stretch targets."
+    },
+    {
+      "id": "BH-005",
+      "title": "Micro-Momentum Warmup Session (Tiny Habits cold start breaker)",
+      "description": "As a rep who hasn't started selling yet today, I need a low-friction 5-minute warmup session to break the cold start and build momentum.",
+      "acceptanceCriteria": [
+        "Dashboard shows 'Warmup' button when no SalesBlock session has been active for 2+ hours",
+        "Warmup button also appears on Day Planner when first block hasn't started",
+        "Clicking 'Warmup' creates a 5-minute SalesBlock with session_type='warmup'",
+        "Warmup session has simplified task options: 'Social Touches', '3 Quick Emails', or 'LinkedIn Browse'",
+        "Timer is locked to 5 minutes (no extension during warmup)",
+        "On completion, debrief celebrates the small win with encouraging copy",
+        "Debrief includes prominent 'Launch Full Block' button to convert momentum into a real session",
+        "'Launch Full Block' pre-fills a 25-minute or 90-minute session based on user's typical pattern",
+        "New session_type value: 'warmup' added to SalesBlock types",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": false,
+      "files": [
+        "frontend/src/components/productivity/WarmupButton.tsx",
+        "frontend/src/components/productivity/WarmupDebrief.tsx",
+        "frontend/src/pages/DashboardPage.tsx",
+        "frontend/src/pages/DayPlannerPage.tsx",
+        "frontend/src/pages/SalesBlockSessionPage.tsx",
+        "frontend/src/types/enums.ts"
+      ],
+      "notes": "Fogg's Tiny Habits: make the behavior so small it's impossible to fail. 5 minutes of social touches is the 'two push-ups' of sales. The transition from warmup to full block captures momentum at its peak."
+    },
+    {
+      "id": "BH-006",
+      "title": "Implementation Intention Scheduler (Golden Hour commitment)",
+      "description": "As a rep ending my day, I need to commit to a specific time block for tomorrow's first prospecting session so it becomes an appointment, not a choice.",
+      "acceptanceCriteria": [
+        "Commitment Prompt appears during Daily Debrief or when last SalesBlock of the day completes",
+        "Also appears on Friday afternoon debrief for Monday planning",
+        "User selects a 60-minute window from their available time tomorrow (respects calendar events)",
+        "App creates a Google/Outlook calendar invite with: title 'SalesBlock: Prospecting', deep link to pre-configured session",
+        "Calendar invite uses existing OAuth connection (Google Calendar or Outlook Calendar)",
+        "If no calendar connected, shows 'Connect calendar in Settings' prompt",
+        "Committed time shows as a 'locked' block on next day's Day Planner timeline",
+        "Reminder notification at T-15 minutes (if notification permissions granted)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 2,
+      "passes": false,
+      "files": [
+        "frontend/src/components/productivity/CommitmentPrompt.tsx",
+        "frontend/src/components/productivity/DailyDebrief.tsx",
+        "frontend/src/pages/DayPlannerPage.tsx",
+        "frontend/src/lib/calendar.ts"
+      ],
+      "notes": "Implementation Intentions research: 'I will [behavior] at [time] in [location]' makes follow-through 3x more likely. The calendar invite makes the commitment external and visible."
+    },
+    {
+      "id": "BH-007",
+      "title": "Identity-Based Feedback Loops in session debrief",
+      "description": "As a rep completing a session, I need the debrief to reinforce my professional identity rather than just showing raw numbers.",
+      "acceptanceCriteria": [
+        "During onboarding (or Settings), user selects a Sales Persona from 4 options",
+        "Personas: 'The Relentless Closer', 'The Relationship Builder', 'The Strategic Hunter', 'The Precision Sniper'",
+        "Each persona has: name, icon, color, and identity-reinforcement copy templates",
+        "Post-session debrief replaces '25 Calls Logged' with persona-specific copy",
+        "Example: 'Identity Confirmed: You acted like a Relentless Closer today. 25 bricks added to your pipeline.'",
+        "Streak tracking: consecutive days of meeting persona-aligned targets shown as 'Identity Streak: 5 days'",
+        "New Supabase migration: add sales_persona column to users table",
+        "Settings page includes persona selector with descriptions",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 2,
+      "passes": false,
+      "files": [
+        "frontend/src/components/productivity/PersonaSelector.tsx",
+        "frontend/src/components/productivity/IdentityDebrief.tsx",
+        "frontend/src/pages/SettingsPage.tsx",
+        "frontend/src/types/enums.ts",
+        "supabase/migrations/YYYYMMDD_add_sales_persona.sql"
+      ],
+      "notes": "James Clear (Atomic Habits): 'Every action is a vote for the type of person you wish to become.' The debrief should make the rep feel like they ARE the persona, not just chasing numbers."
+    },
+    {
+      "id": "BH-008",
+      "title": "Social Proof sidebar — Peers in the Zone",
+      "description": "As a rep working a session, I need to see that teammates are also actively working right now to create social accountability.",
+      "acceptanceCriteria": [
+        "Small sidebar element on SalesBlockSessionPage shows 'Peers in the Zone'",
+        "Shows count and first names of teammates currently in active SalesBlock sessions",
+        "Data from salesblocks table where status='in_progress' and org_id matches",
+        "Updates every 60 seconds via polling (not real-time — avoid WebSocket complexity)",
+        "If no peers active, shows encouraging fallback: 'You're leading the charge today'",
+        "Privacy: only shows first names, not activity details",
+        "Can be collapsed/hidden via user preference",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "phase": 2,
+      "passes": false,
+      "files": [
+        "frontend/src/components/session/PeersInZonePanel.tsx",
+        "frontend/src/hooks/useActivePeers.ts",
+        "frontend/src/pages/SalesBlockSessionPage.tsx"
+      ],
+      "notes": "Social proof is one of the strongest behavioral triggers. Knowing someone else is working right now makes it harder to quit. Keep it lightweight — polling, not WebSockets."
+    }
+  ]
+}
