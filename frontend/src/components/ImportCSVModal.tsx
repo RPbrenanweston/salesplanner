@@ -356,83 +356,115 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete, impo
       const totalValid = mappedRows.length;
       setImportProgress({ imported, updated, skipped, failed, total: csvData.length });
 
-      // Batch duplicate-check: by email (contacts) or name (accounts)
-      const existingMap = new Map<string, string>(); // key → existing row id
-      for (let i = 0; i < mappedRows.length; i += BATCH_SIZE) {
-        const chunk = mappedRows.slice(i, i + BATCH_SIZE);
-        const keys = chunk.map((r) => r[requiredField] as string);
-        const { data: existing } = await supabase
-          .from(tableName)
-          .select(`id, ${requiredField}`)
-          .eq('org_id', orgId)
-          .in(requiredField, keys);
-        for (const row of existing || []) {
-          existingMap.set((row as any)[requiredField], row.id);
+      if (isAccountImport) {
+        // ── Account import: upsert on (org_id, name) ──
+        // New accounts get inserted, existing accounts get updated.
+        // ALL accounts (new + existing) get added to the list.
+        // Deduplicate within CSV by name (keep last occurrence)
+        const deduped = new Map<string, MappedRow>();
+        for (const row of mappedRows) {
+          deduped.set((row.name as string).toLowerCase(), row);
         }
-      }
+        const uniqueRows = Array.from(deduped.values());
 
-      // Separate rows into new vs existing
-      const toInsert: MappedRow[] = [];
-      const toUpdate: MappedRow[] = [];
+        for (let i = 0; i < uniqueRows.length; i += BATCH_SIZE) {
+          const chunk = uniqueRows.slice(i, i + BATCH_SIZE);
+          const rows = chunk.map(({ _rowIndex: _, ...rest }) => ({
+            ...rest,
+            org_id: orgId,
+            created_by: currentUser.id,
+          }));
+          const { data: upserted, error: upsertError } = await supabase
+            .from('accounts')
+            .upsert(rows, { onConflict: 'org_id,name' })
+            .select('id');
+          if (upsertError) {
+            console.error('Batch upsert error:', upsertError);
+            failed += chunk.length;
+            chunk.forEach((r) => rowErrors.push({ row: r._rowIndex + 1, identifier: r.name as string, reason: `Upsert failed: ${upsertError.message}` }));
+          } else {
+            // Supabase upsert doesn't distinguish new vs updated, count all as imported
+            imported += (upserted || []).length;
+            for (const c of upserted || []) idsToAddToList.push(c.id);
+          }
+          setImportProgress({ imported, updated, skipped, failed, total: totalValid });
+        }
+      } else {
+        // ── Contact import: existing duplicate-check + insert/update logic ──
+        const existingMap = new Map<string, string>();
+        for (let i = 0; i < mappedRows.length; i += BATCH_SIZE) {
+          const chunk = mappedRows.slice(i, i + BATCH_SIZE);
+          const keys = chunk.map((r) => r[requiredField] as string);
+          const { data: existing } = await supabase
+            .from('contacts')
+            .select('id, email')
+            .eq('org_id', orgId)
+            .in('email', keys);
+          for (const row of existing || []) {
+            existingMap.set(row.email, row.id);
+          }
+        }
 
-      for (const row of mappedRows) {
-        const existingId = existingMap.get(row[requiredField] as string);
-        if (existingId) {
-          if (duplicateStrategy === 'skip') {
-            skipped++;
-            idsToAddToList.push(existingId);
-          } else if (duplicateStrategy === 'update') {
-            toUpdate.push({ ...row, _existingId: existingId } as any);
-            idsToAddToList.push(existingId);
+        const toInsert: MappedRow[] = [];
+        const toUpdate: MappedRow[] = [];
+
+        for (const row of mappedRows) {
+          const existingId = existingMap.get(row.email as string);
+          if (existingId) {
+            if (duplicateStrategy === 'skip') {
+              skipped++;
+              idsToAddToList.push(existingId);
+            } else if (duplicateStrategy === 'update') {
+              toUpdate.push({ ...row, _existingId: existingId } as any);
+              idsToAddToList.push(existingId);
+            } else {
+              toInsert.push(row);
+            }
           } else {
             toInsert.push(row);
           }
-        } else {
-          toInsert.push(row);
         }
-      }
 
-      setImportProgress({ imported, updated, skipped, failed, total: csvData.length });
+        setImportProgress({ imported, updated, skipped, failed, total: csvData.length });
 
-      // Batch insert new rows
-      for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
-        const chunk = toInsert.slice(i, i + BATCH_SIZE);
-        const rows = chunk.map(({ _rowIndex: _, ...rest }) => ({
-          ...rest,
-          org_id: orgId,
-          created_by: currentUser.id,
-          ...(isAccountImport ? {} : { source: 'csv' }),
-        }));
-        const { data: inserted, error: insertError } = await supabase
-          .from(tableName)
-          .insert(rows)
-          .select('id');
-        if (insertError) {
-          console.error('Batch insert error:', insertError);
-          failed += chunk.length;
-          chunk.forEach((r) => rowErrors.push({ row: r._rowIndex + 1, identifier: r[requiredField] as string, reason: `Insert failed: ${insertError.message}` }));
-        } else {
-          imported += (inserted || []).length;
-          for (const c of inserted || []) idsToAddToList.push(c.id);
+        for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+          const chunk = toInsert.slice(i, i + BATCH_SIZE);
+          const rows = chunk.map(({ _rowIndex: _, ...rest }) => ({
+            ...rest,
+            org_id: orgId,
+            created_by: currentUser.id,
+            source: 'csv',
+          }));
+          const { data: inserted, error: insertError } = await supabase
+            .from('contacts')
+            .insert(rows)
+            .select('id');
+          if (insertError) {
+            console.error('Batch insert error:', insertError);
+            failed += chunk.length;
+            chunk.forEach((r) => rowErrors.push({ row: r._rowIndex + 1, identifier: r.email as string, reason: `Insert failed: ${insertError.message}` }));
+          } else {
+            imported += (inserted || []).length;
+            for (const c of inserted || []) idsToAddToList.push(c.id);
+          }
+          setImportProgress({ imported, updated, skipped, failed, total: totalValid });
         }
-        setImportProgress({ imported, updated, skipped, failed, total: totalValid });
-      }
 
-      // Update existing rows one-by-one
-      for (let i = 0; i < toUpdate.length; i++) {
-        const row = toUpdate[i] as any;
-        const { _rowIndex, _existingId, ...rowData } = row;
-        const { error: updateError } = await supabase
-          .from(tableName)
-          .update({ ...rowData, updated_at: new Date().toISOString() })
-          .eq('id', _existingId);
-        if (updateError) {
-          failed++;
-          rowErrors.push({ row: _rowIndex + 1, identifier: rowData[requiredField] || '', reason: `Update failed: ${updateError.message}` });
-        } else {
-          updated++;
+        for (let i = 0; i < toUpdate.length; i++) {
+          const row = toUpdate[i] as any;
+          const { _rowIndex, _existingId, ...rowData } = row;
+          const { error: updateError } = await supabase
+            .from('contacts')
+            .update({ ...rowData, updated_at: new Date().toISOString() })
+            .eq('id', _existingId);
+          if (updateError) {
+            failed++;
+            rowErrors.push({ row: _rowIndex + 1, identifier: rowData.email || '', reason: `Update failed: ${updateError.message}` });
+          } else {
+            updated++;
+          }
+          if (i % 50 === 0) setImportProgress({ imported, updated, skipped, failed, total: totalValid });
         }
-        if (i % 50 === 0) setImportProgress({ imported, updated, skipped, failed, total: totalValid });
       }
 
       setImportProgress({ imported, updated, skipped, failed, total: totalValid });
