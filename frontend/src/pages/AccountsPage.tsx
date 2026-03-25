@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, Plus, Users } from 'lucide-react'
+import { Building2, Plus, Upload, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ROUTES } from '../lib/routes'
 import { CreateAccountModal } from '../components/CreateAccountModal'
+import ImportCSVModal from '../components/ImportCSVModal'
 import type { Account } from '../types/domain'
 
 interface AccountWithCount extends Account {
@@ -17,6 +18,7 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<AccountWithCount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -98,6 +100,13 @@ export default function AccountsPage() {
         </div>
 
         <div className="flex gap-2 flex-wrap justify-end">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-white/10 transition-all duration-200 ease-snappy"
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg text-sm font-semibold transition-all duration-200 ease-snappy"
@@ -196,6 +205,13 @@ export default function AccountsPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => loadAccounts()}
+      />
+
+      <ImportCSVModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportComplete={() => loadAccounts()}
+        importType="accounts"
       />
     </div>
   )
