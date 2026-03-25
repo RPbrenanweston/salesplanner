@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Globe, Users, Briefcase, Edit2, Save, X } from 'lucide-react'
+import { ArrowLeft, Globe, Users, Briefcase, Edit2, Save, X, List, Phone } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ROUTES } from '../lib/routes'
@@ -24,12 +24,16 @@ export default function AccountDetailPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('intelligence')
   const [orgId, setOrgId] = useState<string>('')
 
+  const [listMemberships, setListMemberships] = useState<Array<{ id: string; name: string; owner_name: string }>>([])
+
   // Inline edit state
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editDomain, setEditDomain] = useState('')
   const [editIndustry, setEditIndustry] = useState('')
   const [editEmployeeRange, setEditEmployeeRange] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+  const [editPhone, setEditPhone] = useState('')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -81,6 +85,22 @@ export default function AccountDetailPage() {
       }
 
       setAccount(data)
+
+      // Load list memberships for this account
+      const { data: memberships } = await supabase
+        .from('account_list_items')
+        .select('list_id, lists(id, name, owner_id, users:owner_id(display_name))')
+        .eq('account_id', accountId)
+
+      if (memberships) {
+        setListMemberships(
+          memberships.map((m: any) => ({
+            id: m.lists?.id || m.list_id,
+            name: m.lists?.name || 'Unknown list',
+            owner_name: m.lists?.users?.display_name || 'Unknown',
+          }))
+        )
+      }
     } catch (err) {
       console.error('Error loading account:', err)
       setNotFound(true)
@@ -95,6 +115,8 @@ export default function AccountDetailPage() {
     setEditDomain(account.domain || '')
     setEditIndustry(account.industry || '')
     setEditEmployeeRange(account.employee_count_range || '')
+    setEditNotes(account.notes || '')
+    setEditPhone(account.phone || '')
     setIsEditing(true)
   }
 
@@ -113,6 +135,8 @@ export default function AccountDetailPage() {
           domain: editDomain.trim() || null,
           industry: editIndustry.trim() || null,
           employee_count_range: editEmployeeRange.trim() || null,
+          notes: editNotes.trim() || null,
+          phone: editPhone.trim() || null,
         })
         .eq('id', account.id)
 
@@ -124,6 +148,8 @@ export default function AccountDetailPage() {
         domain: editDomain.trim() || null,
         industry: editIndustry.trim() || null,
         employee_count_range: editEmployeeRange.trim() || null,
+        notes: editNotes.trim() || null,
+        phone: editPhone.trim() || null,
       })
       setIsEditing(false)
     } catch (err) {
@@ -215,12 +241,26 @@ export default function AccountDetailPage() {
                 />
                 <input
                   type="text"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="Phone"
+                  className="px-3 py-1 text-sm border border-gray-300 dark:border-white/10 rounded-full bg-white dark:bg-void-800/50 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-electric"
+                />
+                <input
+                  type="text"
                   value={editEmployeeRange}
                   onChange={(e) => setEditEmployeeRange(e.target.value)}
                   placeholder="Employee range"
                   className="px-3 py-1 text-sm border border-gray-300 dark:border-white/10 rounded-full bg-white dark:bg-void-800/50 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-electric"
                 />
               </div>
+              <textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Notes about this account..."
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-white/10 rounded-lg bg-white dark:bg-void-800/50 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-electric resize-none"
+              />
             </div>
           ) : (
             <>
@@ -238,6 +278,12 @@ export default function AccountDetailPage() {
                   <span className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-white/10 rounded-full px-3 py-1 text-sm text-gray-700 dark:text-white/70">
                     <Briefcase className="w-3.5 h-3.5" />
                     {account.industry}
+                  </span>
+                )}
+                {account.phone && (
+                  <span className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-white/10 rounded-full px-3 py-1 text-sm text-gray-700 dark:text-white/70">
+                    <Phone className="w-3.5 h-3.5" />
+                    {account.phone}
                   </span>
                 )}
                 {account.employee_count_range && (
@@ -281,6 +327,37 @@ export default function AccountDetailPage() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Notes & List Memberships */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Notes */}
+        {account.notes && !isEditing && (
+          <div className="glass-card p-4">
+            <h4 className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-wider mb-2">Notes</h4>
+            <p className="text-sm text-gray-700 dark:text-white/70 whitespace-pre-wrap">{account.notes}</p>
+          </div>
+        )}
+
+        {/* List Memberships */}
+        {listMemberships.length > 0 && (
+          <div className="glass-card p-4">
+            <h4 className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-wider mb-2">
+              Lists ({listMemberships.length})
+            </h4>
+            <div className="space-y-1.5">
+              {listMemberships.map((list) => (
+                <div key={list.id} className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-white/70">
+                    <List className="w-3.5 h-3.5 text-indigo-electric" />
+                    {list.name}
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-white/30">{list.owner_name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
