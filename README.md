@@ -1,144 +1,47 @@
-# SalesBlock.io
+# SalesPlanner
 
-> **🔒 Private Beta** — SalesBlock is currently in private beta. [Request early access →](#getting-access)
+**The day planner built for sellers.**
 
-A sales execution cockpit that turns scattered tools into a single focused workflow. SalesBlock gives reps a structured session environment to execute calls, send emails, log activities, and move deals — without switching between five apps.
+SalesPlanner is a focused, 5-screen sales productivity tool that gives individual sales reps a complete daily workflow loop — without the complexity of a full CRM. It's the entry product for [SalesBlock](https://salesblock.io), a comprehensive sales execution platform.
 
----
-
-## Why SalesBlock?
-
-Sales reps lose 2–3 hours a day switching between CRM, email, dialers, and spreadsheets. SalesBlock eliminates context-switching with one place to run a complete outreach session:
-
-- **SalesBlocks** — timed focus sessions (25–60 min) with a live contact queue, scripts, and activity logging built in
-- **Multi-channel outreach** — call, email, and social from one screen, with templates and call scripts attached
-- **Automatic activity capture** — every touch logged to the contact, pipeline, and optionally Salesforce
-- **Pipeline visibility** — deal board always visible so reps know where to focus
+```
+Morning Briefing → Day Planner → Focus Session → Activity Feed → Daily Debrief
+     (plan)        (organize)     (execute)        (track)        (reflect)
+```
 
 ---
 
-## Current Status
+## Why SalesPlanner Exists
 
-**Private beta as of March 2026.** The full feature set is built and deployed. We are running closed beta sessions with a small group of early users to validate the core workflow before opening access.
+Sales tools are built for **measurement** — CRMs serve managers, dialers serve operations. Nobody builds for the person **actually doing the selling**. Reps face:
 
-### What's working today
+- **Decision paralysis** — too many contacts, no clear "work THIS next"
+- **Mental fatigue** — organizing and executing are different cognitive modes
+- **No sales-specific planner** — day planners exist universally, but none for sellers
+- **Psychology drives performance** — outcomes correlate with focus and energy, not just lead quality
 
-| Area | Status |
-|------|--------|
-| SalesBlock session execution | ✅ Live |
-| Contacts, lists, CSV import | ✅ Live |
-| Gmail + Outlook email (OAuth) | ✅ Live |
-| Google Calendar + Outlook Calendar | ✅ Live |
-| Salesforce bidirectional sync | ✅ Live |
-| Pipeline Kanban board | ✅ Live |
-| Goals and custom KPIs | ✅ Live |
-| Analytics and team leaderboard | ✅ Live |
-| Stripe billing and subscriptions | ✅ Live |
-| Team invitations and org management | ✅ Live |
-| Google SSO sign-in | ✅ Live |
-| Error monitoring (Sentry) | ✅ Live |
+> **"Focus is the key currency in a world of more."**
 
-### Recently shipped (March 2026 hardening sprint)
-- Full security audit: XSS sanitization (DOMPurify), OAuth CSRF nonce validation across all 5 providers, SOQL injection guard, error sanitization, org-scoped RLS audit
-- Signup flow now fully atomic with rollback on partial failure
-- Client-side rate limiting on all authentication forms
-- Pagination on unbounded list views (contacts, activities, email threads)
-- Token refresh race condition fix for OAuth integrations
-- Error monitoring wired to Sentry — all caught errors forwarded with context tags
+SalesPlanner solves this with a tight daily loop that keeps reps in execution mode.
 
 ---
 
-## Features
+## The 5 Screens
 
-### SalesBlocks & Session Execution
-- Create timed focus sessions (25, 45, or 60 minutes)
-- Attach curated contact lists — session auto-queues contacts
-- Live countdown timer with pause/resume
-- Log calls, emails, and social touches directly inside the session
-- Post-session debrief with 7-rate funnel and summary metrics
-- Session resume after navigation — progress persists across page refreshes
-- Calendar sync (Google Calendar, Outlook) for scheduling blocks
+### 1. Morning Briefing
+Set your intention for the day. Review yesterday's results, see today's scheduled meetings, and check in on energy and mindset.
 
-### Contacts & Lists
-- Import contacts via CSV (Web Worker-based parsing for large files, 500-row batch inserts)
-- Manual contact creation with duplicate detection
-- Smart list builder with filter criteria and contact segmentation
-- Contact detail pages with full unified activity timeline
-- Salesforce bidirectional contact sync
+### 2. Day Planner
+Structured daily schedule with time-blocking. Pomodoro timer (Cycle 1-4), activity counters (Dials, Connects, Emails, LinkedIn, Meetings, Proposals), and a visual timeline from 7AM-6PM with drag-and-drop blocks.
 
-### Multi-Channel Outreach
-- **Email:** Gmail and Outlook OAuth, compose with rich text editor, email templates library, thread reply tracking
-- **Phone:** Step-by-step call scripts library, script management
-- **Social:** Log LinkedIn and social touches, track social activity per contact
+### 3. Focus Session
+Timed execution environment — the core experience. Countdown timer (25/45/60 min), contact queue with smart ordering (unworked first), one-click activity logging, and full-screen distraction-free mode.
 
-### Pipeline & Deals
-- Kanban-style deal board with drag-and-drop stage management
-- Deal detail modals (value, close date, notes, contact links)
-- Revenue forecast rollups by stage and time period
+### 4. Activity Feed
+Running log of everything done today. Daily totals (Calls, Emails, Meetings, Social touches), chronological timeline, and progress toward daily goals — all captured automatically from sessions.
 
-### Goals & Activity Tracking
-- Set daily/weekly/monthly targets (calls, emails, meetings)
-- Visual progress tracking against targets
-- Custom KPI definitions
-
-### Analytics & Reporting
-- Session performance metrics (contacts reached, activities per block)
-- Activity trend charts with Recharts visualizations
-- Pipeline conversion analytics
-- Team Arena leaderboard
-
-### CRM Integration
-- Salesforce OAuth connection
-- Bidirectional contact sync with field mapping
-- Automatic activity push (calls, emails, meetings) to Salesforce
-
-### Billing
-- Stripe-powered checkout and subscription management
-- Webhook-driven subscription state sync
-- Pricing pulled live from database — no hard-coded tiers
-- Trial expiry banners and plan upgrade flows
-
-### Team & Settings
-- Team invitation flow with email delivery
-- Role-based access (SDR, AE, Manager)
-- Organization logo and settings management
-- Tabbed settings (Profile, Organization, Integrations, Billing)
-
----
-
-## Roadmap
-
-Items are ordered by priority. P2 items are actively being worked on.
-
-### Near-term (P2) — Beta reliability
-- **Import deduplication** — handle duplicate contacts gracefully on CSV re-import
-- **Pipeline drag stability** — fix edge-case double-fire in React StrictMode
-- **Calendar connection validation** — pre-check OAuth token validity before opening booking modal
-- **Stripe webhook idempotency** — guard against duplicate event processing
-- **Concurrent OAuth token refresh lock** — prevent race condition when multiple API calls fire on an expired token simultaneously
-- **CRM connection status in activity modals** — surface disconnected Salesforce state before attempting activity push
-- **Destructive action confirmations** — confirmation dialogs on delete for SalesBlocks, scripts, goals, and email templates
-- **Team invitation delivery guarantees** — atomic rollback if email delivery fails; resend support
-
-### Next (P3) — Core UX improvements
-- Analytics time-range filter (7d / 30d / 90d / all-time) with trend sparklines
-- Pipeline deal value totals per column
-- Scripts — search, categories, and SalesBlock linking
-- Email templates — inline preview and search
-- Insert template directly in compose email modal
-- Goals — timezone-correct aggregation fix + empty state for new users
-- SalesBlocks — status filter tabs (active / complete / scheduled)
-- Contact activity timeline — cursor-based pagination for high-volume contacts
-- Contact 404 state for invalid/deleted contact IDs
-- Configurable activity types per organization
-- Home dashboard skeleton loaders and empty-state onboarding messages
-- Lists N+1 query fix — batch contact count query
-
-### Later (P4) — Polish
-- Social page date range filter and empty state
-- Merge tag validation and live preview in email template editor
-- CSV import streaming progress indicator for large files
-- Team invitation resend and 72-hour expiry enforcement
+### 5. Daily Debrief
+End-of-day reflection. Blocks Completed, Focus Time, Break Time, Completion Rate stats. Reflection prompts: Wins, Improvements, Tomorrow's Priorities. Closes the loop for the next morning's briefing.
 
 ---
 
@@ -146,132 +49,220 @@ Items are ordered by priority. P2 items are actively being worked on.
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React 18, TypeScript, Vite |
-| **Styling** | Tailwind CSS, Lucide Icons |
-| **State & Fetching** | TanStack React Query v5 |
-| **Rich Text** | TipTap v3 |
-| **Charts** | Recharts |
-| **Drag & Drop** | @hello-pangea/dnd |
-| **CSV Parsing** | PapaParse (Web Worker) |
-| **Security** | DOMPurify (XSS sanitization) |
-| **Error Monitoring** | Sentry (@sentry/react) |
-| **Backend** | Supabase (Auth, Database, Edge Functions, Storage, RLS) |
-| **Payments** | Stripe (Checkout, Webhooks, Subscriptions) |
-| **Database** | PostgreSQL via Supabase with row-level security |
-| **Deployment** | Vercel (frontend), Supabase Edge Functions (serverless) |
+| Frontend | React 18, TypeScript 5.3, Vite 5 |
+| Styling | Tailwind CSS 3.4, Lucide Icons |
+| State | TanStack React Query v5, Zustand |
+| Backend | Supabase (PostgreSQL + Auth + RLS + Edge Functions) |
+| Auth | Email/password + Google SSO |
+| Monitoring | Sentry |
+| Deployment | Vercel |
 
 ---
 
-## Architecture
+## Project Structure
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     React Frontend                       │
-│  (Vite + TypeScript + Tailwind + TanStack Query)        │
-└──────────┬──────────────┬──────────────┬────────────────┘
-           │              │              │
-     Supabase Client  Stripe.js    OAuth Flows
-           │              │         (Gmail, Outlook,
-           │              │      Google Cal, Salesforce)
-           ▼              ▼              │
-┌──────────────────┐  ┌──────────┐      │
-│     Supabase     │  │  Stripe  │      │
-│  ┌────────────┐  │  │  API     │      │
-│  │    Auth    │  │  └────┬─────┘      │
-│  ├────────────┤  │       │            │
-│  │  Database  │  │       ▼            │
-│  │  (Postgres)│  │  ┌──────────────┐  │
-│  ├────────────┤  │  │    Edge      │◄─┘
-│  │  Storage   │  │  │  Functions   │
-│  ├────────────┤  │  │  (Webhooks,  │
-│  │    RLS     │  │  │   Sync,      │
-│  │  Policies  │  │  │   Emails)    │
-│  └────────────┘  │  └──────────────┘
-└──────────────────┘
+salesplanner/
+├── frontend/
+│   ├── src/
+│   │   ├── SalesPlannerApp.tsx      # SalesPlanner route tree (7 routes)
+│   │   ├── App.tsx                  # SalesBlock route tree (26 routes)
+│   │   ├── main-planner.tsx         # SalesPlanner entry point
+│   │   ├── main.tsx                 # SalesBlock entry point
+│   │   ├── components/
+│   │   │   ├── PlannerLayout.tsx    # SalesPlanner sidebar (6 nav items)
+│   │   │   ├── AppLayout.tsx        # SalesBlock sidebar (19 nav items)
+│   │   │   └── ...48 components
+│   │   ├── pages/                   # 37 page components
+│   │   │   ├── SalesPlannerLanding.tsx
+│   │   │   ├── ActivityFeedPage.tsx
+│   │   │   ├── DayPlannerPage.tsx
+│   │   │   ├── MorningBriefingPage.tsx
+│   │   │   ├── DailyDebriefPage.tsx
+│   │   │   ├── SalesBlockSessionPage.tsx
+│   │   │   └── ...
+│   │   ├── hooks/                   # 21 custom React hooks
+│   │   ├── lib/
+│   │   │   ├── branding.ts         # SalesPlanner brand config
+│   │   │   ├── supabase.ts         # Supabase client
+│   │   │   ├── queries/            # Data access layer
+│   │   │   └── ...
+│   │   └── types/                   # TypeScript domain types
+│   ├── index-planner.html           # SalesPlanner HTML entry
+│   ├── index.html                   # SalesBlock HTML entry
+│   └── vite.config.ts              # Dual entry point support
+├── supabase/
+│   ├── migrations/                  # 35 PostgreSQL migrations
+│   └── functions/                   # 12 Edge Functions
+└── HANDOVER.md                      # Product context and strategy
 ```
 
-**Key architectural decisions:**
-- **No custom backend server** — Supabase handles auth, database, storage, and edge functions. The frontend talks directly to Supabase via the JS client.
-- **Row Level Security (RLS)** enforces data isolation per organization at the database level — no org data can leak across tenants.
-- **Edge Functions** handle server-side concerns: Stripe webhooks, email delivery, Salesforce sync, and email reply tracking.
-- **OAuth flows** connect Gmail, Outlook, Google Calendar, and Salesforce with token storage in Supabase and automatic refresh.
+---
+
+## Architecture: Dual Entry Point
+
+SalesPlanner and SalesBlock share the same codebase and Supabase backend but are completely separate products:
+
+```
+[salesplanner.io]                    [salesblock.io]
+index-planner.html                   index.html
+  └─ main-planner.tsx                  └─ main.tsx
+       └─ SalesPlannerApp.tsx               └─ App.tsx
+            └─ PlannerLayout (6 nav)             └─ AppLayout (19 nav)
+                 └─ 7 routes                          └─ 26 routes
+```
+
+**Build commands:**
+```bash
+# SalesPlanner build
+VITE_APP=planner npm run build
+
+# SalesBlock build (full product)
+npm run build
+```
+
+The `VITE_APP=planner` env var tells Vite to use `index-planner.html` as the entry point and activates the SPA fallback middleware for dev mode.
+
+**Why shared codebase?**
+- Zero code duplication for shared pages (DayPlanner, Focus Session, etc.)
+- Same Supabase = seamless upgrade path (user data carries over to SalesBlock)
+- One `npm install`, one type system, one CI pipeline
+- SalesPlanner build is ~230KB gzipped (vs full SalesBlock) — only ships what's needed
+
+---
+
+## SalesPlanner vs SalesBlock
+
+| Feature | SalesPlanner | SalesBlock |
+|---------|:---:|:---:|
+| Morning Briefing | Yes | Yes |
+| Day Planner | Yes | Yes |
+| Focus Sessions | Yes | Yes |
+| Activity Feed | Yes | Yes |
+| Daily Debrief | Yes | Yes |
+| Goals and KPIs | Yes | Yes |
+| Contact Management | - | Yes |
+| Pipeline / Kanban | - | Yes |
+| Email (Gmail/Outlook) | - | Yes |
+| Calendar Sync | - | Yes |
+| Salesforce Integration | - | Yes |
+| Attio Integration | - | Yes |
+| Team Management | - | Yes |
+| Scripts and Templates | - | Yes |
+| Analytics Dashboard | - | Yes |
+| Arena Leaderboard | - | Yes |
+| Stripe Billing | - | Yes |
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-
-- Node.js 18+
+- Node.js 20+
+- npm or bun
 - A [Supabase](https://supabase.com) project
-- A [Stripe](https://stripe.com) account (for billing features)
 
-### 1. Clone and install
+### Setup
 
 ```bash
-git clone git@github.com:RPbrenanweston/salesblock-io.git
-cd salesblock-io/frontend
+# Clone
+git clone https://github.com/RPbrenanweston/salesplanner.git
+cd salesplanner/frontend
+
+# Install dependencies
 npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your Supabase credentials:
+#   VITE_SUPABASE_URL=https://your-project.supabase.co
+#   VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### 2. Configure environment
+### Run SalesPlanner
 
 ```bash
-cp .env.example .env
+cd frontend
+VITE_APP=planner npm run dev
+# → http://localhost:3000
 ```
 
-Fill in your project credentials — see `.env.example` for all required variables:
+### Run SalesBlock (full product)
+
+```bash
+cd frontend
+npm run dev
+# → http://localhost:3000
+```
+
+### Build for Production
+
+```bash
+cd frontend
+
+# SalesPlanner
+VITE_APP=planner npm run build
+
+# Type check
+npm run typecheck
+
+# Tests
+npm run test
+```
+
+Output: `frontend/dist/`
+
+---
+
+## Deployment
+
+### Vercel (Recommended)
+
+Create two Vercel projects from this repo:
+
+| Project | Build Command | Output | Domain |
+|---------|--------------|--------|--------|
+| SalesPlanner | `cd frontend && VITE_APP=planner npm run build` | `frontend/dist` | salesplanner.io |
+| SalesBlock | `cd frontend && npm run build` | `frontend/dist` | salesblock.io |
+
+Both projects share the same environment variables:
 
 ```
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
-# Optional: enable error monitoring
-VITE_SENTRY_DSN=your-sentry-dsn
 ```
 
-### 3. Set up database
+**Supabase configuration:** Add your deployment domain (e.g., `salesplanner.io`) to Supabase Auth > URL Configuration > Redirect URLs to enable OAuth callbacks.
 
-Apply the Supabase migrations to create the schema:
+---
+
+## Database
+
+35 PostgreSQL migrations with full Row-Level Security. Key tables:
+
+| Table | Purpose |
+|-------|---------|
+| `organizations` | Multi-tenant orgs with settings |
+| `users` | User profiles with role (sdr/ae/manager) |
+| `contacts` | Contact records with source tracking |
+| `salesblocks` | Timed focus sessions with timer state |
+| `activities` | All touches: calls, emails, meetings, social |
+| `goals` | Daily/weekly/monthly targets |
+| `custom_kpis` | Organization-defined custom metrics |
+| `lists` / `list_contacts` | Contact segmentation and ordering |
+| `deals` / `deal_stages` | Sales pipeline (SalesBlock only) |
+| `oauth_connections` | OAuth tokens for integrations |
+| `pricing_plans` / `subscriptions` | Stripe billing state |
+
+All tables enforce row-level security scoped to the authenticated user's organization.
+
+### Apply Migrations
 
 ```bash
 supabase db push
 ```
 
-Or apply migrations individually from `supabase/migrations/` (18 migration files covering the full schema).
-
-### 4. Start the development server
-
-```bash
-cd frontend
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173).
-
-### 5. Type checking
-
-```bash
-cd frontend
-npm run typecheck
-```
-
----
-
-## Database Schema
-
-18 Supabase migrations covering:
-
-- **Organizations & Users** — multi-tenant org structure with RLS isolation
-- **Contacts & Lists** — contact records, list membership, filter criteria, activity logs
-- **SalesBlocks** — session definitions, timers, calendar links, session notes
-- **Email & Templates** — OAuth token storage, email templates, thread tracking
-- **Pipeline & Deals** — deal stages, values, forecast data
-- **Goals & KPIs** — activity targets, custom KPI definitions, progress tracking
-- **Billing** — Stripe customer IDs, subscription status, pricing plans
-- **Team** — invitations, roles, org hierarchy
-
-All tables enforce row-level security scoped to the authenticated user's organization.
+Or apply individually from `supabase/migrations/`.
 
 ---
 
@@ -279,25 +270,65 @@ All tables enforce row-level security scoped to the authenticated user's organiz
 
 | Function | Purpose |
 |----------|---------|
-| `create-checkout-session` | Creates a Stripe Checkout session for plan selection |
-| `handle-stripe-webhook` | Processes Stripe events (subscription created/updated/cancelled) |
-| `send-team-invitation` | Sends email invitations and creates invitation records |
-| `sync-activities-to-salesforce` | Pushes call/email/meeting activities to Salesforce |
-| `track-email-replies` | Monitors email threads for reply detection |
+| `create-checkout-session` | Stripe Checkout session creation |
+| `handle-stripe-webhook` | Process Stripe subscription events |
+| `send-team-invitation` | Email delivery for team invites |
+| `sync-activities-to-salesforce` | Push activities to Salesforce |
+| `track-email-replies` | Monitor email threads for replies |
+| `exchange-google-token` | Google OAuth token exchange |
+| `exchange-microsoft-token` | Microsoft OAuth token exchange |
+| `refresh-google-token` | Google token refresh |
+| `refresh-microsoft-token` | Microsoft token refresh |
 
 ---
 
-## Getting Access
+## Product Strategy
 
-SalesBlock is in **private beta**. To request early access:
+```
+[SalesPlanner]              [SalesBlock]              [Agent-First CRM]
+ Productivity tool           Execution platform         Ops layer
+ For: individual reps        For: reps + team leads     For: CROs, RevOps
+ Free / low cost             Paid SaaS                  Future product
+ 5 screens                   26+ routes                 TBD
+ User acquisition            Revenue generation         Leadership layer
+ salesplanner.io             salesblock.io              TBD
+```
 
-- Email **robert@brenanweston.com** with "SalesBlock Beta" in the subject
-- Include your team size and what CRM/sales tools you currently use
+SalesPlanner is the **entry product** — a narrow wedge that proves the thesis ("sellers need execution tools, not more CRM") and funnels users into the full SalesBlock experience via a subtle upgrade CTA in the sidebar.
 
-Beta users get full access, direct support, and significant influence over the roadmap.
+---
+
+## Design Principles
+
+- **Anti-paralysis** — Never show a blank screen. Always suggest what to do next.
+- **Zero friction** — If it takes more than 1 click to log an activity, it's too many.
+- **Sales psychology** — Energy management, not just time management.
+- **Focus mode** — When in a session, everything else disappears.
+- **Progressive disclosure** — Start simple. Features reveal as needed.
+
+---
+
+## Key Documents
+
+| Document | Purpose |
+|----------|---------|
+| `HANDOVER.md` | Full product context, strategy, and open questions |
+| `CLAUDE.md` | Development guidelines and code quality principles |
+| `AGENTS.md` | Accumulated operational patterns from implementation |
+| `DATABASE_SETUP.md` | Supabase schema documentation |
+| `DEPLOY.md` | Deployment instructions |
+| `CODE_QUALITY_REVIEW.md` | Architecture review and hazard analysis |
+
+---
+
+## Contact
+
+**Owner:** Robert Peacock (RPbrenanweston)
+**Email:** robert@brenanweston.com
+**GitHub:** [github.com/RPbrenanweston](https://github.com/RPbrenanweston)
 
 ---
 
 ## License
 
-MIT
+Proprietary. See [LICENSE](LICENSE).
