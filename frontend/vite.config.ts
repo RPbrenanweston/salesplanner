@@ -2,8 +2,29 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+const isPlanner = process.env.VITE_APP === 'planner'
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // In planner mode, rewrite root URL to serve index-planner.html
+    ...(isPlanner
+      ? [{
+          name: 'planner-root-rewrite',
+          configureServer(server: { middlewares: { use: (fn: (req: { url?: string }, res: unknown, next: () => void) => void) => void } }) {
+            server.middlewares.use((req, _res, next) => {
+              // Rewrite all non-asset routes to serve index-planner.html (SPA fallback)
+              const url = req.url || ''
+              const isAsset = url.startsWith('/src/') || url.startsWith('/node_modules/') || url.startsWith('/@') || url.includes('.')
+              if (!isAsset) {
+                req.url = '/index-planner.html'
+              }
+              next()
+            })
+          },
+        }]
+      : []),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -14,6 +35,9 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      input: isPlanner
+        ? path.resolve(__dirname, 'index-planner.html')
+        : path.resolve(__dirname, 'index.html'),
       output: {
         manualChunks: {
           // Vendor chunks for heavy dependencies
