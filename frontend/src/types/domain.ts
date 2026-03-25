@@ -49,6 +49,7 @@ export interface Account {
   name: string
   domain: string | null
   industry: string | null
+  phone: string | null
   employee_count_range: string | null
   notes: string | null
   created_by: string

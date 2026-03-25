@@ -52,6 +52,7 @@ const ACCOUNT_DB_FIELDS = [
   { value: 'name', label: 'Account Name' },
   { value: 'domain', label: 'Domain' },
   { value: 'industry', label: 'Industry' },
+  { value: 'phone', label: 'Phone' },
   { value: 'employee_count_range', label: 'Employee Count Range' },
   { value: 'linkedin_url', label: 'LinkedIn URL' },
   { value: 'notes', label: 'Notes' },
@@ -160,6 +161,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete, impo
           if (normalized.includes('name') || normalized.includes('company') || normalized.includes('organization') || normalized.includes('account')) dbField = 'name';
           else if (normalized.includes('domain') || normalized.includes('website') || normalized === 'url') dbField = 'domain';
           else if (normalized.includes('industry') || normalized.includes('sector')) dbField = 'industry';
+          else if (normalized.includes('phone') || normalized.includes('mobile') || normalized.includes('telephone')) dbField = 'phone';
           else if (normalized.includes('employee') || normalized.includes('size') || normalized.includes('headcount')) dbField = 'employee_count_range';
           else if (normalized.includes('linkedin')) dbField = 'linkedin_url';
           else if (normalized.includes('notes') || normalized.includes('description')) dbField = 'notes';
