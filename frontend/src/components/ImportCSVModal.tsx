@@ -1,7 +1,7 @@
 // @crumb frontend-component-import-csv-modal
-// UI/Contacts/Import | csv_parsing | column_mapping | duplicate_strategy | batch_insert | list_assignment | error_detail_capture
-// why: CSV import modal — upload a CSV file of contacts, map columns to contact fields, validate rows, bulk-insert into contacts table, and ALWAYS assign to a list
-// in:CSV file (user upload),Web Worker parse result,supabase contacts+lists+list_contacts tables,useAuth out:Contact rows inserted/updated,list created/assigned,onImportComplete called,import summary displayed err:CSV parse error,missing email column (row skipped),per-row insert failure (detail captured),list creation failure (aborted),list assignment batch failure
+// UI/Import | csv_parsing | column_mapping | duplicate_strategy | batch_insert | list_assignment | error_detail_capture | contacts_or_accounts
+// why: CSV import modal — upload a CSV file of contacts OR accounts, map columns, validate rows, bulk-insert into contacts/accounts table, and assign to a list
+// in:CSV file (user upload),Web Worker parse result,supabase contacts+accounts+lists+list_contacts+account_list_items tables,importType prop out:Rows inserted/updated,list created/assigned,onImportComplete called,import summary displayed err:CSV parse error,missing required field (row skipped),per-row insert failure (detail captured),list creation failure (aborted),list assignment batch failure
 // hazard: Per-row duplicate check issues individual SELECT+INSERT/UPDATE — N queries for N rows, large imports (5000+) will be slow
 // hazard: list_contacts batch insert lacks ON CONFLICT — duplicate junction rows may be created
 // edge:frontend/src/lib/supabase.ts -> CALLS
@@ -16,6 +16,7 @@ interface ImportCSVModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportComplete: () => void;
+  importType?: 'contacts' | 'accounts';
 }
 
 type ImportStep = 'upload' | 'parsing' | 'mapping' | 'preview' | 'importing' | 'complete';
@@ -25,17 +26,12 @@ interface ColumnMapping {
   dbField: string;
 }
 
-interface ContactRow {
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  phone?: string;
-  company?: string;
-  title?: string;
+interface MappedRow {
   [key: string]: any;
+  _rowIndex: number;
 }
 
-const DB_FIELDS = [
+const CONTACT_DB_FIELDS = [
   { value: 'first_name', label: 'First Name' },
   { value: 'last_name', label: 'Last Name' },
   { value: 'email', label: 'Email' },
@@ -50,7 +46,21 @@ const DB_FIELDS = [
   { value: 'ignore', label: '(Ignore)' },
 ];
 
-export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: ImportCSVModalProps) {
+const ACCOUNT_DB_FIELDS = [
+  { value: 'name', label: 'Account Name' },
+  { value: 'domain', label: 'Domain' },
+  { value: 'industry', label: 'Industry' },
+  { value: 'employee_count_range', label: 'Employee Count Range' },
+  { value: 'linkedin_url', label: 'LinkedIn URL' },
+  { value: 'notes', label: 'Notes' },
+  { value: 'ignore', label: '(Ignore)' },
+];
+
+export default function ImportCSVModal({ isOpen, onClose, onImportComplete, importType = 'contacts' }: ImportCSVModalProps) {
+  const isAccountImport = importType === 'accounts';
+  const dbFields = isAccountImport ? ACCOUNT_DB_FIELDS : CONTACT_DB_FIELDS;
+  const entityLabel = isAccountImport ? 'accounts' : 'contacts';
+
   const [step, setStep] = useState<ImportStep>('upload');
   const [csvData, setCsvData] = useState<any[]>([]);
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
@@ -63,7 +73,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
   const [lists, setLists] = useState<any[]>([]);
   const [importProgress, setImportProgress] = useState({ imported: 0, updated: 0, skipped: 0, failed: 0, total: 0 });
   const [error, setError] = useState<string>('');
-  const [errorDetails, setErrorDetails] = useState<Array<{ row: number; email: string; reason: string }>>([]);
+  const [errorDetails, setErrorDetails] = useState<Array<{ row: number; identifier: string; reason: string }>>([]);
   const [importedListName, setImportedListName] = useState<string>('');
   const workerRef = useRef<Worker | null>(null);
 
@@ -123,7 +133,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
       }
 
       if (data.length > 10000) {
-        setError('Maximum 10,000 contacts allowed per import');
+        setError(`Maximum 10,000 ${entityLabel} allowed per import`);
         setStep('upload');
         workerRef.current?.removeEventListener('message', messageHandler);
         return;
@@ -132,22 +142,31 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
       const headers = meta.fields || [];
       setCsvData(data);
 
-      // Auto-detect column mappings
+      // Auto-detect column mappings (different patterns for contacts vs accounts)
       const autoMappings = headers.map((header: string) => {
         const normalized = header.toLowerCase().replace(/[^a-z]/g, '');
         let dbField = 'ignore';
 
-        if (normalized.includes('firstname') || normalized === 'fname') dbField = 'first_name';
-        else if (normalized.includes('lastname') || normalized === 'lname') dbField = 'last_name';
-        else if (normalized.includes('email')) dbField = 'email';
-        else if (normalized.includes('phone') || normalized.includes('mobile')) dbField = 'phone';
-        else if (normalized.includes('company') || normalized.includes('organization')) dbField = 'company';
-        else if (normalized.includes('title') || normalized.includes('position')) dbField = 'title';
-        else if (normalized.includes('domain') || normalized.includes('website') || normalized === 'url') dbField = 'domain';
-        else if (normalized.includes('companylinkedin') || normalized.includes('organizationlinkedin')) dbField = 'company_linkedin_url';
-        else if (normalized.includes('linkedin')) dbField = 'linkedin_url';
-        else if (normalized.includes('companytwitter') || normalized.includes('organizationtwitter')) dbField = 'company_twitter';
-        else if (normalized.includes('twitter') || normalized.includes('xhandle')) dbField = 'twitter_handle';
+        if (isAccountImport) {
+          if (normalized.includes('name') || normalized.includes('company') || normalized.includes('organization') || normalized.includes('account')) dbField = 'name';
+          else if (normalized.includes('domain') || normalized.includes('website') || normalized === 'url') dbField = 'domain';
+          else if (normalized.includes('industry') || normalized.includes('sector')) dbField = 'industry';
+          else if (normalized.includes('employee') || normalized.includes('size') || normalized.includes('headcount')) dbField = 'employee_count_range';
+          else if (normalized.includes('linkedin')) dbField = 'linkedin_url';
+          else if (normalized.includes('notes') || normalized.includes('description')) dbField = 'notes';
+        } else {
+          if (normalized.includes('firstname') || normalized === 'fname') dbField = 'first_name';
+          else if (normalized.includes('lastname') || normalized === 'lname') dbField = 'last_name';
+          else if (normalized.includes('email')) dbField = 'email';
+          else if (normalized.includes('phone') || normalized.includes('mobile')) dbField = 'phone';
+          else if (normalized.includes('company') || normalized.includes('organization')) dbField = 'company';
+          else if (normalized.includes('title') || normalized.includes('position')) dbField = 'title';
+          else if (normalized.includes('domain') || normalized.includes('website') || normalized === 'url') dbField = 'domain';
+          else if (normalized.includes('companylinkedin') || normalized.includes('organizationlinkedin')) dbField = 'company_linkedin_url';
+          else if (normalized.includes('linkedin')) dbField = 'linkedin_url';
+          else if (normalized.includes('companytwitter') || normalized.includes('organizationtwitter')) dbField = 'company_twitter';
+          else if (normalized.includes('twitter') || normalized.includes('xhandle')) dbField = 'twitter_handle';
+        }
 
         return { csvColumn: header, dbField };
       });
@@ -178,12 +197,16 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
         .single();
 
       if (userRecord) {
-        const { data: listsData } = await supabase
+        let listsQuery = supabase
           .from('lists')
           .select('id, name')
-          .eq('org_id', userRecord.org_id)
-          .order('name');
-
+          .eq('org_id', userRecord.org_id);
+        if (isAccountImport) {
+          listsQuery = listsQuery.eq('list_type', 'accounts');
+        } else {
+          listsQuery = listsQuery.or('list_type.eq.contacts,list_type.is.null');
+        }
+        const { data: listsData } = await listsQuery.order('name');
         setLists(listsData || []);
       }
     }
@@ -247,6 +270,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
             org_id: orgId,
             owner_id: currentUser.id,
             is_shared: false,
+            ...(isAccountImport ? { list_type: 'accounts' } : {}),
           })
           .select('id')
           .single();
@@ -267,6 +291,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
             org_id: orgId,
             owner_id: currentUser.id,
             is_shared: false,
+            ...(isAccountImport ? { list_type: 'accounts' } : {}),
           })
           .select('id')
           .single();
@@ -285,66 +310,70 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
       let updated = 0;
       let skipped = 0;
       let failed = 0;
-      const rowErrors: Array<{ row: number; email: string; reason: string }> = [];
-      const contactsToAddToList: string[] = [];
+      const rowErrors: Array<{ row: number; identifier: string; reason: string }> = [];
+      const idsToAddToList: string[] = [];
 
-      // Build mapped contact rows (skip rows with no email)
-      type MappedRow = ContactRow & { _rowIndex: number };
+      // The table and key field differ between contacts and accounts
+      const tableName = isAccountImport ? 'accounts' : 'contacts';
+      const requiredField = isAccountImport ? 'name' : 'email';
+      const requiredFieldLabel = isAccountImport ? 'account name' : 'email address';
+
+      // Build mapped rows (skip rows missing required field)
       const mappedRows: MappedRow[] = [];
       for (let i = 0; i < csvData.length; i++) {
         const row = csvData[i];
-        const contact: ContactRow = {};
+        const mapped: Record<string, any> = {};
         for (const [csvCol, dbField] of Object.entries(mappingMap)) {
           const val = row[csvCol];
           if (val !== undefined && val !== null && String(val).trim() !== '') {
-            contact[dbField] = String(val).trim();
+            mapped[dbField] = String(val).trim();
           }
         }
-        if (!contact.email) {
+        if (!mapped[requiredField]) {
           failed++;
-          rowErrors.push({ row: i + 1, email: '(missing)', reason: 'No email address found in row' });
+          rowErrors.push({ row: i + 1, identifier: '(missing)', reason: `No ${requiredFieldLabel} found in row` });
           continue;
         }
-        if (!contact.first_name) contact.first_name = '';
-        if (!contact.last_name) contact.last_name = '';
-        mappedRows.push({ ...contact, _rowIndex: i });
+        // Defaults for contact NOT NULL fields
+        if (!isAccountImport) {
+          if (!mapped.first_name) mapped.first_name = '';
+          if (!mapped.last_name) mapped.last_name = '';
+        }
+        mappedRows.push({ ...mapped, _rowIndex: i });
       }
 
       const totalValid = mappedRows.length;
       setImportProgress({ imported, updated, skipped, failed, total: csvData.length });
 
-      // Batch duplicate-check in chunks to avoid large IN clauses
-      const emailMap = new Map<string, string>(); // email → existing contact id
+      // Batch duplicate-check: by email (contacts) or name (accounts)
+      const existingMap = new Map<string, string>(); // key → existing row id
       for (let i = 0; i < mappedRows.length; i += BATCH_SIZE) {
         const chunk = mappedRows.slice(i, i + BATCH_SIZE);
-        const emails = chunk.map((r) => r.email as string);
+        const keys = chunk.map((r) => r[requiredField] as string);
         const { data: existing } = await supabase
-          .from('contacts')
-          .select('id, email')
+          .from(tableName)
+          .select(`id, ${requiredField}`)
           .eq('org_id', orgId)
-          .in('email', emails);
+          .in(requiredField, keys);
         for (const row of existing || []) {
-          emailMap.set(row.email, row.id);
+          existingMap.set(row[requiredField], row.id);
         }
       }
 
       // Separate rows into new vs existing
       const toInsert: MappedRow[] = [];
       const toUpdate: MappedRow[] = [];
-      const toSkip: { id: string }[] = [];
 
       for (const row of mappedRows) {
-        const existingId = emailMap.get(row.email as string);
+        const existingId = existingMap.get(row[requiredField] as string);
         if (existingId) {
           if (duplicateStrategy === 'skip') {
             skipped++;
-            toSkip.push({ id: existingId });
-            contactsToAddToList.push(existingId);
+            idsToAddToList.push(existingId);
           } else if (duplicateStrategy === 'update') {
             toUpdate.push({ ...row, _existingId: existingId } as any);
-            contactsToAddToList.push(existingId);
+            idsToAddToList.push(existingId);
           } else {
-            // create — allow duplicate
             toInsert.push(row);
           }
         } else {
@@ -354,45 +383,44 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
 
       setImportProgress({ imported, updated, skipped, failed, total: csvData.length });
 
-      // Batch insert new contacts in chunks of BATCH_SIZE
+      // Batch insert new rows
       for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
         const chunk = toInsert.slice(i, i + BATCH_SIZE);
         const rows = chunk.map(({ _rowIndex: _, ...rest }) => ({
           ...rest,
           org_id: orgId,
-          source: 'csv',
           created_by: currentUser.id,
+          ...(isAccountImport ? {} : { source: 'csv' }),
         }));
         const { data: inserted, error: insertError } = await supabase
-          .from('contacts')
+          .from(tableName)
           .insert(rows)
           .select('id');
         if (insertError) {
           console.error('Batch insert error:', insertError);
           failed += chunk.length;
-          chunk.forEach((r) => rowErrors.push({ row: r._rowIndex + 1, email: r.email as string, reason: `Insert failed: ${insertError.message}` }));
+          chunk.forEach((r) => rowErrors.push({ row: r._rowIndex + 1, identifier: r[requiredField] as string, reason: `Insert failed: ${insertError.message}` }));
         } else {
           imported += (inserted || []).length;
-          for (const c of inserted || []) contactsToAddToList.push(c.id);
+          for (const c of inserted || []) idsToAddToList.push(c.id);
         }
         setImportProgress({ imported, updated, skipped, failed, total: totalValid });
       }
 
-      // Batch update existing contacts one-by-one (Supabase doesn't support batch UPDATE with different values)
+      // Update existing rows one-by-one
       for (let i = 0; i < toUpdate.length; i++) {
         const row = toUpdate[i] as any;
-        const { _rowIndex, _existingId, ...contactData } = row;
+        const { _rowIndex, _existingId, ...rowData } = row;
         const { error: updateError } = await supabase
-          .from('contacts')
-          .update({ ...contactData, updated_at: new Date().toISOString() })
+          .from(tableName)
+          .update({ ...rowData, updated_at: new Date().toISOString() })
           .eq('id', _existingId);
         if (updateError) {
           failed++;
-          rowErrors.push({ row: _rowIndex + 1, email: contactData.email || '', reason: `Update failed: ${updateError.message}` });
+          rowErrors.push({ row: _rowIndex + 1, identifier: rowData[requiredField] || '', reason: `Update failed: ${updateError.message}` });
         } else {
           updated++;
         }
-        // Update progress every 50 updates
         if (i % 50 === 0) setImportProgress({ imported, updated, skipped, failed, total: totalValid });
       }
 
@@ -401,29 +429,30 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
       // Persist error details to state for display in completion step
       setErrorDetails(rowErrors);
 
-      // Batch insert all tracked contacts into list_contacts (targetListId is always set — no orphans)
-      if (targetListId && contactsToAddToList.length > 0) {
-        const BATCH_SIZE = 500;
+      // Batch assign to list — different junction table for contacts vs accounts
+      if (targetListId && idsToAddToList.length > 0) {
+        const junctionTable = isAccountImport ? 'account_list_items' : 'list_contacts';
+        const idColumn = isAccountImport ? 'account_id' : 'contact_id';
+        const conflictColumns = isAccountImport ? 'list_id,account_id' : 'list_id,contact_id';
         let listAssignmentErrors = 0;
 
-        for (let i = 0; i < contactsToAddToList.length; i += BATCH_SIZE) {
-          const batch = contactsToAddToList.slice(i, i + BATCH_SIZE);
-          const listContactsToInsert = batch.map((contactId) => ({
+        for (let i = 0; i < idsToAddToList.length; i += BATCH_SIZE) {
+          const batch = idsToAddToList.slice(i, i + BATCH_SIZE);
+          const junctionRows = batch.map((rowId) => ({
             list_id: targetListId,
-            contact_id: contactId,
+            [idColumn]: rowId,
             position: 0,
           }));
 
           const { error: batchError } = await supabase
-            .from('list_contacts')
-            .upsert(listContactsToInsert, { onConflict: 'list_id,contact_id', ignoreDuplicates: true });
+            .from(junctionTable)
+            .upsert(junctionRows, { onConflict: conflictColumns, ignoreDuplicates: true });
           if (batchError) {
             console.error(`Batch ${i / BATCH_SIZE + 1} list assignment error:`, batchError);
             listAssignmentErrors += batch.length;
           }
         }
 
-        // Update failed count if any list assignment batch failed
         if (listAssignmentErrors > 0) {
           failed += listAssignmentErrors;
         }
@@ -465,7 +494,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
-          <h2 className="text-xl font-semibold dark:text-white">Import Contacts from CSV</h2>
+          <h2 className="text-xl font-semibold dark:text-white">Import {isAccountImport ? 'Accounts' : 'Contacts'} from CSV</h2>
           <button onClick={handleClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             <X className="w-5 h-5" />
           </button>
@@ -494,7 +523,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                   Select CSV File
                 </label>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Maximum 10,000 contacts, 10MB file size
+                  Maximum 10,000 {entityLabel}, 10MB file size
                 </p>
               </div>
 
@@ -520,7 +549,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
           {step === 'mapping' && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                Map your CSV columns to contact fields. Auto-detected mappings are pre-selected.
+                Map your CSV columns to {isAccountImport ? 'account' : 'contact'} fields. Auto-detected mappings are pre-selected.
               </p>
 
               <div className="space-y-2">
@@ -535,7 +564,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                       onChange={(e) => handleMappingChange(mapping.csvColumn, e.target.value)}
                       className="flex-1 px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
                     >
-                      {DB_FIELDS.map((field) => (
+                      {dbFields.map((field) => (
                         <option key={field.value} value={field.value}>
                           {field.label}
                         </option>
@@ -597,7 +626,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
               <div className="space-y-3 pt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Duplicate Email Strategy
+                    Duplicate {isAccountImport ? 'Name' : 'Email'} Strategy
                   </label>
                   <select
                     value={duplicateStrategy}
@@ -605,7 +634,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                     className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white"
                   >
                     <option value="skip">Skip duplicates</option>
-                    <option value="update">Update existing contacts</option>
+                    <option value="update">Update existing {entityLabel}</option>
                     <option value="create">Create duplicates</option>
                   </select>
                 </div>
@@ -709,7 +738,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
             <div className="space-y-4 py-8">
               <div className="text-center">
                 <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-3"></div>
-                <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Importing contacts...</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Importing {entityLabel}...</p>
                 {importProgress.total > 0 && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {importProgress.imported + importProgress.updated + importProgress.skipped + importProgress.failed} of {importProgress.total} processed
@@ -761,7 +790,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
 
               {importedListName && (
                 <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-                  📋 All contacts added to list: "{importedListName}"
+                  📋 All {entityLabel} added to list: "{importedListName}"
                 </p>
               )}
 
@@ -776,7 +805,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                       <thead className="sticky top-0 bg-red-100 dark:bg-red-900/40">
                         <tr>
                           <th className="px-3 py-1.5 text-left text-red-700 dark:text-red-300 font-medium">Row</th>
-                          <th className="px-3 py-1.5 text-left text-red-700 dark:text-red-300 font-medium">Email</th>
+                          <th className="px-3 py-1.5 text-left text-red-700 dark:text-red-300 font-medium">{isAccountImport ? 'Name' : 'Email'}</th>
                           <th className="px-3 py-1.5 text-left text-red-700 dark:text-red-300 font-medium">Reason</th>
                         </tr>
                       </thead>
@@ -784,7 +813,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete }: Im
                         {errorDetails.map((err, idx) => (
                           <tr key={idx}>
                             <td className="px-3 py-1.5 text-red-600 dark:text-red-400 tabular-nums">{err.row}</td>
-                            <td className="px-3 py-1.5 text-red-600 dark:text-red-400 font-mono truncate max-w-[200px]">{err.email}</td>
+                            <td className="px-3 py-1.5 text-red-600 dark:text-red-400 font-mono truncate max-w-[200px]">{err.identifier}</td>
                             <td className="px-3 py-1.5 text-red-600 dark:text-red-400">{err.reason}</td>
                           </tr>
                         ))}

@@ -423,6 +423,7 @@ export default function Lists() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportComplete={handleImportComplete}
+        importType={activeTab}
       />
 
       <ListBuilderModal
