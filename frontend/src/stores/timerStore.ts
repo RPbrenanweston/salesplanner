@@ -89,7 +89,7 @@ const INITIAL_STATE: TimerState = {
 // Store
 // ---------------------------------------------------------------------------
 
-export const useTimerStore = create<TimerStore>((set, get: () => TimerStore) => ({
+export const useTimerStore = create<TimerStore>()((set, get) => ({
   ...INITIAL_STATE,
 
   start(mode: FocusMode, targetMs: number = 0, blockId?: string) {

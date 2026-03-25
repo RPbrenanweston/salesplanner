@@ -365,7 +365,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete, impo
           .eq('org_id', orgId)
           .in(requiredField, keys);
         for (const row of existing || []) {
-          existingMap.set(row[requiredField], row.id);
+          existingMap.set((row as any)[requiredField], row.id);
         }
       }
 
