@@ -86,20 +86,41 @@ export default function AccountDetailPage() {
 
       setAccount(data)
 
-      // Load list memberships for this account
-      const { data: memberships } = await supabase
+      // Load list memberships for this account (two-step: get list_ids, then list details)
+      const { data: listItems } = await supabase
         .from('account_list_items')
-        .select('list_id, lists(id, name, owner_id, users:owner_id(display_name))')
+        .select('list_id')
         .eq('account_id', accountId)
 
-      if (memberships) {
-        setListMemberships(
-          memberships.map((m: any) => ({
-            id: m.lists?.id || m.list_id,
-            name: m.lists?.name || 'Unknown list',
-            owner_name: m.lists?.users?.display_name || 'Unknown',
-          }))
-        )
+      if (listItems && listItems.length > 0) {
+        const listIds = listItems.map((li: any) => li.list_id)
+        const { data: listsData } = await supabase
+          .from('lists')
+          .select('id, name, owner_id')
+          .in('id', listIds)
+
+        if (listsData) {
+          // Get owner names
+          const ownerIds = [...new Set(listsData.map((l: any) => l.owner_id).filter(Boolean))]
+          const ownerMap = new Map<string, string>()
+          if (ownerIds.length > 0) {
+            const { data: owners } = await supabase
+              .from('users')
+              .select('id, display_name')
+              .in('id', ownerIds)
+            for (const o of owners || []) {
+              ownerMap.set(o.id, o.display_name)
+            }
+          }
+
+          setListMemberships(
+            listsData.map((l: any) => ({
+              id: l.id,
+              name: l.name,
+              owner_name: ownerMap.get(l.owner_id) || 'Unknown',
+            }))
+          )
+        }
       }
     } catch (err) {
       console.error('Error loading account:', err)
@@ -330,35 +351,41 @@ export default function AccountDetailPage() {
       </div>
 
       {/* Notes & List Memberships */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Notes */}
-        {account.notes && !isEditing && (
+      {!isEditing && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Notes */}
           <div className="glass-card p-4">
             <h4 className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-wider mb-2">Notes</h4>
-            <p className="text-sm text-gray-700 dark:text-white/70 whitespace-pre-wrap">{account.notes}</p>
+            {account.notes ? (
+              <p className="text-sm text-gray-700 dark:text-white/70 whitespace-pre-wrap">{account.notes}</p>
+            ) : (
+              <p className="text-sm text-gray-400 dark:text-white/30 italic">No notes — click Edit to add</p>
+            )}
           </div>
-        )}
 
-        {/* List Memberships */}
-        {listMemberships.length > 0 && (
+          {/* List Memberships */}
           <div className="glass-card p-4">
             <h4 className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-wider mb-2">
-              Lists ({listMemberships.length})
+              Lists {listMemberships.length > 0 && `(${listMemberships.length})`}
             </h4>
-            <div className="space-y-1.5">
-              {listMemberships.map((list) => (
-                <div key={list.id} className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-white/70">
-                    <List className="w-3.5 h-3.5 text-indigo-electric" />
-                    {list.name}
-                  </span>
-                  <span className="text-xs text-gray-400 dark:text-white/30">{list.owner_name}</span>
-                </div>
-              ))}
-            </div>
+            {listMemberships.length > 0 ? (
+              <div className="space-y-1.5">
+                {listMemberships.map((list) => (
+                  <div key={list.id} className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-sm text-gray-700 dark:text-white/70">
+                      <List className="w-3.5 h-3.5 text-indigo-electric" />
+                      {list.name}
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-white/30">{list.owner_name}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 dark:text-white/30 italic">Not on any lists yet</p>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-white/10">
