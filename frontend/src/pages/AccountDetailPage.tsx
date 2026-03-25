@@ -8,9 +8,11 @@ import AccountContactsPanel from '../components/intelligence/AccountContactsPane
 import IntelligenceSignalsPanel from '../components/intelligence/IntelligenceSignalsPanel'
 import FrameworkNotesPanel from '../components/intelligence/FrameworkNotesPanel'
 import AccountTimelinePanel from '../components/intelligence/AccountTimelinePanel'
+import { NoteBlockEditor } from '../components/intelligence/NoteBlockEditor'
+import { BacklinksPanel } from '../components/intelligence/BacklinksPanel'
 import type { Account } from '../types/domain'
 
-type TabKey = 'intelligence' | 'contacts' | 'timeline'
+type TabKey = 'intelligence' | 'contacts' | 'timeline' | 'knowledge'
 
 export default function AccountDetailPage() {
   const { accountId } = useParams<{ accountId: string }>()
@@ -183,6 +185,7 @@ export default function AccountDetailPage() {
 
   const tabs: { key: TabKey; label: string; badge?: number }[] = [
     { key: 'intelligence', label: 'Intelligence' },
+    { key: 'knowledge', label: 'Knowledge' },
     { key: 'contacts', label: 'Contacts', badge: contactCount },
     { key: 'timeline', label: 'Timeline' },
   ]
@@ -442,6 +445,27 @@ export default function AccountDetailPage() {
           orgId={orgId}
           onContactCountChange={setContactCount}
         />
+      )}
+
+      {activeTab === 'knowledge' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Notes — main column */}
+          <div className="lg:col-span-2 glass-card p-6">
+            <NoteBlockEditor
+              accountId={accountId!}
+              orgId={orgId}
+            />
+          </div>
+
+          {/* Backlinks — sidebar */}
+          <div className="glass-card p-6">
+            <BacklinksPanel
+              entityType="account"
+              entityId={accountId!}
+              entityLabel={account.name}
+            />
+          </div>
+        </div>
       )}
 
       {activeTab === 'timeline' && (
