@@ -185,6 +185,24 @@ CREATE TABLE IF NOT EXISTS timeline_events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Add columns that may be missing if table already existed
+ALTER TABLE timeline_events ADD COLUMN IF NOT EXISTS linked_signal_id UUID;
+ALTER TABLE timeline_events ADD COLUMN IF NOT EXISTS linked_note_id UUID;
+ALTER TABLE timeline_events ADD COLUMN IF NOT EXISTS actor_type TEXT NOT NULL DEFAULT 'user';
+ALTER TABLE timeline_events ADD COLUMN IF NOT EXISTS actor_id UUID;
+
+-- Add linked_signal_id FK safely
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'timeline_events_linked_signal_id_fkey'
+  ) THEN
+    ALTER TABLE timeline_events
+      ADD CONSTRAINT timeline_events_linked_signal_id_fkey
+      FOREIGN KEY (linked_signal_id) REFERENCES intelligence_signals(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_timeline_account_created ON timeline_events(account_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_timeline_event_type ON timeline_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_timeline_contact_id ON timeline_events(contact_id);
