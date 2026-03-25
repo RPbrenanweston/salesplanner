@@ -9,7 +9,7 @@
 // edge:csv-import#1 -> STEP_IN
 // prompt: Add batch insert for contacts (chunk 500). Add ON CONFLICT to list_contacts insert. Consider streaming progress updates during import.
 import { useState, useEffect, useRef } from 'react';
-import { X, Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, Upload, AlertCircle, CheckCircle, Users, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ImportCSVModalProps {
@@ -17,6 +17,8 @@ interface ImportCSVModalProps {
   onClose: () => void;
   onImportComplete: () => void;
   importType?: 'contacts' | 'accounts';
+  /** When true, the user cannot change the import type (e.g. from Accounts page) */
+  lockImportType?: boolean;
 }
 
 type ImportStep = 'upload' | 'parsing' | 'mapping' | 'preview' | 'importing' | 'complete';
@@ -56,8 +58,15 @@ const ACCOUNT_DB_FIELDS = [
   { value: 'ignore', label: '(Ignore)' },
 ];
 
-export default function ImportCSVModal({ isOpen, onClose, onImportComplete, importType = 'contacts' }: ImportCSVModalProps) {
-  const isAccountImport = importType === 'accounts';
+export default function ImportCSVModal({ isOpen, onClose, onImportComplete, importType = 'contacts', lockImportType = false }: ImportCSVModalProps) {
+  const [selectedType, setSelectedType] = useState<'contacts' | 'accounts'>(importType);
+
+  // Sync selectedType when prop changes (e.g. switching tabs)
+  useEffect(() => {
+    setSelectedType(importType);
+  }, [importType]);
+
+  const isAccountImport = selectedType === 'accounts';
   const dbFields = isAccountImport ? ACCOUNT_DB_FIELDS : CONTACT_DB_FIELDS;
   const entityLabel = isAccountImport ? 'accounts' : 'contacts';
 
@@ -481,6 +490,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete, impo
     setErrorDetails([]);
     setImportedListName('');
     setError('');
+    setSelectedType(importType);
     // Remove worker event listeners on close
     if (workerRef.current) {
       workerRef.current.removeEventListener('message', () => {});
@@ -504,6 +514,34 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete, impo
           {/* Upload Step */}
           {step === 'upload' && (
             <div className="space-y-4">
+              {/* Import type selector — shown unless locked */}
+              {!lockImportType && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setSelectedType('contacts')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-semibold transition-all ${
+                      selectedType === 'contacts'
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
+                    }`}
+                  >
+                    <Users className="w-5 h-5" />
+                    Contacts
+                  </button>
+                  <button
+                    onClick={() => setSelectedType('accounts')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 text-sm font-semibold transition-all ${
+                      selectedType === 'accounts'
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                        : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
+                    }`}
+                  >
+                    <Building2 className="w-5 h-5" />
+                    Accounts
+                  </button>
+                </div>
+              )}
+
               <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center">
                 <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">

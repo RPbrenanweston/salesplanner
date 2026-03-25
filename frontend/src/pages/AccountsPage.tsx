@@ -212,6 +212,7 @@ export default function AccountsPage() {
         onClose={() => setIsImportModalOpen(false)}
         onImportComplete={() => loadAccounts()}
         importType="accounts"
+        lockImportType
       />
     </div>
   )
