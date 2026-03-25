@@ -129,6 +129,11 @@ CREATE INDEX IF NOT EXISTS idx_signals_created_at ON intelligence_signals(create
 
 ALTER TABLE intelligence_signals ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS signals_select_own_org ON intelligence_signals;
+DROP POLICY IF EXISTS signals_insert_own_org ON intelligence_signals;
+DROP POLICY IF EXISTS signals_update_own ON intelligence_signals;
+DROP POLICY IF EXISTS signals_delete_own ON intelligence_signals;
+
 CREATE POLICY signals_select_own_org ON intelligence_signals
   FOR SELECT USING (org_id = (SELECT org_id FROM users WHERE id = auth.uid()));
 
@@ -186,6 +191,10 @@ CREATE INDEX IF NOT EXISTS idx_timeline_contact_id ON timeline_events(contact_id
 CREATE INDEX IF NOT EXISTS idx_timeline_org_id ON timeline_events(org_id);
 
 ALTER TABLE timeline_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS timeline_select_own_org ON timeline_events;
+DROP POLICY IF EXISTS timeline_insert_own_org ON timeline_events;
+DROP POLICY IF EXISTS timeline_delete_own_org ON timeline_events;
 
 CREATE POLICY timeline_select_own_org ON timeline_events
   FOR SELECT USING (org_id = (SELECT org_id FROM users WHERE id = auth.uid()));
@@ -247,15 +256,29 @@ CREATE POLICY note_blocks_update_own ON note_blocks
 CREATE POLICY note_blocks_delete_own ON note_blocks
   FOR DELETE USING (created_by = auth.uid());
 
-CREATE TRIGGER note_blocks_updated_at_trigger
-  BEFORE UPDATE ON note_blocks
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'note_blocks_updated_at_trigger'
+  ) THEN
+    CREATE TRIGGER note_blocks_updated_at_trigger
+      BEFORE UPDATE ON note_blocks
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
 
 -- Add FK from timeline_events.linked_note_id to note_blocks
-ALTER TABLE timeline_events
-  ADD CONSTRAINT fk_timeline_linked_note
-  FOREIGN KEY (linked_note_id) REFERENCES note_blocks(id) ON DELETE SET NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'fk_timeline_linked_note'
+  ) THEN
+    ALTER TABLE timeline_events
+      ADD CONSTRAINT fk_timeline_linked_note
+      FOREIGN KEY (linked_note_id) REFERENCES note_blocks(id) ON DELETE SET NULL;
+  END IF;
+END $$;
 
 -- =============================================================================
 -- 6. GRAPH EDGES TABLE — Universal relationship table
