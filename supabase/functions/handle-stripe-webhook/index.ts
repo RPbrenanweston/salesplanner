@@ -49,6 +49,37 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
 
+  // Idempotency guard: skip if this event was already processed
+  const { data: existingEvent } = await supabase
+    .from('stripe_webhook_events')
+    .select('event_id')
+    .eq('event_id', event.id)
+    .maybeSingle()
+
+  if (existingEvent) {
+    console.log(`Skipping already-processed event: ${event.id} (${event.type})`)
+    return new Response(JSON.stringify({ received: true, duplicate: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // Record event as processing (insert before processing to prevent race)
+  const { error: insertError } = await supabase
+    .from('stripe_webhook_events')
+    .insert({ event_id: event.id, event_type: event.type })
+
+  if (insertError) {
+    // If insert fails due to unique constraint, another instance is processing
+    if (insertError.code === '23505') {
+      console.log(`Concurrent processing detected for event: ${event.id}`)
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    console.error('Failed to record webhook event:', insertError)
+    // Continue processing even if recording fails — better to double-process than miss
+  }
+
   try {
     // Idempotency check: skip if this event has already been processed
     const { error: idempotencyError } = await supabase

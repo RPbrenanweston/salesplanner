@@ -39,12 +39,14 @@ interface ListBuilderModalProps {
   onClose: () => void;
   onSuccess: () => void;
   existingList?: ExistingList | null;
+  defaultListType?: 'contacts' | 'accounts';
 }
 
-export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingList }: ListBuilderModalProps) {
+export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingList, defaultListType = 'contacts' }: ListBuilderModalProps) {
   const isEditMode = !!existingList;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [listType, setListType] = useState<'contacts' | 'accounts'>(defaultListType);
   const [filters, setFilters] = useState<Filter[]>([]);
   const [matchingCount, setMatchingCount] = useState<number | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -77,12 +79,13 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
       // Reset on close
       setName('');
       setDescription('');
+      setListType(defaultListType);
       setFilters([]);
       setMatchingCount(null);
       setAutoRefresh(true);
       setError('');
     }
-  }, [isOpen, existingList]);
+  }, [isOpen, existingList, defaultListType]);
 
   // Live preview: count matching contacts whenever filters change (debounced)
   useEffect(() => {
@@ -255,6 +258,7 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
             description: description.trim() || null,
             filter_criteria: filterCriteria,
             is_shared: false,
+            list_type: listType,
           })
           .select()
           .single();
@@ -377,6 +381,39 @@ export default function ListBuilderModal({ isOpen, onClose, onSuccess, existingL
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
+
+          {/* List Type (only for new lists) */}
+          {!isEditMode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                List Type
+              </label>
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <button
+                  type="button"
+                  onClick={() => setListType('contacts')}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    listType === 'contacts'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  Contact List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setListType('accounts')}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    listType === 'accounts'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  Account List
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Filters */}
           <div>

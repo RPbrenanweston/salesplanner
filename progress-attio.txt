@@ -1,0 +1,181 @@
+# Ralph Progress Log — Attio Unlock
+Started: 2026-03-22
+Branch: ralph/salesblock-roadmap
+PRD: prd-attio-unlock.json
+Goal: Unlock Attio CRM integration (17 stories: 9 P0 stabilization + 4 CRM infrastructure + 4 Attio-specific)
+---
+
+## Codebase Patterns
+- OAuth pattern: Copy GmailOAuthButton.tsx / SalesforceOAuthButton.tsx — these are the canonical templates
+- CSRF nonce: frontend/src/lib/oauth-csrf.ts — use generateNonce() and verifyNonce() exactly as Salesforce does
+- Toast pattern: import { toast } from '../hooks/use-toast' with variant: 'destructive' for errors
+- Supabase query pattern: always .eq('org_id', orgId) for org-scoping
+- ON CONFLICT: use .upsert(..., { onConflict: 'column_name', ignoreDuplicates: true }) in Supabase JS
+- Token storage: oauth_connections table with provider, access_token, refresh_token, expires_at, user_id, org_id
+- TypeScript: Record<string, unknown> for unknown shapes, String(prop) for JSX from unknown
+
+## Dependency Order
+P0-002 → P0-003 → P0-004 → P0-005 → P0-006 → P0-008 → P0-009 → P0-010 → P0-012
+→ P1-011 (CrmAdapter types) → P1-012 (Salesforce refactor) → P1-013 (registry)
+→ P1-014 (DB migration) → P1-015 (Attio OAuth) → P1-016 (Attio adapter)
+→ P1-017 (contact sync) → P1-018 (activity push)
+
+## Key Files to Read Before Starting
+- frontend/src/lib/salesforce.ts (will become the CrmAdapter template)
+- frontend/src/components/GmailOAuthButton.tsx (OAuth flow template)
+- frontend/src/lib/oauth-csrf.ts (CSRF nonce pattern)
+- frontend/src/types/domain.ts (Contact, Activity, Deal types)
+- supabase/migrations/ (find existing oauth_connections constraint name)
+
+---
+
+## 2026-03-22 - P0-002 - Fix Pipeline drag StrictMode double-fire + optimistic rollback
+- **Implemented:** Added useRef-based idempotency guard (dragInFlightRef Set) to prevent StrictMode double-fire of onDragEnd. Replaced loadPipeline() refetch-on-error with direct state rollback using snapshotted previousColumns. Wrapped handleDragEnd in useCallback.
+- **Files changed:** frontend/src/pages/Pipeline.tsx
+- **Learnings:**
+  - @hello-pangea/dnd onDragEnd fires twice in React 18 StrictMode — useRef Set tracking draggableId is the clean guard
+  - Optimistic rollback should snapshot state before mutation, not refetch (faster UX, no network dependency)
+  - Pre-existing typecheck requires npm install in worktrees — node_modules are not shared across git worktrees
+---
+
+## 2026-03-22 - P0-003 - Fix BookMeetingModal silent failure on expired calendar token
+- **Implemented:** Added checkCalendarConnection() export to calendar.ts. BookMeetingModal pre-checks on open, shows amber warning with Settings link, checks createCalendarEvent return, disables button when disconnected.
+- **Files changed:** frontend/src/components/BookMeetingModal.tsx, frontend/src/lib/calendar.ts
+- **Learnings:**
+  - calendar.ts getCalendarConnection was private — needed public checkCalendarConnection wrapper
+  - createCalendarEvent returns null on failure but callers weren't checking the return value
+  - Pattern: pre-check on modal open + guard on submit = belt-and-suspenders for OAuth flows
+---
+
+## 2026-03-22 - P0-004 - Fix ContactDetailPage crash on direct navigation
+- **Implemented:** Added org_id scoping to contact query, wait for orgId before fetching, loadContact accepts orgId param, back button falls back to /lists.
+- **Files changed:** frontend/src/pages/ContactDetailPage.tsx
+- **Learnings:**
+  - loadContact was fetching by id only — no org_id scoping (RLS handles it, but defense-in-depth is better)
+  - Race condition: orgId loaded in separate useEffect — contact fetch needs to depend on orgId state
+  - Pattern: when function needs org context, add orgId as parameter rather than relying on stale closure
+---
+
+## 2026-03-22 - P0-005 - Add idempotency key to Stripe webhook handler
+- **Implemented:** Created stripe_webhook_events table with event_id PK. Added idempotency guard in handle-stripe-webhook: check-then-insert pattern with unique constraint fallback for concurrent processing.
+- **Files changed:** supabase/functions/handle-stripe-webhook/index.ts, supabase/migrations/20260322000000_stripe_webhook_events.sql
+- **Learnings:**
+  - Edge functions (Deno) are NOT in frontend typecheck scope — they have their own type system
+  - Insert-before-process pattern: insert the event_id first, then process. If insert fails with 23505 (unique violation), another instance is handling it
+  - Stripe retries for 5 days — idempotency is critical for all webhook handlers
+---
+
+## 2026-03-22 - P0-006 - Add ON CONFLICT guards to Salesforce sync and email reply tracker
+- **Implemented:** sync-activities-to-salesforce uses claim-then-process with sync_status='syncing' intermediate state. track-email-replies uses conditional update with .is("replied_at", null) for idempotent reply detection.
+- **Files changed:** supabase/functions/sync-activities-to-salesforce/index.ts, supabase/functions/track-email-replies/index.ts
+- **Learnings:**
+  - Claim-then-process pattern: update sync_status from 'pending' to 'syncing' with conditional eq, only succeeds for one instance
+  - Conditional update (.eq + .is) is Supabase's idiomatic ON CONFLICT alternative for updates
+  - Edge functions may run concurrently — always guard against race conditions
+---
+
+## 2026-03-22 - P0-008 - Fix concurrent OAuth token refresh race condition
+- **Implemented:** Extended OAuthProvider type to include salesforce/attio. Added refreshTokenWithMutex() export. Replaced isGoogleProvider with getRefreshFunctionName switch. Existing mutex pattern was already correct.
+- **Files changed:** frontend/src/lib/token-refresh.ts
+- **Learnings:**
+  - The mutex pattern (Map of in-flight promises) was already implemented correctly
+  - JS single-threaded event loop means the check-then-set on refreshInFlight is atomic between awaits
+  - Extended provider type now for attio readiness (P1-015/P1-016 will use it)
+  - Pattern: refreshTokenWithMutex is the public API for force-refresh; getValidToken is for get-or-refresh
+---
+
+## 2026-03-22 - P0-009 - Add pre-check for Salesforce push when disconnected
+- **Implemented:** Added isSalesforceConnected() export. markActivityForSync returns SyncMarkResult type. SettingsPage checks SF connection, disables toggle and Sync Now when disconnected, shows warning.
+- **Files changed:** frontend/src/lib/salesforce.ts, frontend/src/pages/SettingsPage.tsx
+- **Learnings:**
+  - SalesforceOAuthButton manages its own connection state internally — SettingsPage needs separate check
+  - Pattern: return typed result from sync functions so callers can show appropriate UI feedback
+  - Pattern: disable action controls (toggle, button) when prerequisite not met + show explanation text
+---
+
+## 2026-03-22 - P0-010 - Add confirmation dialogs to all delete actions
+- **Implemented:** Created shared ConfirmDeleteDialog component with Cancel as autoFocus. Replaced browser confirm() in SalesBlocks, Scripts, Goals. Upgraded EmailTemplates custom dialog to shared component. All show item name.
+- **Files changed:** frontend/src/components/ConfirmDeleteDialog.tsx (new), frontend/src/pages/SalesBlocks.tsx, frontend/src/pages/Scripts.tsx, frontend/src/pages/Goals.tsx, frontend/src/pages/EmailTemplates.tsx
+- **Learnings:**
+  - Pattern: store deleteTarget as { id, name } object, not just id — needed for dialog to show item name
+  - Shared ConfirmDeleteDialog avoids DRY violation across 4 pages
+  - useRef + focus() on Cancel button for default focus (safer action)
+---
+
+## 2026-03-23 - P1-011 - Create CrmAdapter TypeScript interface
+- **Implemented:** Created frontend/src/lib/crm/types.ts with CrmAdapter, CrmContact, CrmCompany, CrmActivity, CrmImportOptions, CrmAdapterMeta interfaces
+- **Files changed:** frontend/src/lib/crm/types.ts (new)
+- **Learnings:**
+  - Keep CrmAdapter minimal — only what the first two adapters (Salesforce, Attio) actually need
+  - CrmAdapterMeta provides display info for dynamic registry rendering
+---
+
+## 2026-03-23 - P1-012 - Refactor Salesforce integration into CrmAdapter pattern
+- **Implemented:** Moved salesforce.ts code to crm/adapters/salesforce.ts, created SalesforceAdapter implementing CrmAdapter, kept salesforce.ts as re-export barrel for zero breakage
+- **Files changed:** frontend/src/lib/crm/adapters/salesforce.ts (new), frontend/src/lib/salesforce.ts (converted to barrel)
+- **Learnings:**
+  - Re-export barrel pattern preserves all existing imports — zero-breakage refactor
+  - SalesforceAdapter wraps existing functions (getSalesforceConnection, markActivityForSync) rather than reimplementing
+  - Unused function params need underscore prefix for TypeScript noUnusedParameters
+---
+
+## 2026-03-23 - P1-013 - Create CRM adapter registry
+- **Implemented:** Created registry.ts with registerAdapter/getAdapter/getAvailableAdapters, auto-registers SalesforceAdapter on import
+- **Files changed:** frontend/src/lib/crm/registry.ts (new)
+- **Learnings:**
+  - Simple Map<string, CrmAdapter> is sufficient — no factory pattern needed yet
+  - Auto-registration on import keeps adapter setup declarative
+---
+
+## 2026-03-23 - P1-014 - Widen oauth_connections provider CHECK constraint
+- **Implemented:** Migration drops existing constraint and adds new one supporting attio/hubspot/pipedrive/close
+- **Files changed:** supabase/migrations/20260323000000_widen_oauth_providers.sql (new)
+- **Learnings:**
+  - Inline CHECK constraints on columns get auto-named as tablename_columnname_check
+  - DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT is idempotent pattern
+---
+
+## 2026-03-23 - P1-015 - Build Attio OAuth connection flow
+- **Implemented:** AttioOAuthButton (popup OAuth flow), AttioOAuthCallback page, route in App.tsx, button in SettingsPage CRM section, edge function updated for attio provider
+- **Files changed:** frontend/src/components/AttioOAuthButton.tsx (new), frontend/src/pages/AttioOAuthCallback.tsx (new), frontend/src/App.tsx, frontend/src/pages/SettingsPage.tsx, supabase/functions/exchange-oauth-token/index.ts
+- **Learnings:**
+  - Existing useOAuthCallback hook + exchange-oauth-token edge function are fully extensible — just add cases
+  - Attio OAuth flow: authorize at app.attio.com/authorize, exchange at app.attio.com/oauth/token
+  - SettingsPage CRM section already used adapter registry — just add provider === 'attio' case
+---
+
+## 2026-03-23 - P1-016 - Build Attio CRM adapter
+- **Implemented:** AttioAdapter implementing CrmAdapter with importContacts (paginated People query) and pushActivity (Notes API), registered in registry
+- **Files changed:** frontend/src/lib/crm/adapters/attio.ts (new), frontend/src/lib/crm/registry.ts
+- **Learnings:**
+  - Attio People query uses POST /objects/people/records/query with offset-based pagination
+  - Attio Notes API requires content as structured blocks, not plaintext
+  - Use supabase singleton import, not createClient — consistent with codebase pattern
+---
+
+## 2026-03-23 - P1-017 - Build Attio contact sync (import)
+- **Implemented:** ImportAttioModal with preview/import flow, attio_record_id column migration, 'attio' added to Contact source union type
+- **Files changed:** frontend/src/components/ImportAttioModal.tsx (new), frontend/src/types/domain.ts, supabase/migrations/20260323000001_contacts_attio_record_id.sql (new)
+- **Learnings:**
+  - Partial unique index (WHERE attio_record_id IS NOT NULL) prevents constraint violations on null values
+  - ImportAttioModal is simpler than ImportSalesforceModal — no object type selection needed (Attio People only)
+---
+
+## 2026-03-23 - P1-018 - Build Attio activity push
+- **Implemented:** LogActivityModal pushes to Attio after Salesforce sync (fire-and-forget), attio_auto_push_activities toggle in SettingsPage, migration for org setting column
+- **Files changed:** frontend/src/components/LogActivityModal.tsx, frontend/src/pages/SettingsPage.tsx, supabase/migrations/20260323000002_attio_auto_push_setting.sql (new)
+- **Learnings:**
+  - Fire-and-forget pattern: .catch(console.error) — don't await in UI path, don't surface errors to user
+  - Attio connection check uses direct supabase query (no adapter needed for simple boolean check in settings load)
+  - Mirror SF pattern for org-level toggle: dedicated boolean column on organizations table
+---
+
+## 2026-03-23 - P1-013 - PAI Iteration 5
+- **Implemented:** Wired Settings > Integrations CRM section to use getAvailableAdapters() from crm/registry.ts. Imported registry in SettingsPage, replaced static SalesforceOAuthButton render with a .map() over available adapters that renders the matching OAuth button by provider name.
+- **Files changed:** frontend/src/pages/SettingsPage.tsx
+- **ISC Status:** registry.ts exports registerAdapter/getAdapter/getAvailableAdapters ✓, Salesforce auto-registered on import ✓, Settings uses registry to render CRMs ✓, each adapter has displayName/iconUrl/description/scopes via CrmAdapterMeta ✓, typecheck passes ✓
+- **Learnings:**
+  - registry.ts and adapters/salesforce.ts were already complete from P1-011/P1-012 — P1-013 only needed SettingsPage wiring
+  - Pattern: import getAvailableAdapters() and .map() over results, keying on adapter.meta.provider to render provider-specific UI
+  - Salesforce-specific controls (auto-push, sync now) remain outside the map loop since they're not adapter-generic yet
+---

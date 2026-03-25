@@ -15,6 +15,7 @@ import { supabase } from '../lib/supabase';
 import { ScriptModal } from '../components/ScriptModal';
 import DOMPurify from 'dompurify';
 import { toast } from '../hooks/use-toast';
+import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog';
 
 interface CallScript {
   id: string;
@@ -35,6 +36,7 @@ export default function Scripts() {
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadScripts();
@@ -78,11 +80,8 @@ export default function Scripts() {
     }
   }
 
-  async function handleDelete(scriptId: string, scriptName: string) {
-    if (!confirm(`Delete script "${scriptName}"? This cannot be undone.`)) {
-      return;
-    }
-
+  async function handleDeleteConfirmed(scriptId: string) {
+    setDeleteTarget(null);
     try {
       const { error } = await supabase
         .from('call_scripts')
@@ -276,7 +275,7 @@ export default function Scripts() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(script.id, script.name)}
+                        onClick={() => setDeleteTarget({ id: script.id, name: script.name })}
                         className="p-2 text-gray-400 dark:text-white/30 hover:text-red-alert dark:hover:text-red-alert hover:bg-red-alert/10 rounded transition-colors duration-150 ease-snappy"
                         title="Delete"
                       >
@@ -297,6 +296,14 @@ export default function Scripts() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleModalSuccess}
         scriptId={editingScriptId}
+      />
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTarget !== null}
+        itemType="Call Script"
+        itemName={deleteTarget?.name ?? ''}
+        onConfirm={() => deleteTarget && handleDeleteConfirmed(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   );

@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { markActivityForSync, getSalesforceConnection } from '../lib/salesforce';
+import { AttioAdapter } from '../lib/crm/adapters/attio';
 import { toast } from '../hooks/use-toast';
 
 interface LogActivityModalProps {
@@ -120,6 +121,34 @@ export default function LogActivityModal({
       // Mark for Salesforce sync only if a connection is confirmed
       if (data?.id && salesforceConnected) {
         markActivityForSync(data.id); // Non-blocking, logs errors internally
+      }
+
+      // Push to Attio if auto-push enabled (fire-and-forget)
+      try {
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('attio_auto_push_activities')
+          .eq('id', orgId)
+          .single();
+
+        if (orgData?.attio_auto_push_activities) {
+          const isConnected = await AttioAdapter.isConnected(userId, orgId);
+          if (isConnected) {
+            AttioAdapter.pushActivity(
+              {
+                type: activityType,
+                outcome,
+                notes: notes.trim() || undefined,
+                timestamp: new Date().toISOString(),
+                contactExternalId: contactId,
+              },
+              userId,
+              orgId
+            ).catch((e: unknown) => console.error('Attio push failed:', e));
+          }
+        }
+      } catch (e: unknown) {
+        console.error('Attio auto-push check failed:', e);
       }
 
       onSuccess();

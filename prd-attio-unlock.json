@@ -1,0 +1,310 @@
+{
+  "project": "SalesBlock.io — Attio Unlock",
+  "branchName": "ralph/salesblock-roadmap",
+  "description": "Minimum viable story set to get Attio CRM integration live in SalesBlock. Ordered: P0 stabilization first (prerequisite reliability), then CRM adapter infrastructure, then Attio-specific OAuth + adapter + sync. 17 stories total.",
+  "techStack": {
+    "frontend": "React 18 + TypeScript 5.3 + Vite 5.1 + TanStack Query v5 + Tailwind 3 + Shadcn/ui",
+    "backend": "Supabase (PostgreSQL + Auth + RLS + Edge Functions)",
+    "crmDocs": "https://developers.attio.com/",
+    "existingPatterns": "GmailOAuthButton.tsx, SalesforceOAuthButton.tsx, frontend/src/lib/salesforce.ts, frontend/src/lib/oauth-csrf.ts"
+  },
+  "strategicGuardrails": [
+    "No CRM replacement — syncs WITH Attio, does not replace it",
+    "No set-and-forget automation — activity push is async best-effort, not transactional",
+    "No surveillance — only rep-initiated or rep-consented sync",
+    "OAuth pattern must match existing GmailOAuthButton / SalesforceOAuthButton exactly"
+  ],
+  "userStories": [
+    {
+      "id": "P0-002",
+      "title": "Fix Pipeline drag StrictMode double-fire + optimistic rollback",
+      "description": "As a user dragging deals on the pipeline kanban, I need the drag to execute exactly once and roll back on failure so deal stages don't get corrupted.",
+      "acceptanceCriteria": [
+        "onDragEnd in Pipeline.tsx is guarded with useRef idempotency token",
+        "Deal stage update is optimistic with rollback on Supabase failure",
+        "In React StrictMode, drag fires only once regardless of double-invoke",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": true,
+      "files": ["frontend/src/pages/Pipeline.tsx"],
+      "notes": "@dnd-kit onDragEnd fires twice in StrictMode dev. Guard with useRef(false) idempotency flag reset on each drag start."
+    },
+    {
+      "id": "P0-003",
+      "title": "Fix BookMeetingModal silent failure on expired calendar token",
+      "description": "As a user booking a meeting, I need to see an error and be prompted to reconnect if my calendar token has expired.",
+      "acceptanceCriteria": [
+        "BookMeetingModal checks token expiry before attempting calendar API call",
+        "If token expired, shows 'Calendar disconnected — reconnect in Settings' message with link",
+        "If token refresh fails, same error message shown",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": true,
+      "files": ["frontend/src/components/BookMeetingModal.tsx", "frontend/src/lib/calendar.ts"],
+      "notes": "Currently fails silently — user thinks meeting was booked but it wasn't."
+    },
+    {
+      "id": "P0-004",
+      "title": "Fix ContactDetailPage crash on direct navigation",
+      "description": "As a user navigating directly to a contact detail URL, the page should load without crashing.",
+      "acceptanceCriteria": [
+        "ContactDetailPage fetches contact by ID from URL params if no history state",
+        "Back button falls back to /contacts list if no history",
+        "Loading state shown while fetching",
+        "404 shown if contact ID doesn't exist or isn't in user's org",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": true,
+      "files": ["frontend/src/pages/ContactDetailPage.tsx"],
+      "notes": "Currently crashes with undefined error when navigated to directly."
+    },
+    {
+      "id": "P0-005",
+      "title": "Add idempotency key to Stripe webhook handler",
+      "description": "As an operator, I need Stripe webhooks to be processed exactly once so subscriptions aren't double-activated on retry.",
+      "acceptanceCriteria": [
+        "Edge function stores processed event IDs in a stripe_webhook_events table",
+        "Before processing, checks if event_id already processed — skips if so",
+        "checkout.session.completed, customer.subscription.updated, invoice.payment_failed all guarded",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": true,
+      "files": ["supabase/functions/stripe-webhook/index.ts"],
+      "notes": "Stripe retries webhooks on timeout. Create stripe_webhook_events(event_id PRIMARY KEY, processed_at) and check before processing."
+    },
+    {
+      "id": "P0-006",
+      "title": "Add ON CONFLICT guards to Salesforce sync and email reply tracker",
+      "description": "As a user with Salesforce connected, I need activity sync and email reply tracking to handle retries without creating duplicate records.",
+      "acceptanceCriteria": [
+        "sync-activities-to-salesforce edge function uses ON CONFLICT on salesforce_task_id",
+        "check-email-replies edge function uses ON CONFLICT on thread_id + reply timestamp",
+        "Retry of either function doesn't create duplicate activity/reply records",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": true,
+      "files": ["supabase/functions/sync-activities-to-salesforce/index.ts", "supabase/functions/check-email-replies/index.ts"],
+      "notes": "Both edge functions insert records on retry without checking for duplicates."
+    },
+    {
+      "id": "P0-008",
+      "title": "Fix concurrent OAuth token refresh race condition",
+      "description": "As a user with OAuth connections, I need simultaneous API calls that detect an expired token to coordinate so only one refresh occurs.",
+      "acceptanceCriteria": [
+        "token-refresh.ts implements a mutex/queue pattern: first caller refreshes, others wait for the result",
+        "No duplicate refresh requests are sent to the OAuth provider",
+        "After refresh, all queued callers receive the new token",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": true,
+      "files": ["frontend/src/lib/token-refresh.ts"],
+      "notes": "CRITICAL for Attio OAuth reliability. Multiple concurrent calls can race to refresh. Implement with a Promise queue: if refresh in-flight, push resolve callbacks and return shared promise."
+    },
+    {
+      "id": "P0-009",
+      "title": "Add pre-check for Salesforce push when disconnected",
+      "description": "As a user, I need the Salesforce activity push to check connection status before attempting to sync.",
+      "acceptanceCriteria": [
+        "Before pushing activity to Salesforce, check oauth_connections for active Salesforce connection",
+        "If disconnected, show toast: 'Salesforce not connected — connect in Settings to sync activities'",
+        "Auto-push toggle in Settings is disabled when Salesforce is disconnected",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 0,
+      "passes": true,
+      "files": ["frontend/src/lib/salesforce.ts", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "Sets the pattern for all CRM disconnected-state handling including Attio."
+    },
+    {
+      "id": "P0-010",
+      "title": "Add confirmation dialogs to all delete actions",
+      "description": "As a user, I need to confirm before deleting SalesBlocks, Scripts, Goals, and Email Templates.",
+      "acceptanceCriteria": [
+        "Delete SalesBlock shows confirmation dialog with session title",
+        "Delete Call Script shows confirmation with script name",
+        "Delete Goal shows confirmation with metric name",
+        "Delete Email Template shows confirmation with template name",
+        "All dialogs have Cancel and Delete buttons, Cancel is default focus",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": true,
+      "files": ["frontend/src/pages/SalesBlocks.tsx", "frontend/src/pages/Scripts.tsx", "frontend/src/pages/Goals.tsx", "frontend/src/pages/EmailTemplates.tsx"],
+      "notes": "Use existing shadcn/ui AlertDialog component — it's already in the project."
+    },
+    {
+      "id": "P0-012",
+      "title": "Wire ported analytics computation to Analytics page",
+      "description": "As a user viewing Analytics, I need the ported analytics computation module connected to the Analytics page.",
+      "acceptanceCriteria": [
+        "Analytics page imports from ported-features/08-analytics-computation/ or the code is moved to lib/analytics/",
+        "Sales metrics, distribution, and timeline computations use the ported module",
+        "Analytics page renders correct data with the new computation layer",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "phase": 0,
+      "passes": true,
+      "files": ["frontend/src/pages/Analytics.tsx"],
+      "notes": "Check if frontend/src/ported-features/08-analytics-computation/ exists. If not, skip and mark passes:true with a note."
+    },
+    {
+      "id": "P1-011",
+      "title": "Create CrmAdapter TypeScript interface",
+      "description": "As a developer, I need a unified CRM adapter interface so all CRM integrations follow the same pattern.",
+      "acceptanceCriteria": [
+        "New directory: frontend/src/lib/crm/",
+        "frontend/src/lib/crm/types.ts defines: CrmAdapter interface, CrmContact, CrmCompany, CrmDeal, CrmActivity, CrmImportOptions",
+        "CrmAdapter interface includes: connect(), disconnect(), isConnected(), importContacts(), pushActivity(), importDeals(), pushDeal()",
+        "All CRM entity types map cleanly to existing SalesBlock domain types (Contact, Deal, Activity)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": true,
+      "files": ["frontend/src/lib/crm/types.ts"],
+      "notes": "Foundation story — nothing else can start until this exists. Keep it minimal: only what Attio actually needs."
+    },
+    {
+      "id": "P1-012",
+      "title": "Refactor Salesforce integration into CrmAdapter pattern",
+      "description": "Refactor the existing Salesforce integration into the CrmAdapter pattern so it serves as the template for Attio.",
+      "acceptanceCriteria": [
+        "frontend/src/lib/salesforce.ts code moved to frontend/src/lib/crm/adapters/salesforce.ts",
+        "SalesforceAdapter class implements CrmAdapter interface",
+        "All existing Salesforce functionality preserved: OAuth, contact import, activity push",
+        "ImportSalesforceModal uses SalesforceAdapter instead of direct salesforce.ts imports",
+        "Settings page Salesforce section uses adapter",
+        "Zero regressions on existing Salesforce features",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": true,
+      "files": ["frontend/src/lib/crm/adapters/salesforce.ts", "frontend/src/lib/salesforce.ts", "frontend/src/components/ImportSalesforceModal.tsx", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "Pure refactor — no new functionality. Read salesforce.ts thoroughly before moving anything. Keep the old file as a re-export barrel during transition."
+    },
+    {
+      "id": "P1-013",
+      "title": "Create CRM adapter registry",
+      "description": "A registry that maps provider names to adapter instances so Settings > Integrations can dynamically render CRMs.",
+      "acceptanceCriteria": [
+        "frontend/src/lib/crm/registry.ts exports: registerAdapter(), getAdapter(), getAvailableAdapters()",
+        "Salesforce adapter auto-registered on import",
+        "Settings > Integrations page uses registry to render connected/available CRMs",
+        "Each adapter provides: displayName, iconUrl, description, scopes",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": true,
+      "files": ["frontend/src/lib/crm/registry.ts", "frontend/src/pages/SettingsPage.tsx"],
+      "notes": "Keep it simple: a Map<string, CrmAdapterFactory>. Salesforce registers itself on import."
+    },
+    {
+      "id": "P1-014",
+      "title": "Widen oauth_connections provider CHECK constraint",
+      "description": "The oauth_connections table must support 'attio' as a provider to store Attio OAuth tokens.",
+      "acceptanceCriteria": [
+        "New Supabase migration alters oauth_connections.provider CHECK constraint",
+        "Allowed values: gmail, outlook, google_calendar, outlook_calendar, salesforce, attio, hubspot, pipedrive, close",
+        "Migration is backwards-compatible (existing rows unaffected)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": true,
+      "files": ["supabase/migrations/YYYYMMDD_widen_oauth_providers.sql"],
+      "notes": "Simple ALTER TABLE. Check existing constraint name first with \\d oauth_connections. Use ALTER TABLE ... DROP CONSTRAINT ... ADD CONSTRAINT pattern."
+    },
+    {
+      "id": "P1-015",
+      "title": "Build Attio OAuth connection flow",
+      "description": "As a user, I need to connect my Attio account via OAuth in Settings so SalesBlock can sync with my Attio CRM.",
+      "acceptanceCriteria": [
+        "AttioOAuthButton component in Settings > Integrations",
+        "OAuth 2.0 flow with Attio API: authorization URL, callback handler, token exchange",
+        "CSRF nonce validation on callback (following existing oauth-csrf.ts pattern)",
+        "Access token + refresh token stored in oauth_connections with provider='attio'",
+        "Connected state shown with Attio workspace name",
+        "Disconnect button removes oauth_connection row",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": true,
+      "files": ["frontend/src/components/AttioOAuthButton.tsx", "frontend/src/pages/AttioOAuthCallback.tsx", "frontend/src/pages/SettingsPage.tsx", "frontend/src/App.tsx"],
+      "notes": "Copy GmailOAuthButton.tsx and SalesforceOAuthButton.tsx as templates. Attio OAuth docs: https://developers.attio.com/docs/oauth. Attio authorize URL: https://app.attio.com/authorize. Token URL: https://app.attio.com/oauth/token. Scopes needed: read:people, write:notes, read:companies, read:deals."
+    },
+    {
+      "id": "P1-016",
+      "title": "Build Attio CRM adapter",
+      "description": "An Attio adapter implementing CrmAdapter so all Attio data operations go through the unified interface.",
+      "acceptanceCriteria": [
+        "frontend/src/lib/crm/adapters/attio.ts implements CrmAdapter interface",
+        "Maps Attio People → CrmContact (name, email, phone, company, title)",
+        "Maps Attio Companies → CrmCompany",
+        "Maps SalesBlock Activity → Attio Note format for push",
+        "Handles Attio API pagination (cursor-based, use page_token)",
+        "Handles rate limiting (Attio: 100 req/s — add 10ms delay between batch requests)",
+        "AttioAdapter registered in CRM registry",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": true,
+      "files": ["frontend/src/lib/crm/adapters/attio.ts"],
+      "notes": "Attio REST API base: https://api.attio.com/v2. People endpoint: GET /v2/objects/people/records. Companies: GET /v2/objects/companies/records. Notes: POST /v2/notes. Use Bearer token from oauth_connections. Reference: https://developers.attio.com/reference"
+    },
+    {
+      "id": "P1-017",
+      "title": "Build Attio contact sync (import)",
+      "description": "As a user with Attio connected, I need to import People records from Attio into SalesBlock contacts.",
+      "acceptanceCriteria": [
+        "ImportAttioModal component: search/filter Attio People, preview field mapping, import selected",
+        "Import maps Attio fields to SalesBlock Contact fields",
+        "Duplicate detection by email before import",
+        "Imported contacts have source='attio' and attio_record_id stored",
+        "Contacts table migration adds attio_record_id column (nullable, unique per org)",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": true,
+      "files": ["frontend/src/components/ImportAttioModal.tsx", "frontend/src/lib/crm/adapters/attio.ts", "supabase/migrations/YYYYMMDD_contacts_attio_id.sql"],
+      "notes": "Follow ImportSalesforceModal.tsx as template. Source enum: add 'attio' to contact source type in domain.ts."
+    },
+    {
+      "id": "P1-018",
+      "title": "Build Attio activity push",
+      "description": "As a user with Attio connected, I need SalesBlock activities to automatically push to Attio as Notes on the People record.",
+      "acceptanceCriteria": [
+        "After logging an activity in SalesBlock, if Attio is connected AND auto-push enabled, create a Note on the Attio People record",
+        "Note content: activity type, outcome, notes text, timestamp, rep name",
+        "Push is async (does not block activity logging UI)",
+        "Failed pushes retried once, then marked failed — error stored in activity.metadata",
+        "Auto-push toggle in Settings > Integrations > Attio",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "phase": 1,
+      "passes": true,
+      "files": ["frontend/src/lib/crm/adapters/attio.ts", "frontend/src/pages/SettingsPage.tsx", "frontend/src/components/LogActivityModal.tsx"],
+      "notes": "Follow same async push pattern as Salesforce sync-activities-to-salesforce. Attio Notes API: POST /v2/notes with {parent_record_id, parent_object, title, content}. If contact has no attio_record_id, skip push silently."
+    }
+  ]
+}

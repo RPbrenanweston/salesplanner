@@ -47,6 +47,9 @@ export default function BookMeetingModal({
   const [error, setError] = useState('');
   const [calendarStatus, setCalendarStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
 
+  const checkingCalendar = calendarStatus === 'checking';
+  const calendarDisconnected = calendarStatus === 'disconnected';
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -80,13 +83,20 @@ export default function BookMeetingModal({
       const scheduledStart = new Date(`${date}T${time}`);
       const scheduledEnd = new Date(scheduledStart.getTime() + parseInt(duration) * 60000);
 
-      // Create calendar event
-      await createCalendarEvent({
+      // Create calendar event — check for expired/missing connection
+      const calendarResult = await createCalendarEvent({
         title,
         description: description || `Meeting with ${contact.first_name} ${contact.last_name} (${contact.email})`,
         start: scheduledStart.toISOString(),
         end: scheduledEnd.toISOString(),
       });
+
+      if (!calendarResult) {
+        setCalendarStatus('disconnected');
+        setError('Calendar disconnected — reconnect in Settings to book meetings.');
+        setIsSaving(false);
+        return;
+      }
 
       // Log meeting activity
       const { data: userData } = await supabase.auth.getUser();
@@ -155,7 +165,13 @@ export default function BookMeetingModal({
         </div>
 
         <div className="p-6 space-y-4">
-          {error && (
+          {calendarDisconnected && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-400 text-sm">
+              Calendar disconnected &mdash; <a href="/settings" className="underline font-medium hover:text-amber-800 dark:hover:text-amber-300">reconnect in Settings</a> to book meetings.
+            </div>
+          )}
+
+          {error && !calendarDisconnected && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
               {error}
             </div>
@@ -263,11 +279,11 @@ export default function BookMeetingModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || calendarDisconnected || checkingCalendar}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Calendar className="w-4 h-4" />
-            {isSaving ? 'Booking...' : 'Book Meeting'}
+            {checkingCalendar ? 'Checking calendar...' : isSaving ? 'Booking...' : calendarDisconnected ? 'Calendar Disconnected' : 'Book Meeting'}
           </button>
         </div>
       </div>

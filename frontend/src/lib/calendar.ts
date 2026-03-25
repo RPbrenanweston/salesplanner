@@ -57,6 +57,15 @@ export async function getCalendarConnection(): Promise<{
 }
 
 /**
+ * Check if user has an active (non-expired) calendar connection.
+ * Returns the provider name if connected, null otherwise.
+ */
+export async function checkCalendarConnection(): Promise<'google_calendar' | 'outlook_calendar' | null> {
+  const connection = await getCalendarConnection();
+  return connection?.provider ?? null;
+}
+
+/**
  * Create calendar event via Google Calendar or Outlook Calendar API
  */
 export async function createCalendarEvent(

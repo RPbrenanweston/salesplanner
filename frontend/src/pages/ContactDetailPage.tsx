@@ -98,13 +98,16 @@ export default function ContactDetailPage() {
   }, [user]);
 
   useEffect(() => {
-    if (contactId) {
-      loadContact();
+    if (contactId && orgId) {
+      loadContact(orgId);
       loadResearchData();
+    } else if (contactId && !orgId) {
+      // orgId not loaded yet — loadContact will be triggered when orgId is set
+      setLoading(true);
     }
-  }, [contactId]);
+  }, [contactId, orgId]);
 
-  const loadContact = async () => {
+  const loadContact = async (currentOrgId: string) => {
     setLoading(true);
     setNotFound(false);
     try {
@@ -112,6 +115,7 @@ export default function ContactDetailPage() {
         .from('contacts')
         .select('*')
         .eq('id', contactId)
+        .eq('org_id', currentOrgId)
         .single();
 
       if (error) throw error;
@@ -477,7 +481,7 @@ export default function ContactDetailPage() {
             onClose={() => setIsEmailModalOpen(false)}
             onSuccess={() => {
               setIsEmailModalOpen(false);
-              loadContact(); // Refresh to update activity
+              if (orgId) loadContact(orgId); // Refresh to update activity
             }}
           />
         )}
@@ -492,7 +496,7 @@ export default function ContactDetailPage() {
             onClose={() => setIsSocialModalOpen(false)}
             onSuccess={() => {
               setIsSocialModalOpen(false);
-              loadContact(); // Refresh to update activity
+              if (orgId) loadContact(orgId); // Refresh to update activity
             }}
           />
         )}
@@ -505,7 +509,7 @@ export default function ContactDetailPage() {
             onClose={() => setIsMeetingModalOpen(false)}
             onSuccess={() => {
               setIsMeetingModalOpen(false);
-              loadContact(); // Refresh to update activity
+              if (orgId) loadContact(orgId); // Refresh to update activity
             }}
           />
         )}

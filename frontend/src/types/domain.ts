@@ -35,7 +35,8 @@ export interface Contact {
   phone?: string
   company?: string
   title?: string
-  source?: 'csv' | 'salesforce' | 'manual'
+  source?: 'csv' | 'salesforce' | 'attio' | 'manual'
+  attio_record_id?: string
   custom_fields?: Record<string, any>
   created_by?: string
   created_at?: string

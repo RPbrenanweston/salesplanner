@@ -21,7 +21,10 @@ import GmailOAuthButton from '../components/GmailOAuthButton'
 import MicrosoftOAuthButton from '../components/MicrosoftOAuthButton'
 import GoogleCalendarOAuthButton from '../components/GoogleCalendarOAuthButton'
 import SalesforceOAuthButton from '../components/SalesforceOAuthButton'
+import AttioOAuthButton from '../components/AttioOAuthButton'
 import OAuthErrorBoundary from '../components/OAuthErrorBoundary'
+import { isSalesforceConnected } from '../lib/salesforce'
+import { getAvailableAdapters } from '../lib/crm/registry'
 import { toast } from '../hooks/use-toast'
 
 type Tab = 'profile' | 'organization' | 'team' | 'integrations' | 'pipeline' | 'billing'
@@ -40,6 +43,12 @@ export default function SettingsPage() {
   // Salesforce auto-push toggle state
   const [sfAutoPush, setSfAutoPush] = useState(false)
   const [sfAutoPushLoading, setSfAutoPushLoading] = useState(false)
+  const [sfConnected, setSfConnected] = useState(false)
+
+  // Attio auto-push toggle state
+  const [attioAutoPush, setAttioAutoPush] = useState(false)
+  const [attioAutoPushLoading, setAttioAutoPushLoading] = useState(false)
+  const [attioConnected, setAttioConnected] = useState(false)
 
   // Pipeline stages state
   const [pipelineStages, setPipelineStages] = useState<{
@@ -160,7 +169,7 @@ export default function SettingsPage() {
 
       const { data: orgData } = await supabase
         .from('organizations')
-        .select('name, logo_url, sf_auto_push_activities')
+        .select('name, logo_url, sf_auto_push_activities, attio_auto_push_activities')
         .eq('id', profileData.org_id)
         .single()
 
@@ -168,6 +177,22 @@ export default function SettingsPage() {
         setOrgName(orgData.name || '')
         setLogoUrl(orgData.logo_url)
         setSfAutoPush(orgData.sf_auto_push_activities || false)
+        setAttioAutoPush(orgData.attio_auto_push_activities || false)
+      }
+
+      // Check Salesforce connection status
+      const connected = await isSalesforceConnected()
+      setSfConnected(connected)
+
+      // Check Attio connection status
+      if (user && profileData.org_id) {
+        const { data: attioConn } = await supabase
+          .from('oauth_connections')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('provider', 'attio')
+          .maybeSingle()
+        setAttioConnected(!!attioConn)
       }
     }
 
@@ -518,6 +543,29 @@ export default function SettingsPage() {
       toast({ variant: 'destructive', title: 'Failed to update auto-push setting', description: 'Please try again.' })
     } finally {
       setSfAutoPushLoading(false)
+    }
+  }
+
+  const handleAttioAutoPushToggle = async () => {
+    if (!orgId) return
+
+    setAttioAutoPushLoading(true)
+    try {
+      const newValue = !attioAutoPush
+
+      const { error } = await supabase
+        .from('organizations')
+        .update({ attio_auto_push_activities: newValue })
+        .eq('id', orgId)
+
+      if (error) throw error
+
+      setAttioAutoPush(newValue)
+    } catch (error) {
+      console.error('Failed to update Attio auto-push setting:', error)
+      alert('Failed to update auto-push setting. Please try again.')
+    } finally {
+      setAttioAutoPushLoading(false)
     }
   }
 
@@ -1886,14 +1934,21 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* CRM */}
+          {/* CRM — rendered from adapter registry */}
           <div>
             <h3 className="font-display text-lg font-medium text-gray-900 dark:text-white mb-4">
               CRM
             </h3>
+            {getAvailableAdapters().length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-white/40">No CRM integrations available.</p>
+            )}
             <div className="space-y-4">
               <OAuthErrorBoundary label="Salesforce">
                 <SalesforceOAuthButton />
+              </OAuthErrorBoundary>
+
+              <OAuthErrorBoundary label="Attio">
+                <AttioOAuthButton />
               </OAuthErrorBoundary>
 
               {/* Salesforce Activity Sync Settings */}
@@ -1909,23 +1964,31 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={handleSfAutoPushToggle}
-                    disabled={sfAutoPushLoading}
+                    disabled={sfAutoPushLoading || !sfConnected}
+                    title={!sfConnected ? 'Salesforce not connected — connect above to enable' : undefined}
                     className={`${
-                      sfAutoPush ? 'bg-indigo-electric' : 'dark:bg-white/10 bg-gray-300'
+                      sfAutoPush && sfConnected ? 'bg-indigo-electric' : 'dark:bg-white/10 bg-gray-300'
                     } relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50`}
                   >
                     <span
                       className={`${
-                        sfAutoPush ? 'translate-x-6' : 'translate-x-1'
+                        sfAutoPush && sfConnected ? 'translate-x-6' : 'translate-x-1'
                       } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
                     />
                   </button>
                 </div>
 
+                {!sfConnected && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Salesforce not connected &mdash; connect above to sync activities
+                  </p>
+                )}
+
                 <div className="mt-4 flex items-center space-x-2">
                   <button
                     onClick={handleSyncNow}
-                    className="px-3 py-1 text-sm font-medium text-white bg-indigo-electric hover:bg-indigo-electric/80 rounded-md transition-all duration-150 ease-snappy"
+                    disabled={!sfConnected}
+                    className="px-3 py-1 text-sm font-medium text-white bg-indigo-electric hover:bg-indigo-electric/80 rounded-md transition-all duration-150 ease-snappy disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Sync Now
                   </button>
@@ -1933,6 +1996,40 @@ export default function SettingsPage() {
                     Manually sync pending activities
                   </span>
                 </div>
+              </div>
+
+              {/* Attio Activity Sync Settings */}
+              <div className="glass-card p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                      Auto-push Activities to Attio
+                    </h4>
+                    <p className="text-xs text-gray-600 dark:text-white/50 mt-1">
+                      Automatically create Attio Notes when you log activities in SalesBlock
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleAttioAutoPushToggle}
+                    disabled={attioAutoPushLoading || !attioConnected}
+                    title={!attioConnected ? 'Attio not connected — connect above to enable' : undefined}
+                    className={`${
+                      attioAutoPush && attioConnected ? 'bg-indigo-electric' : 'dark:bg-white/10 bg-gray-300'
+                    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50`}
+                  >
+                    <span
+                      className={`${
+                        attioAutoPush && attioConnected ? 'translate-x-6' : 'translate-x-1'
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                    />
+                  </button>
+                </div>
+
+                {!attioConnected && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Attio not connected &mdash; connect above to sync activities
+                  </p>
+                )}
               </div>
             </div>
           </div>
