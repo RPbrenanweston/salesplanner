@@ -324,8 +324,6 @@ export default function ImportCSVModal({ isOpen, onClose, onImportComplete, impo
       const rowErrors: Array<{ row: number; identifier: string; reason: string }> = [];
       const idsToAddToList: string[] = [];
 
-      // The table and key field differ between contacts and accounts
-      const tableName = isAccountImport ? 'accounts' : 'contacts';
       const requiredField = isAccountImport ? 'name' : 'email';
       const requiredFieldLabel = isAccountImport ? 'account name' : 'email address';
 
