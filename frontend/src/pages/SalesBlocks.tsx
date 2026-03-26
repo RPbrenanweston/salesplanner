@@ -30,7 +30,7 @@ interface SalesBlock {
   scheduled_start: string
   scheduled_end: string
   duration_minutes: number
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
+  status: 'scheduled' | 'in_progress' | 'paused' | 'abandoned' | 'completed' | 'cancelled'
   list_id: string
   user_id: string
   calendar_event_id?: string | null
@@ -83,10 +83,14 @@ const CampaignViewGrid = ({ salesblocks }: { salesblocks: SalesBlock[] }) => {
                       ? 'bg-emerald-signal/20 text-emerald-signal'
                       : sb.status === 'in_progress'
                       ? 'bg-cyan-neon/20 text-cyan-neon'
+                      : sb.status === 'paused'
+                      ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                      : sb.status === 'abandoned'
+                      ? 'bg-red-500/20 text-red-600 dark:text-red-400'
                       : 'bg-indigo-electric/20 text-indigo-electric'
                   }`}
                 >
-                  {sb.status === 'completed' ? 'Completed' : sb.status === 'in_progress' ? 'Active' : 'Upcoming'}
+                  {sb.status === 'completed' ? 'Completed' : sb.status === 'in_progress' ? 'Active' : sb.status === 'paused' ? 'Paused' : sb.status === 'abandoned' ? 'Abandoned' : 'Upcoming'}
                 </span>
               </div>
             </div>
