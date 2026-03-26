@@ -243,13 +243,21 @@ export default function SalesBlockSessionPage() {
             return
           }
 
-          // Fetch account details
-          const { data: accountsData, error: accountsError } = await supabase
-            .from('accounts')
-            .select('id, name, domain, industry, phone, notes')
-            .in('id', accountIds)
+          // Fetch account details in batches (Supabase URL limit with large .in() lists)
+          const BATCH_SIZE = 50
+          const allAccountsData: Array<{ id: string; name: string; domain: string | null; industry: string | null; phone: string | null; notes: string | null }> = []
+          for (let i = 0; i < accountIds.length; i += BATCH_SIZE) {
+            const batch = accountIds.slice(i, i + BATCH_SIZE)
+            const { data: batchData, error: batchError } = await supabase
+              .from('accounts')
+              .select('id, name, domain, industry, phone, notes')
+              .in('id', batch)
 
-          if (accountsError) throw accountsError
+            if (batchError) throw batchError
+            if (batchData) allAccountsData.push(...batchData)
+          }
+
+          const accountsData = allAccountsData
 
           // Preserve position order from account_list_items
           const accountMap = new Map((accountsData || []).map(a => [a.id, a]))
