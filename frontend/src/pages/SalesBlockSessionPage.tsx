@@ -42,6 +42,7 @@ import {
   PartyPopper,
   CalendarPlus,
   XCircle,
+  Globe,
 } from 'lucide-react'
 import ComposeEmailModal from '../components/ComposeEmailModal'
 import BookMeetingModal from '../components/BookMeetingModal'
@@ -69,6 +70,10 @@ interface SessionContact {
   activityCount?: number
   lastActivityAt?: string | null
   isSkipped?: boolean
+  // Account-specific fields (populated when listType === 'accounts')
+  isAccount?: boolean
+  domain?: string | null
+  industry?: string | null
 }
 
 interface SalesBlockData {
@@ -102,6 +107,7 @@ export default function SalesBlockSessionPage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string>('')
+  const [listType, setListType] = useState<'contacts' | 'accounts'>('contacts')
 
   // Session type derived from salesblock
   const sessionType: SessionType = salesblock?.session_type || 'call'
@@ -209,138 +215,197 @@ export default function SalesBlockSessionPage() {
           }
         }
 
-        // Fetch contacts from the list
-        const { data: listContactsData, error: lcError } = await supabase
-          .from('list_contacts')
-          .select('contact_id')
-          .eq('list_id', sbData.list_id)
-          .order('position', { ascending: true })
+        // Detect list type
+        const { data: listMetaData } = await supabase
+          .from('lists')
+          .select('list_type')
+          .eq('id', sbData.list_id)
+          .single()
 
-        if (lcError) throw lcError
+        const currentListType = (listMetaData?.list_type as 'contacts' | 'accounts') || 'contacts'
+        setListType(currentListType)
 
-        let contactIds = listContactsData.map((lc) => lc.contact_id)
+        if (currentListType === 'accounts') {
+          // ── Account list loading ──
+          const { data: accountListItems, error: aliError } = await supabase
+            .from('account_list_items')
+            .select('account_id')
+            .eq('list_id', sbData.list_id)
+            .order('position', { ascending: true })
 
-        if (contactIds.length === 0) {
-          console.error(
-            `[SalesBlock Session] list_contacts returned 0 rows for list_id=${sbData.list_id}. Attempting filter_criteria fallback.`
-          )
+          if (aliError) throw aliError
 
-          // Fallback: re-resolve via list filter_criteria
-          const { data: listData } = await supabase
-            .from('lists')
-            .select('filter_criteria, org_id')
-            .eq('id', sbData.list_id)
-            .single()
+          const accountIds = (accountListItems || []).map((ali) => ali.account_id)
 
-          const filters = listData?.filter_criteria?.filters
-          const hasFilterCriteria = filters && filters.length > 0
-
-          if (hasFilterCriteria) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let contactQuery: any = supabase
-              .from('contacts')
-              .select('id')
-              .eq('org_id', listData.org_id)
-
-            for (const filter of filters) {
-              if (!filter.value) continue
-              if (filter.field === 'custom_field' && filter.customFieldKey) {
-                const jsonbPath = `custom_fields->${filter.customFieldKey}`
-                if (filter.operator === 'equals')
-                  contactQuery = contactQuery.eq(jsonbPath, filter.value)
-                else if (filter.operator === 'contains')
-                  contactQuery = contactQuery.ilike(jsonbPath, `%${filter.value}%`)
-              } else {
-                if (filter.operator === 'equals')
-                  contactQuery = contactQuery.eq(filter.field, filter.value)
-                else if (filter.operator === 'contains')
-                  contactQuery = contactQuery.ilike(filter.field, `%${filter.value}%`)
-                else if (filter.operator === 'starts_with')
-                  contactQuery = contactQuery.ilike(filter.field, `${filter.value}%`)
-                else if (filter.operator === 'greater_than' && filter.field === 'created_at')
-                  contactQuery = contactQuery.gt(filter.field, filter.value)
-                else if (filter.operator === 'less_than' && filter.field === 'created_at')
-                  contactQuery = contactQuery.lt(filter.field, filter.value)
-              }
-            }
-
-            const { data: resolvedContacts } = await contactQuery
-            const resolved = (resolvedContacts ?? []) as { id: string }[]
-            if (resolved.length > 0) {
-              const junctionRecords = resolved.map((c, index) => ({
-                list_id: sbData.list_id,
-                contact_id: c.id,
-                position: index,
-              }))
-              await supabase.from('list_contacts').insert(junctionRecords)
-              contactIds = resolved.map((c) => c.id)
-            } else {
-              console.error(
-                `[SalesBlock Session] filter_criteria fallback resolved 0 contacts for list_id=${sbData.list_id}. filter_criteria exists=${hasFilterCriteria}, filters count=${filters.length}`
-              )
-            }
-          } else {
-            console.error(
-              `[SalesBlock Session] No filter_criteria on list_id=${sbData.list_id}. This list may have been imported via automation without linking contacts.`
-            )
-          }
-
-          if (contactIds.length === 0) {
+          if (accountIds.length === 0) {
             setContacts([])
             setLoading(false)
             return
           }
+
+          // Fetch account details
+          const { data: accountsData, error: accountsError } = await supabase
+            .from('accounts')
+            .select('id, name, domain, industry, phone, notes')
+            .in('id', accountIds)
+
+          if (accountsError) throw accountsError
+
+          // Preserve position order from account_list_items
+          const accountMap = new Map((accountsData || []).map(a => [a.id, a]))
+          const mappedAccounts: SessionContact[] = accountIds
+            .map(id => accountMap.get(id))
+            .filter(Boolean)
+            .map(account => ({
+              id: account!.id,
+              first_name: account!.name,
+              last_name: '',
+              email: '',
+              phone: account!.phone || null,
+              company: account!.name,
+              title: account!.industry || null,
+              notes: account!.notes || null,
+              linkedin_url: null,
+              isAccount: true,
+              domain: account!.domain || null,
+              industry: account!.industry || null,
+            }))
+
+          setContacts(mappedAccounts)
+        } else {
+          // ── Contact list loading (existing logic) ──
+          const { data: listContactsData, error: lcError } = await supabase
+            .from('list_contacts')
+            .select('contact_id')
+            .eq('list_id', sbData.list_id)
+            .order('position', { ascending: true })
+
+          if (lcError) throw lcError
+
+          let contactIds = listContactsData.map((lc) => lc.contact_id)
+
+          if (contactIds.length === 0) {
+            console.error(
+              `[SalesBlock Session] list_contacts returned 0 rows for list_id=${sbData.list_id}. Attempting filter_criteria fallback.`
+            )
+
+            // Fallback: re-resolve via list filter_criteria
+            const { data: listData } = await supabase
+              .from('lists')
+              .select('filter_criteria, org_id')
+              .eq('id', sbData.list_id)
+              .single()
+
+            const filters = listData?.filter_criteria?.filters
+            const hasFilterCriteria = filters && filters.length > 0
+
+            if (hasFilterCriteria) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              let contactQuery: any = supabase
+                .from('contacts')
+                .select('id')
+                .eq('org_id', listData.org_id)
+
+              for (const filter of filters) {
+                if (!filter.value) continue
+                if (filter.field === 'custom_field' && filter.customFieldKey) {
+                  const jsonbPath = `custom_fields->${filter.customFieldKey}`
+                  if (filter.operator === 'equals')
+                    contactQuery = contactQuery.eq(jsonbPath, filter.value)
+                  else if (filter.operator === 'contains')
+                    contactQuery = contactQuery.ilike(jsonbPath, `%${filter.value}%`)
+                } else {
+                  if (filter.operator === 'equals')
+                    contactQuery = contactQuery.eq(filter.field, filter.value)
+                  else if (filter.operator === 'contains')
+                    contactQuery = contactQuery.ilike(filter.field, `%${filter.value}%`)
+                  else if (filter.operator === 'starts_with')
+                    contactQuery = contactQuery.ilike(filter.field, `${filter.value}%`)
+                  else if (filter.operator === 'greater_than' && filter.field === 'created_at')
+                    contactQuery = contactQuery.gt(filter.field, filter.value)
+                  else if (filter.operator === 'less_than' && filter.field === 'created_at')
+                    contactQuery = contactQuery.lt(filter.field, filter.value)
+                }
+              }
+
+              const { data: resolvedContacts } = await contactQuery
+              const resolved = (resolvedContacts ?? []) as { id: string }[]
+              if (resolved.length > 0) {
+                const junctionRecords = resolved.map((c, index) => ({
+                  list_id: sbData.list_id,
+                  contact_id: c.id,
+                  position: index,
+                }))
+                await supabase.from('list_contacts').insert(junctionRecords)
+                contactIds = resolved.map((c) => c.id)
+              } else {
+                console.error(
+                  `[SalesBlock Session] filter_criteria fallback resolved 0 contacts for list_id=${sbData.list_id}. filter_criteria exists=${hasFilterCriteria}, filters count=${filters.length}`
+                )
+              }
+            } else {
+              console.error(
+                `[SalesBlock Session] No filter_criteria on list_id=${sbData.list_id}. This list may have been imported via automation without linking contacts.`
+              )
+            }
+
+            if (contactIds.length === 0) {
+              setContacts([])
+              setLoading(false)
+              return
+            }
+          }
+
+          // Fetch contact details
+          const { data: contactsData, error: contactsError } = await supabase
+            .from('contacts')
+            .select('id, first_name, last_name, email, phone, company, title, notes, linkedin_url')
+            .in('id', contactIds)
+
+          if (contactsError) throw contactsError
+
+          // Batch activity check — single query instead of N+1
+          const { data: activityData } = await supabase
+            .from('activities')
+            .select('contact_id, created_at')
+            .in('contact_id', contactIds)
+            .order('created_at', { ascending: false })
+
+          // Build map: contact_id → { count, lastActivityAt }
+          const activityMap = new Map<string, { count: number; lastActivityAt: string }>()
+          for (const a of activityData || []) {
+            const existing = activityMap.get(a.contact_id)
+            if (existing) {
+              existing.count++
+            } else {
+              activityMap.set(a.contact_id, { count: 1, lastActivityAt: a.created_at })
+            }
+          }
+
+          const contactsWithActivity = (contactsData || []).map((contact) => {
+            const activity = activityMap.get(contact.id)
+            return {
+              ...contact,
+              hasActivity: !!activity,
+              activityCount: activity?.count ?? 0,
+              lastActivityAt: activity?.lastActivityAt ?? null,
+            }
+          })
+
+          // Smart sort: unworked contacts first (by original position),
+          // then worked contacts sorted by oldest activity first (due for follow-up)
+          contactsWithActivity.sort((a, b) => {
+            if (!a.hasActivity && b.hasActivity) return -1
+            if (a.hasActivity && !b.hasActivity) return 1
+            // Both worked — oldest activity first (needs follow-up soonest)
+            if (a.lastActivityAt && b.lastActivityAt) {
+              return new Date(a.lastActivityAt).getTime() - new Date(b.lastActivityAt).getTime()
+            }
+            return 0
+          })
+
+          setContacts(contactsWithActivity)
         }
-
-        // Fetch contact details
-        const { data: contactsData, error: contactsError } = await supabase
-          .from('contacts')
-          .select('id, first_name, last_name, email, phone, company, title, notes, linkedin_url')
-          .in('id', contactIds)
-
-        if (contactsError) throw contactsError
-
-        // Batch activity check — single query instead of N+1
-        const { data: activityData } = await supabase
-          .from('activities')
-          .select('contact_id, created_at')
-          .in('contact_id', contactIds)
-          .order('created_at', { ascending: false })
-
-        // Build map: contact_id → { count, lastActivityAt }
-        const activityMap = new Map<string, { count: number; lastActivityAt: string }>()
-        for (const a of activityData || []) {
-          const existing = activityMap.get(a.contact_id)
-          if (existing) {
-            existing.count++
-          } else {
-            activityMap.set(a.contact_id, { count: 1, lastActivityAt: a.created_at })
-          }
-        }
-
-        const contactsWithActivity = (contactsData || []).map((contact) => {
-          const activity = activityMap.get(contact.id)
-          return {
-            ...contact,
-            hasActivity: !!activity,
-            activityCount: activity?.count ?? 0,
-            lastActivityAt: activity?.lastActivityAt ?? null,
-          }
-        })
-
-        // Smart sort: unworked contacts first (by original position),
-        // then worked contacts sorted by oldest activity first (due for follow-up)
-        contactsWithActivity.sort((a, b) => {
-          if (!a.hasActivity && b.hasActivity) return -1
-          if (a.hasActivity && !b.hasActivity) return 1
-          // Both worked — oldest activity first (needs follow-up soonest)
-          if (a.lastActivityAt && b.lastActivityAt) {
-            return new Date(a.lastActivityAt).getTime() - new Date(b.lastActivityAt).getTime()
-          }
-          return 0
-        })
-
-        setContacts(contactsWithActivity)
 
         // Check for saved session state
         const savedRaw = localStorage.getItem(`salesblock_session_${salesblockId}`)
@@ -720,14 +785,15 @@ export default function SalesBlockSessionPage() {
             <XCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
           </div>
           <h2 className="font-display text-xl font-bold text-gray-900 dark:text-white mb-2">
-            No contacts found
+            No {listType === 'accounts' ? 'accounts' : 'contacts'} found
           </h2>
           <p className="text-sm text-gray-500 dark:text-white/40 mb-2">
-            The list for &ldquo;{listName}&rdquo; has no linked contacts.
+            The list for &ldquo;{listName}&rdquo; has no linked {listType === 'accounts' ? 'accounts' : 'contacts'}.
           </p>
           <p className="text-xs text-gray-400 dark:text-white/30 mb-6">
-            This can happen if contacts were imported via automation without linking them to the list, or if the list&apos;s contacts are not visible due to permissions.
-            Check that the list has contacts assigned before starting a session.
+            {listType === 'accounts'
+              ? 'Check that the list has accounts assigned before starting a session.'
+              : 'This can happen if contacts were imported via automation without linking them to the list, or if the list\'s contacts are not visible due to permissions. Check that the list has contacts assigned before starting a session.'}
           </p>
           <div className="flex flex-col gap-3">
             {listId && (
@@ -1044,10 +1110,12 @@ export default function SalesBlockSessionPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {contact.first_name} {contact.last_name}
+                        {contact.isAccount ? contact.first_name : `${contact.first_name} ${contact.last_name}`}
                       </p>
                       <p className="text-[11px] text-gray-500 dark:text-white/40 truncate">
-                        {contact.company || 'No company'}
+                        {contact.isAccount
+                          ? (contact.domain || contact.industry || 'No domain')
+                          : (contact.company || 'No company')}
                       </p>
                     </div>
                     {contact.hasActivity && (
@@ -1101,10 +1169,12 @@ export default function SalesBlockSessionPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-500 dark:text-white/50 truncate">
-                            {contact.first_name} {contact.last_name}
+                            {contact.isAccount ? contact.first_name : `${contact.first_name} ${contact.last_name}`}
                           </p>
                           <p className="text-[11px] text-gray-400 dark:text-white/30 truncate">
-                            {contact.company || 'No company'}
+                            {contact.isAccount
+                              ? (contact.domain || contact.industry || 'No domain')
+                              : (contact.company || 'No company')}
                           </p>
                         </div>
                         <SkipForward className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 ml-1.5" />
@@ -1124,10 +1194,12 @@ export default function SalesBlockSessionPage() {
               {/* Contact header */}
               <div className="mb-4">
                 <h1 className="font-display text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {activeContact.first_name} {activeContact.last_name}
+                  {activeContact.isAccount ? activeContact.first_name : `${activeContact.first_name} ${activeContact.last_name}`}
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-white/50">
-                  {activeContact.title || 'No title'} at {activeContact.company || 'No company'}
+                  {activeContact.isAccount
+                    ? [activeContact.industry, activeContact.domain].filter(Boolean).join(' | ') || 'No details'
+                    : `${activeContact.title || 'No title'} at ${activeContact.company || 'No company'}`}
                 </p>
               </div>
 
@@ -1142,13 +1214,26 @@ export default function SalesBlockSessionPage() {
                     {activeContact.phone}
                   </a>
                 )}
-                <a
-                  href={`mailto:${activeContact.email}`}
-                  className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
-                >
-                  <Mail className="w-4 h-4" />
-                  {activeContact.email}
-                </a>
+                {activeContact.isAccount && activeContact.domain && (
+                  <a
+                    href={activeContact.domain.startsWith('http') ? activeContact.domain : `https://${activeContact.domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                    {activeContact.domain}
+                  </a>
+                )}
+                {!activeContact.isAccount && activeContact.email && (
+                  <a
+                    href={`mailto:${activeContact.email}`}
+                    className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {activeContact.email}
+                  </a>
+                )}
                 {activeContact.linkedin_url && (
                   <a
                     href={activeContact.linkedin_url}

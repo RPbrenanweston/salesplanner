@@ -64,6 +64,7 @@ export interface ContactList {
   description?: string
   owner_id: string
   is_shared: boolean
+  list_type?: 'contacts' | 'accounts'
   filter_criteria?: Record<string, any>
   created_at?: string
   updated_at?: string
