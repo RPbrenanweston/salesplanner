@@ -149,7 +149,7 @@ export default function SalesBlockSessionPage() {
 
   // Session pause / abandon / timer celebration
   const [isPaused, setIsPaused] = useState(false)
-  const [isAbandoned, setIsAbandoned] = useState(false)
+  const [_isAbandoned, setIsAbandoned] = useState(false)
   const [timerExpired, setTimerExpired] = useState(false)
 
   // Session resume
