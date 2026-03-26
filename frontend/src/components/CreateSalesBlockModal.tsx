@@ -16,6 +16,7 @@ import { useUserLists, useCallScripts, useUserTeamInfo, useTeamMembers, useUserP
 import { createCalendarEvent } from '../lib/calendar'
 import { DURATION, SALESBLOCK_STATUS, USER_ROLE } from '../lib/constants'
 import { logError } from '../lib/error-logger'
+import { fetchListContactCount } from '../lib/queries/listQueries'
 
 interface EditSalesBlockData {
   id: string
@@ -88,6 +89,17 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
       }
     }
   }, [selectedListId, scheduledDate, lists, isEditMode])
+
+  // Fetch contact count when list selection changes
+  const [selectedListContactCount, setSelectedListContactCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!selectedListId) {
+      setSelectedListContactCount(null)
+      return
+    }
+    fetchListContactCount(selectedListId).then(setSelectedListContactCount)
+  }, [selectedListId])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -285,6 +297,13 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
                 <option key={list.id} value={list.id}>{list.name}</option>
               ))}
             </select>
+            {selectedListContactCount !== null && (
+              <p className={`text-sm mt-1 ${selectedListContactCount === 0 ? 'text-amber-600 font-medium' : 'text-gray-500'}`}>
+                {selectedListContactCount === 0
+                  ? 'This list has no contacts. Add contacts before starting a session.'
+                  : `${selectedListContactCount} contact${selectedListContactCount !== 1 ? 's' : ''} in this list`}
+              </p>
+            )}
           </div>
 
           {/* Session Type */}
