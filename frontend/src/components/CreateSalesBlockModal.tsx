@@ -98,8 +98,21 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
       setSelectedListContactCount(null)
       return
     }
-    fetchListContactCount(selectedListId).then(setSelectedListContactCount)
-  }, [selectedListId])
+    // Check if selected list is an account list
+    const selectedList = lists.find(l => l.id === selectedListId)
+    const isAccountList = selectedList?.list_type === 'accounts'
+
+    if (isAccountList) {
+      // Count from account_list_items
+      supabase
+        .from('account_list_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('list_id', selectedListId)
+        .then(({ count }) => setSelectedListContactCount(count || 0))
+    } else {
+      fetchListContactCount(selectedListId).then(setSelectedListContactCount)
+    }
+  }, [selectedListId, lists])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -149,9 +162,11 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
       const selectedList = lists.find(l => l.id === selectedListId)
       const listName = selectedList?.name || 'Unknown List'
 
-      // Get contact count for calendar event description
+      // Get contact/account count for calendar event description
+      const isAccountList = selectedList?.list_type === 'accounts'
+      const countTable = isAccountList ? 'account_list_items' : 'list_contacts'
       const { count: contactCount } = await supabase
-        .from('list_contacts')
+        .from(countTable)
         .select('*', { count: 'exact', head: true })
         .eq('list_id', selectedListId)
 
@@ -294,16 +309,22 @@ export function CreateSalesBlockModal({ isOpen, onClose, onSuccess, preSelectedL
             >
               <option value="">Select a list</option>
               {lists.map(list => (
-                <option key={list.id} value={list.id}>{list.name}</option>
+                <option key={list.id} value={list.id}>
+                  {list.name}{list.list_type === 'accounts' ? ' (Accounts)' : ''}
+                </option>
               ))}
             </select>
-            {selectedListContactCount !== null && (
-              <p className={`text-sm mt-1 ${selectedListContactCount === 0 ? 'text-amber-600 font-medium' : 'text-gray-500'}`}>
-                {selectedListContactCount === 0
-                  ? 'This list has no contacts. Add contacts before starting a session.'
-                  : `${selectedListContactCount} contact${selectedListContactCount !== 1 ? 's' : ''} in this list`}
-              </p>
-            )}
+            {selectedListContactCount !== null && (() => {
+              const isAcctList = lists.find(l => l.id === selectedListId)?.list_type === 'accounts'
+              const itemLabel = isAcctList ? 'account' : 'contact'
+              return (
+                <p className={`text-sm mt-1 ${selectedListContactCount === 0 ? 'text-amber-600 font-medium' : 'text-gray-500'}`}>
+                  {selectedListContactCount === 0
+                    ? `This list has no ${itemLabel}s. Add ${itemLabel}s before starting a session.`
+                    : `${selectedListContactCount} ${itemLabel}${selectedListContactCount !== 1 ? 's' : ''} in this list`}
+                </p>
+              )
+            })()}
           </div>
 
           {/* Session Type */}
