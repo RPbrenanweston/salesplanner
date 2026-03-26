@@ -221,6 +221,10 @@ export default function SalesBlockSessionPage() {
         let contactIds = listContactsData.map((lc) => lc.contact_id)
 
         if (contactIds.length === 0) {
+          console.error(
+            `[SalesBlock Session] list_contacts returned 0 rows for list_id=${sbData.list_id}. Attempting filter_criteria fallback.`
+          )
+
           // Fallback: re-resolve via list filter_criteria
           const { data: listData } = await supabase
             .from('lists')
@@ -229,7 +233,9 @@ export default function SalesBlockSessionPage() {
             .single()
 
           const filters = listData?.filter_criteria?.filters
-          if (filters && filters.length > 0) {
+          const hasFilterCriteria = filters && filters.length > 0
+
+          if (hasFilterCriteria) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let contactQuery: any = supabase
               .from('contacts')
@@ -268,7 +274,15 @@ export default function SalesBlockSessionPage() {
               }))
               await supabase.from('list_contacts').insert(junctionRecords)
               contactIds = resolved.map((c) => c.id)
+            } else {
+              console.error(
+                `[SalesBlock Session] filter_criteria fallback resolved 0 contacts for list_id=${sbData.list_id}. filter_criteria exists=${hasFilterCriteria}, filters count=${filters.length}`
+              )
             }
+          } else {
+            console.error(
+              `[SalesBlock Session] No filter_criteria on list_id=${sbData.list_id}. This list may have been imported via automation without linking contacts.`
+            )
           }
 
           if (contactIds.length === 0) {
@@ -696,6 +710,9 @@ export default function SalesBlockSessionPage() {
   // ---------- Empty list guard — don't mark as completed ----------
 
   if (!loading && contacts.length === 0 && !isCompleted) {
+    const listName = salesblock?.title || 'Unknown'
+    const listId = salesblock?.list_id
+
     return (
       <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-void-950">
         <div className="glass-card p-8 max-w-md text-center">
@@ -703,18 +720,32 @@ export default function SalesBlockSessionPage() {
             <XCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
           </div>
           <h2 className="font-display text-xl font-bold text-gray-900 dark:text-white mb-2">
-            No contacts in this list
+            No contacts found
           </h2>
-          <p className="text-sm text-gray-500 dark:text-white/40 mb-6">
-            The list assigned to this session has no contacts. Add contacts to the list first, then try again.
+          <p className="text-sm text-gray-500 dark:text-white/40 mb-2">
+            The list for &ldquo;{listName}&rdquo; has no linked contacts.
           </p>
-          <button
-            onClick={() => navigate(ROUTES.SALESBLOCKS)}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg font-semibold transition-all duration-200 ease-snappy mx-auto"
-          >
-            <Home className="w-5 h-5" />
-            Back to SalesBlocks
-          </button>
+          <p className="text-xs text-gray-400 dark:text-white/30 mb-6">
+            This can happen if contacts were imported via automation without linking them to the list, or if the list&apos;s contacts are not visible due to permissions.
+            Check that the list has contacts assigned before starting a session.
+          </p>
+          <div className="flex flex-col gap-3">
+            {listId && (
+              <button
+                onClick={() => navigate(`/lists/${listId}`)}
+                className="flex items-center justify-center gap-2 px-6 py-3 border border-indigo-electric text-indigo-electric dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg font-semibold transition-all duration-200 ease-snappy mx-auto w-full"
+              >
+                Go to List
+              </button>
+            )}
+            <button
+              onClick={() => navigate(ROUTES.SALESBLOCKS)}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg font-semibold transition-all duration-200 ease-snappy mx-auto w-full"
+            >
+              <Home className="w-5 h-5" />
+              Back to SalesBlocks
+            </button>
+          </div>
         </div>
       </div>
     )
