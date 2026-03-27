@@ -17,4 +17,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase environment variables not configured')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key',
+)

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap');
 /**
  * Global styles using Tailwind CSS
  *
@@ -126,6 +127,15 @@
   --purple-neon: #8b5cf6;
   --red-alert: #f43f5e;
   --emerald-signal: #10b981;
+
+  /* Epic Quest / Hero's Journey design tokens */
+  --quest-gold: #D4AF37;
+  --quest-bg: #0B0C10;
+  --quest-surface: #1A1625;
+  --quest-text: #F5F5F0;
+  --quest-muted: #8D8A95;
+  --quest-accent: #FF4500;
+  --quest-border: #332D41;
 }
 
 @layer components {

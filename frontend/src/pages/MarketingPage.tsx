@@ -1,643 +1,457 @@
-// @crumb frontend-page-marketing
-// UI/MARKETING | render_marketing_site | canvas_scroll_animation | preload_jpeg_frames | cta_links
-// why: Public marketing landing page — hero with canvas scroll animation (160-frame sequence), feature cards, and conversion CTAs
-// in:/public/frames/frame-0001.jpg...frame-0160.jpg,ROUTES constants,React Router Link out:full-page marketing site at "/" for unauthenticated visitors,canvas animation,400vh scroll section err:frames fail to load(canvas stays blank),ROUTES missing key(silent broken link)
-// hazard: All 160 JPEG frames loaded eagerly via new Image() on mount — spikes network on slow connections; no lazy-load gating
-// hazard: Canvas resize uses window "resize" event listener — ResizeObserver would be more accurate for layout-shift
-// hazard: scrollProgress computed from window.scrollY — does not account for dynamic header heights
-// edge:frontend/src/lib/routes.ts -> READS
-// edge:frontend/public/frames/ -> READS
-// edge:frontend/src/pages/PricingPage.tsx -> RELATES
-// edge:frontend/src/pages/SignUp.tsx -> RELATES
-// edge:frontend/src/pages/SignIn.tsx -> RELATES
-// edge:marketing#1 -> STEP_IN
-// prompt: Add IntersectionObserver to gate frame preloading. Add noscript fallback image for SEO. Extract canvas animation into reusable hook.
-import { useEffect, useRef, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ROUTES } from '../lib/routes'
 
-// ─── Design tokens ───────────────────────────────────────────────────────────
+// ─── Pricing data ────────────────────────────────────────────────────────────
 
-const glassCard: React.CSSProperties = {
-  background: 'rgba(10, 15, 40, 0.75)',
-  backdropFilter: 'blur(12px)',
-  border: '1px solid rgba(99, 102, 241, 0.15)',
-  boxShadow: 'inset 0 0 20px rgba(99, 102, 241, 0.04)',
+const PRICING: Record<string, { symbol: string; monthly: number; annual: number }> = {
+  USD: { symbol: '$', monthly: 9, annual: 99 },
+  GBP: { symbol: '£', monthly: 9, annual: 99 },
+  EUR: { symbol: '€', monthly: 9, annual: 99 },
 }
 
-const velocityGradient: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #0db9f2 100%)',
-}
+const CURRENCIES = ['USD', 'GBP', 'EUR'] as const
 
-// ─── Scroll section data ──────────────────────────────────────────────────────
-
-const PHASES = [
-  { rangeStart: 0.05, rangeEnd: 0.28 },
-  { rangeStart: 0.25, rangeEnd: 0.52 },
-  { rangeStart: 0.49, rangeEnd: 0.73 },
-  { rangeStart: 0.70, rangeEnd: 0.96 },
+const PLAN_FEATURES = [
+  'Guided morning briefing',
+  'Visual day planner with timeline',
+  'Built-in pomodoro timer',
+  'GitHub-style activity streak grid',
+  'Commission calculator',
+  'Personal pledges & KPI targets',
+  'Sales math forecasting',
+  'Evening debrief & reflection',
+  'Daily improvement loop',
+  'Performance streaks & milestones',
 ]
 
-const CARDS = [
+// ─── Ticker tape items ───────────────────────────────────────────────────────
+
+const TICKER_ITEMS = [
+  'Morning Briefing',
+  'Day Planner',
+  'Pomodoro Timer',
+  'Streak Grid',
+  'Commission Calc',
+  'Personal Pledges',
+  'Sales Math',
+  'Evening Debrief',
+  'KPI Targets',
+  'Daily Streaks',
+]
+
+// ─── Feature data ────────────────────────────────────────────────────────────
+
+const FEATURES = [
   {
-    side: 'left' as const,
-    icon: 'timer',
-    title: 'The Power Block',
-    desc: 'Deep-work focus sessions designed to eliminate context switching. Execute prospect lists with 100% focused energy.',
-    badge1: 'AUTOPILOT: ON',
-    badge2: 'LATENCY: 4ms',
+    title: 'Morning Briefing',
+    desc: "Review yesterday, plan today. Your morning briefing pulls in last night\u2019s debrief, shows unfinished work, and lets you commit to a clear plan before you pick up the phone. No more starting cold.",
+    icon: '\u{1F4CB}',
   },
   {
-    side: 'right' as const,
-    icon: 'manage_search',
-    title: 'Research Lab',
-    desc: 'Instant ICP intelligence. Find high-intent signals before your competition does.',
-    badge1: 'SIGNALS: LIVE',
+    title: 'Day Planner & Pomodoro Timer',
+    desc: "Drag and drop your calls, emails, and meetings onto a visual timeline. Then execute in focused pomodoro blocks \u2014 25 minutes on, 5 minutes rest. Built-in break reminders keep you sharp all day instead of burning out by 2pm.",
+    icon: '\u{23F2}',
   },
   {
-    side: 'left' as const,
-    icon: 'map',
-    title: 'Mission Planner',
-    desc: 'High-velocity manual cadences for surgical outreach. Precision over spray-and-pray.',
-    badge1: 'CADENCE: ACTIVE',
+    title: 'Streak Grid & Personal Pledges',
+    desc: "A GitHub-style contribution grid that tracks your daily activity streaks. Set personal pledges \u2014 50 dials a day, 3 meetings a week \u2014 and watch your consistency build over weeks and months. Miss a day and the grid shows it. Hit your streak and it glows.",
+    icon: '\u{1F525}',
   },
   {
-    side: 'right' as const,
-    icon: 'leaderboard',
-    title: 'The Arena',
-    desc: 'Live gamification that turns daily prospecting into an elite competition. Real-time visibility that fuels momentum.',
-    badge1: 'LIVE: 12 REPS',
+    title: 'Commission Calculator & Sales Math',
+    desc: "Know your numbers. Plug in your base, OTE, and deal values to see exactly how many calls, meetings, and closes you need to hit target. Work backwards from your income goal to a daily action plan that makes the maths work.",
+    icon: '\u{1F4B0}',
+  },
+  {
+    title: 'Evening Debrief',
+    desc: "End each day with a structured 5-minute reflection. What went well, what to improve, and your top three priorities for tomorrow. Your debrief feeds directly into the next morning\u2019s briefing \u2014 a daily loop that compounds into serious results.",
+    icon: '\u{1F4DD}',
   },
 ]
 
-
-const PROSPECTS = [
-  { name: 'Sarah Chen', company: 'Stripe', status: 'CALLING', active: true, hue: 220 },
-  { name: 'Marcus Webb', company: 'Rippling', status: 'QUEUED', active: false, hue: 280 },
-  { name: 'Priya Sharma', company: 'Linear', status: 'QUEUED', active: false, hue: 170 },
-  { name: 'Tom Bradley', company: 'Vercel', status: 'SKIP', active: false, hue: 30 },
-  { name: 'Elena Ross', company: 'Figma', status: 'QUEUED', active: false, hue: 330 },
-]
-
-const SIDEBAR_ICONS = ['rocket_launch', 'timer', 'manage_search', 'map', 'leaderboard', 'bar_chart']
-
-// ─── Canvas scroll animation ──────────────────────────────────────────────────
-
-const TOTAL_FRAMES = 160
-const FRAME_PATH = (i: number) => `/frames/frame-${String(i).padStart(4, '0')}.jpg`
-
-function drawOnCanvas(canvas: HTMLCanvasElement, img: HTMLImageElement, progress: number) {
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-  const cw = canvas.width
-  const ch = canvas.height
-  const bw = img.naturalWidth || img.width
-  const bh = img.naturalHeight || img.height
-  if (!bw || !bh) return
-  const deg = -4 + progress * 12
-  const rad = (deg * Math.PI) / 180
-  const scale = Math.max(cw / bw, ch / bh)
-  ctx.clearRect(0, 0, cw, ch)
-  ctx.save()
-  ctx.translate(cw / 2, ch / 2)
-  ctx.rotate(rad)
-  ctx.drawImage(img, (-bw * scale) / 2, (-bh * scale) / 2, bw * scale, bh * scale)
-  ctx.restore()
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function MarketingPage() {
-  const scrollSectionRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const framesRef = useRef<(HTMLImageElement | null)[]>(Array(TOTAL_FRAMES).fill(null))
-  const [scrollProgress, setScrollProgress] = useState(0)
-  const [activeCards, setActiveCards] = useState([false, false, false, false])
+  const [currency, setCurrency] = useState<typeof CURRENCIES[number]>('USD')
+  const [isAnnual, setIsAnnual] = useState(true)
+  const [navSolid, setNavSolid] = useState(false)
+  const pricingRef = useRef<HTMLElement>(null)
+  const featureRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [visibleFeatures, setVisibleFeatures] = useState<boolean[]>(() => Array(FEATURES.length).fill(false))
 
-  // ── Canvas sizing ──────────────────────────────────────────────────────────
+  // Sticky nav background on scroll
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const sync = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-    }
-    sync()
-    window.addEventListener('resize', sync)
-    return () => window.removeEventListener('resize', sync)
+    const onScroll = () => setNavSolid(window.scrollY > 60)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // ── Frame preloading ──────────────────────────────────────────────────────
+  // Scroll-reveal for feature blocks
   useEffect(() => {
-    const frames = framesRef.current
-
-    // Load first frame immediately so canvas shows something on arrival
-    const first = new Image()
-    first.onload = () => {
-      frames[0] = first
-      const canvas = canvasRef.current
-      if (canvas) drawOnCanvas(canvas, first, 0)
-    }
-    first.src = FRAME_PATH(1)
-
-    // Load the rest asynchronously
-    for (let i = 1; i < TOTAL_FRAMES; i++) {
-      const idx = i
-      const img = new Image()
-      img.onload = () => { frames[idx] = img }
-      img.src = FRAME_PATH(idx + 1)
-    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const idx = featureRefs.current.indexOf(entry.target as HTMLDivElement)
+          if (idx !== -1 && entry.isIntersecting) {
+            setVisibleFeatures((prev) => {
+              const next = [...prev]
+              next[idx] = true
+              return next
+            })
+          }
+        })
+      },
+      { threshold: 0.15 }
+    )
+    featureRefs.current.forEach((ref) => ref && observer.observe(ref))
+    return () => observer.disconnect()
   }, [])
 
-  // ── Draw on scroll ─────────────────────────────────────────────────────────
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const frameIdx = Math.min(TOTAL_FRAMES - 1, Math.round(scrollProgress * (TOTAL_FRAMES - 1)))
-    const img = framesRef.current[frameIdx]
-    if (img) drawOnCanvas(canvas, img, scrollProgress)
-  }, [scrollProgress])
+  const prices = PRICING[currency]
+  const displayPrice = isAnnual ? prices.annual : prices.monthly
+  const priceSuffix = isAnnual ? '/year' : '/month'
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const section = scrollSectionRef.current
-      if (!section) return
-      const rect = section.getBoundingClientRect()
-      const scrollable = section.offsetHeight - window.innerHeight
-      if (scrollable <= 0) return
-      const progress = Math.max(0, Math.min(1, -rect.top / scrollable))
-      setScrollProgress(progress)
-      setActiveCards(PHASES.map(({ rangeStart, rangeEnd }) => progress >= rangeStart && progress <= rangeEnd))
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  const scrollToPricing = () => {
+    pricingRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  // Duplicate ticker items for seamless loop
+  const tickerContent = [...TICKER_ITEMS, ...TICKER_ITEMS]
 
   return (
-    <div style={{ fontFamily: 'Inter, sans-serif', background: '#04060f', color: 'white', minHeight: '100vh' }}>
+    <div className="min-h-screen bg-quest-bg font-body text-quest-text">
 
-      {/* ── Nav ── */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 50,
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        background: 'rgba(4,6,15,0.85)',
-        backdropFilter: 'blur(12px)',
-      }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* ── Navigation ── */}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          navSolid
+            ? 'bg-quest-bg/95 backdrop-blur-md border-b border-quest-border/50'
+            : 'bg-transparent'
+        }`}
+      >
+        <div className="max-w-[1280px] mx-auto px-6 py-4 flex items-center justify-between">
+          <span className="font-epic text-xl font-bold tracking-wide text-quest-gold">
+            DESTINY
+          </span>
 
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'white', fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
-            </div>
-            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em', color: 'white' }}>
-              Salesblock<span style={{ color: '#6366f1' }}>.io</span>
-            </span>
-          </div>
-
-          {/* Nav links (hidden on mobile) */}
-          <nav className="sb-nav-links">
-            {['Product', 'Solutions', 'Philosophy', 'Pricing'].map(item => (
-              <a key={item} href="#" style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.65)', textDecoration: 'none' }}>{item}</a>
+          <nav className="hidden md:flex items-center gap-10">
+            {['Features', 'Pricing'].map((item) => (
+              <button
+                key={item}
+                onClick={() => {
+                  document.getElementById(item.toLowerCase())?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="text-sm font-body font-medium text-quest-muted hover:text-quest-text transition-colors bg-transparent border-none cursor-pointer"
+              >
+                {item}
+              </button>
             ))}
           </nav>
 
-          {/* CTAs */}
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <Link to={ROUTES.SIGNIN} style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.85)', textDecoration: 'none' }}>Log In</Link>
-            <Link to={ROUTES.SIGNUP} style={{
-              background: '#6366f1', color: 'white',
-              padding: '10px 20px', borderRadius: 8,
-              fontSize: 14, fontWeight: 700, textDecoration: 'none',
-              boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
-            }}>Enter the Cockpit</Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to={ROUTES.SIGNIN}
+              className="text-sm font-semibold text-quest-muted hover:text-quest-text transition-colors no-underline"
+            >
+              Log In
+            </Link>
+            <Link
+              to={ROUTES.SIGNUP}
+              className="px-5 py-2.5 bg-quest-gold text-quest-bg font-epic text-xs font-bold uppercase tracking-widest no-underline hover:shadow-quest-glow-strong transition-shadow"
+            >
+              Get Started
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* ── Hero ── */}
-      <section style={{ padding: 'clamp(3rem,8vw,6rem) 1.5rem clamp(2rem,6vw,4rem)', overflow: 'hidden' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div className="sb-hero-grid">
+      {/* ── Hero (Video Background) ── */}
+      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          src="/videos/hero-quest.mp4"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-quest-bg/60 via-quest-bg/20 to-quest-bg/80" />
 
-            {/* Text */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 32, zIndex: 1 }}>
+        <div className="relative z-10 text-center px-6 max-w-[800px]">
+          <h1
+            className="font-epic text-5xl md:text-7xl lg:text-[72px] font-bold leading-[1.05] text-quest-text mb-6 drop-shadow-lg"
+            style={{ textShadow: '0 0 40px rgba(212, 175, 55, 0.2)' }}
+          >
+            Plan Your Day.
+            <br />
+            Hit Your Number.
+          </h1>
 
-              {/* Pulsing badge */}
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8, width: 'fit-content',
-                borderRadius: 999, border: '1px solid rgba(99,102,241,0.2)',
-                background: 'rgba(99,102,241,0.08)', padding: '4px 12px',
-              }}>
-                <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
-                  <span className="sb-ping" style={{
-                    position: 'absolute', inset: 0, borderRadius: '50%',
-                    background: '#6366f1', opacity: 0.75,
-                  }} />
-                  <span style={{ position: 'relative', width: 8, height: 8, borderRadius: '50%', background: '#6366f1', display: 'block' }} />
-                </span>
-                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6366f1' }}>
-                  v2.4 Live: High-Velocity Engine
-                </span>
+          <p className="font-body text-lg md:text-xl text-quest-muted max-w-[560px] mx-auto mb-10 leading-relaxed">
+            The personal productivity planner for salespeople who take their income seriously. Five screens. Zero fluff.
+          </p>
+
+          <button
+            onClick={scrollToPricing}
+            className="inline-flex items-center gap-3 px-10 py-4 bg-quest-gold text-quest-bg font-epic text-base font-bold uppercase tracking-widest cursor-pointer border-none hover:shadow-quest-glow-strong transition-all duration-300 hover:scale-[1.02]"
+          >
+            Start Planning
+          </button>
+        </div>
+      </section>
+
+      {/* ── Ticker Tape Separator ── */}
+      <div className="relative overflow-hidden bg-quest-gold/10 border-y border-quest-gold/20 py-3">
+        <div className="flex animate-ticker whitespace-nowrap">
+          {tickerContent.map((item, i) => (
+            <span key={`${item}-${i}`} className="flex items-center gap-6 mx-6 shrink-0">
+              <span className="font-epic text-sm font-bold uppercase tracking-widest text-quest-gold">
+                {item}
+              </span>
+              <span className="text-quest-gold/40">&#9670;</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Content with fantasy background image ── */}
+      <div
+        className="relative bg-cover bg-center bg-fixed"
+        style={{ backgroundImage: 'url(/images/quest-bg.png)' }}
+      >
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-quest-bg/85" />
+
+        <div className="relative z-10">
+
+          {/* ── Features ── */}
+          <section id="features" className="py-24 md:py-32 px-6">
+            <div className="max-w-[1080px] mx-auto">
+              <div className="text-center mb-20">
+                <h2 className="font-epic text-3xl md:text-5xl font-bold text-quest-text mb-4">
+                  Five Screens. One Daily System.
+                </h2>
+                <p className="font-body text-lg text-quest-muted max-w-[560px] mx-auto">
+                  Morning briefing to evening debrief. Pomodoro blocks, streak tracking, and the maths to make your number.
+                </p>
               </div>
 
-              <h1 style={{
-                fontFamily: 'Space Grotesk, sans-serif',
-                fontSize: 'clamp(2.5rem, 5.5vw, 4.5rem)',
-                fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.025em',
-                color: 'white', margin: 0,
-              }}>
-                The System of Action for{' '}
-                <span style={{ color: '#6366f1' }}>High-Velocity</span> Sales
-              </h1>
-
-              <p style={{ fontSize: 18, lineHeight: 1.65, color: 'rgba(255,255,255,0.65)', maxWidth: 480, margin: 0 }}>
-                Stop recording data. Start driving revenue. The cockpit for elite sales teams to execute at light speed without the CRM friction.
-              </p>
-
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <Link to={ROUTES.SIGNUP} style={{
-                  ...velocityGradient,
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '1rem 2rem', borderRadius: 12,
-                  fontSize: 18, fontWeight: 700, color: 'white', textDecoration: 'none',
-                  boxShadow: '0 20px 40px -8px rgba(99,102,241,0.4)',
-                }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>bolt</span>
-                  Enter the Cockpit
-                </Link>
-                <button style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '1rem 2rem', borderRadius: 12,
-                  fontSize: 18, fontWeight: 700, color: 'white',
-                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer',
-                }}>
-                  View Demo
-                </button>
-              </div>
-            </div>
-
-            {/* Dashboard preview — 16:9 video preview style */}
-            <div style={{ position: 'relative' }}>
-              {/* Gradient halo blur */}
-              <div style={{
-                position: 'absolute', inset: -8, borderRadius: 24,
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #0db9f2)',
-                opacity: 0.22, filter: 'blur(32px)',
-              }} />
-
-              {/* 16:9 aspect-video container */}
-              <div style={{
-                position: 'relative', width: '100%', paddingTop: '56.25%',
-                borderRadius: 16, overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-              }}>
-                {/* Dashboard UI — absolutely fills the 16:9 frame */}
-                <div style={{ position: 'absolute', inset: 0, background: '#0f172a', display: 'flex', flexDirection: 'column' }}>
-                  {/* Browser chrome */}
-                  <div style={{ background: '#1e293b', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                    <div style={{ display: 'flex', gap: 5 }}>
-                      {['#ff5f57', '#febb2d', '#28c840'].map(c => (
-                        <div key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c }} />
-                      ))}
-                    </div>
-                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                      <div style={{
-                        background: 'rgba(255,255,255,0.06)', borderRadius: 5,
-                        padding: '2px 18px', fontSize: 10,
-                        fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.3)',
-                      }}>salesblock.io/cockpit</div>
-                    </div>
-                  </div>
-
-                  {/* Dashboard body */}
-                  <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                    {/* Sidebar */}
-                    <div style={{ width: 44, background: '#0d1829', padding: '10px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                      {SIDEBAR_ICONS.map((icon, i) => (
-                        <div key={icon} style={{
-                          width: 28, height: 28, borderRadius: 6,
-                          background: i === 0 ? 'rgba(99,102,241,0.25)' : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 14, color: i === 0 ? '#6366f1' : 'rgba(255,255,255,0.2)' }}>{icon}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Main */}
-                    <div style={{ flex: 1, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden' }}>
-                      {/* Metric strip */}
-                      <div style={{ display: 'flex', gap: 7 }}>
-                        {[{ l: 'CALLS', v: '47', c: '#6366f1' }, { l: 'CONNECTS', v: '12', c: '#8b5cf6' }, { l: 'PIPELINE', v: '$84K', c: '#0db9f2' }].map(({ l, v, c }) => (
-                          <div key={l} style={{ flex: 1, background: `${c}10`, border: `1px solid ${c}20`, borderRadius: 7, padding: '5px 9px' }}>
-                            <div style={{ fontSize: 8, fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em' }}>{l}</div>
-                            <div style={{ fontSize: 16, fontWeight: 700, color: c, fontFamily: 'JetBrains Mono, monospace', marginTop: 2 }}>{v}</div>
-                          </div>
-                        ))}
+              <div className="space-y-20 md:space-y-28">
+                {FEATURES.map((feature, i) => {
+                  const isEven = i % 2 === 0
+                  return (
+                    <div
+                      key={feature.title}
+                      ref={(el) => { featureRefs.current[i] = el }}
+                      className={`grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center transition-all duration-700 ${
+                        visibleFeatures[i]
+                          ? 'opacity-100 translate-y-0'
+                          : 'opacity-0 translate-y-8'
+                      }`}
+                    >
+                      <div className={isEven ? 'md:order-1' : 'md:order-2'}>
+                        <h3 className="font-epic text-2xl md:text-3xl font-bold text-quest-text mb-4">
+                          {feature.title}
+                        </h3>
+                        <p className="font-body text-base text-quest-muted leading-relaxed">
+                          {feature.desc}
+                        </p>
                       </div>
 
-                      {/* Prospect rows */}
-                      {PROSPECTS.map(({ name, company, status, active, hue }) => (
-                        <div key={name} style={{
-                          display: 'flex', alignItems: 'center', gap: 7,
-                          padding: '4px 7px', borderRadius: 6,
-                          background: active ? 'rgba(99,102,241,0.1)' : 'rgba(255,255,255,0.02)',
-                          border: `1px solid ${active ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.04)'}`,
-                        }}>
-                          <div style={{
-                            width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                            background: `hsl(${hue}, 65%, 55%)`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 8, fontWeight: 700, color: 'white',
-                          }}>{name[0]}</div>
-                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', fontFamily: 'JetBrains Mono, monospace', flex: 1 }}>{name} · {company}</div>
-                          <div style={{
-                            fontSize: 8, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700,
-                            padding: '2px 6px', borderRadius: 4,
-                            color: active ? '#6366f1' : 'rgba(255,255,255,0.2)',
-                            background: active ? 'rgba(99,102,241,0.15)' : 'transparent',
-                          }}>{status}</div>
+                      <div className={isEven ? 'md:order-2' : 'md:order-1'}>
+                        <div className="w-full aspect-[5/4] bg-quest-surface/60 backdrop-blur-sm border border-quest-border/50 flex items-center justify-center">
+                          <div
+                            className="text-6xl"
+                            style={{ filter: 'drop-shadow(0 0 20px rgba(212, 175, 55, 0.3))' }}
+                          >
+                            {feature.icon}
+                          </div>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Play overlay — centered over the full 16:9 frame */}
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(15,23,42,0.2)',
-                }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 64, color: 'rgba(99,102,241,0.5)', fontVariationSettings: "'FILL' 1" }}>play_circle</span>
-                </div>
+                  )
+                })}
               </div>
             </div>
+          </section>
 
-          </div>
-        </div>
-      </section>
+          {/* ── Pricing ── */}
+          <section id="pricing" ref={pricingRef} className="py-24 md:py-32 px-6">
+            <div className="max-w-[600px] mx-auto text-center">
+              <h2 className="font-epic text-3xl md:text-5xl font-bold text-quest-text mb-4">
+                Simple, Honest Pricing
+              </h2>
+              <p className="font-body text-lg text-quest-muted mb-12">
+                One plan. Everything included. No surprises.
+              </p>
 
-      {/* ── Metrics ── */}
-      <section style={{ borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '3rem 1.5rem' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div className="sb-metrics-grid">
-            {[
-              { value: '+40%', label: 'Pipeline Velocity', color: '#6366f1' },
-              { value: '2x',   label: 'Rep Engagement',   color: '#6366f1' },
-              { value: '14ms', label: 'Action Latency',   color: 'white' },
-              { value: '99%',  label: 'Data Hygiene',     color: '#0db9f2' },
-            ].map(({ value, label, color }) => (
-              <div key={label} style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 700, color }}>{value}</div>
-                <div style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>{label}</div>
+              {/* Annual / Monthly toggle */}
+              <div className="flex items-center justify-center gap-4 mb-8">
+                <span className={`font-body text-sm font-medium ${!isAnnual ? 'text-quest-text' : 'text-quest-muted'}`}>
+                  Monthly
+                </span>
+                <button
+                  onClick={() => setIsAnnual(!isAnnual)}
+                  className={`relative w-14 h-7 rounded-full border-none cursor-pointer transition-colors duration-200 ${
+                    isAnnual ? 'bg-quest-gold' : 'bg-quest-border'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 w-6 h-6 rounded-full bg-quest-bg transition-transform duration-200 ${
+                      isAnnual ? 'translate-x-7' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+                <span className={`font-body text-sm font-medium ${isAnnual ? 'text-quest-text' : 'text-quest-muted'}`}>
+                  Annual
+                </span>
+                {isAnnual && (
+                  <span className="font-epic text-[10px] font-bold uppercase tracking-widest text-quest-accent bg-quest-accent/10 px-2 py-1">
+                    Save 8%
+                  </span>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ── Feature Section Header ── */}
-      <div style={{ textAlign: 'center', padding: '4rem 1.5rem 0' }}>
-        <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 'clamp(1.75rem, 4vw, 3rem)', fontWeight: 700, color: 'white', margin: '0 0 16px' }}>
-          Engineered for Peak Performance
-        </h2>
-        <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.65)', maxWidth: 512, margin: '0 auto' }}>
-          The first workspace that prioritizes flow-state for sales professionals.
-        </p>
-      </div>
-
-      {/* ── Scroll Frame Section ── */}
-      <div ref={scrollSectionRef} style={{ height: '400vh', position: 'relative', marginTop: '2rem' }}>
-        <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: '#04060f' }}>
-
-          {/* Progress bar */}
-          <div style={{
-            position: 'absolute', top: 0, left: 0, height: 3, zIndex: 10,
-            background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
-            width: `${scrollProgress * 100}%`,
-            transition: 'width 0.08s linear',
-          }} />
-
-          {/* Canvas scroll animation */}
-          <canvas
-            ref={canvasRef}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              width: '100%',
-              height: '100%',
-              display: 'block',
-            }}
-          />
-
-          {/* Feature cards */}
-          {CARDS.map((card, i) => {
-            const isActive = activeCards[i]
-            const isLeft = card.side === 'left'
-            return (
-              <div key={card.title} style={{
-                position: 'absolute',
-                [isLeft ? 'left' : 'right']: '4%',
-                top: '50%',
-                transform: `translateY(-50%) translateX(${isActive ? 0 : (isLeft ? -60 : 60)}px)`,
-                width: 280, maxWidth: '36vw',
-                opacity: isActive ? 1 : 0,
-                transition: 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease',
-                zIndex: 5,
-                borderRadius: 16, padding: 24,
-                ...glassCard,
-                border: isActive ? '1px solid rgba(99,102,241,0.45)' : '1px solid rgba(99,102,241,0.1)',
-                boxShadow: isActive ? '0 0 40px rgba(99,102,241,0.15), inset 0 0 20px rgba(99,102,241,0.04)' : 'none',
-                pointerEvents: isActive ? 'auto' : 'none',
-              }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 12, marginBottom: 16,
-                  background: 'rgba(99,102,241,0.12)', color: '#6366f1',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <span className="material-symbols-outlined">{card.icon}</span>
-                </div>
-                <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 20, fontWeight: 700, color: 'white', margin: '0 0 8px' }}>
-                  {card.title}
-                </h3>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: '0 0 16px' }}>
-                  {card.desc}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{
-                    fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700,
-                    color: '#6366f1', background: 'rgba(99,102,241,0.12)',
-                    padding: '3px 8px', borderRadius: 4,
-                  }}>{card.badge1}</span>
-                  {card.badge2 && (
-                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-                      {card.badge2}
-                    </span>
-                  )}
+              {/* Currency toggle */}
+              <div className="flex items-center justify-center mb-10">
+                <div className="inline-flex border border-quest-border overflow-hidden">
+                  {CURRENCIES.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCurrency(c)}
+                      className={`px-4 py-2 text-xs font-epic font-bold tracking-wider border-none cursor-pointer transition-all duration-200 ${
+                        currency === c
+                          ? 'bg-quest-gold/10 text-quest-gold'
+                          : 'bg-transparent text-quest-muted hover:text-quest-text'
+                      }`}
+                    >
+                      {PRICING[c].symbol} {c}
+                    </button>
+                  ))}
                 </div>
               </div>
-            )
-          })}
+
+              {/* Single pricing card */}
+              <div className="bg-quest-surface/80 backdrop-blur-sm border border-quest-gold/30 p-10 shadow-quest-glow">
+                <div className="mb-8">
+                  <span className="font-epic text-6xl font-bold text-quest-text">
+                    {prices.symbol}{displayPrice}
+                  </span>
+                  <span className="font-body text-lg text-quest-muted ml-2">{priceSuffix}</span>
+                </div>
+
+                <Link
+                  to={ROUTES.SIGNUP}
+                  className="block w-full py-4 bg-quest-gold text-quest-bg font-epic text-sm font-bold uppercase tracking-widest no-underline hover:shadow-quest-glow-strong transition-shadow mb-8"
+                >
+                  Start Your Free Trial
+                </Link>
+
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                  {PLAN_FEATURES.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm font-body text-quest-muted">
+                      <span className="text-quest-gold mt-0.5 shrink-0">&#10003;</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="font-body text-xs text-quest-muted mt-6">
+                14-day free trial. No credit card required. Cancel anytime.
+              </p>
+            </div>
+          </section>
+
+          {/* ── Final CTA ── */}
+          <section className="py-24 md:py-32 px-6">
+            <div className="max-w-[700px] mx-auto text-center">
+              <h2
+                className="font-epic text-4xl md:text-5xl font-bold text-quest-text mb-6"
+                style={{ textShadow: '0 0 30px rgba(212, 175, 55, 0.15)' }}
+              >
+                Know Your Numbers. Own Your Day.
+              </h2>
+              <p className="font-body text-xl text-quest-muted mb-12 max-w-[480px] mx-auto">
+                Five screens. Five minutes to plan. The rest of the day to execute.
+              </p>
+              <Link
+                to={ROUTES.SIGNUP}
+                className="inline-flex items-center gap-3 px-12 py-5 bg-quest-gold text-quest-bg font-epic text-base font-bold uppercase tracking-widest no-underline hover:shadow-quest-glow-strong transition-all duration-300 hover:scale-[1.02]"
+              >
+                Get Started Free
+              </Link>
+            </div>
+          </section>
 
         </div>
       </div>
-
-      {/* ── Philosophy ── */}
-      <section style={{ padding: 'clamp(3rem,6vw,6rem) 1.5rem' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ ...velocityGradient, padding: 4, borderRadius: 24 }}>
-            <div style={{ background: '#06091a', borderRadius: 22, padding: 'clamp(2rem,5vw,4rem)' }}>
-              <div className="sb-philosophy-grid">
-
-                {/* Copy */}
-                <div>
-                  <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 900, color: 'white', margin: '0 0 24px', lineHeight: 1.15 }}>
-                    System of Action <br />
-                    <span style={{ color: '#6366f1' }}>vs. System of Record</span>
-                  </h2>
-                  <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, margin: 0 }}>
-                    Traditional CRMs were built for managers to report on history. Salesblock was built for reps to create the future.<br /><br />
-                    One is a graveyard for data; the other is an engine for execution. It's time to stop reporting and start performing.
-                  </p>
-                  <button style={{
-                    marginTop: 32, display: 'inline-flex', alignItems: 'center', gap: 8,
-                    fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 700,
-                    color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                  }}>
-                    Read the Philosophy Manifesto
-                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_forward</span>
-                  </button>
-                </div>
-
-                {/* Comparison table */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  {/* Legacy */}
-                  <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 }}>
-                    <h4 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', margin: '0 0 16px' }}>Legacy CRM</h4>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {['Manual Entry', 'Slow Interface', 'Admin Focus'].map(item => (
-                        <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 16, textDecoration: 'none' }}>close</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Salesblock */}
-                  <div style={{ border: '1px solid rgba(99,102,241,0.25)', background: 'rgba(99,102,241,0.08)', borderRadius: 16, padding: 24 }}>
-                    <h4 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6366f1', margin: '0 0 16px' }}>Salesblock</h4>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {['Auto-Capture', 'Sub-ms Flow', 'Rep-Centric'].map(item => (
-                        <li key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'white' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#6366f1', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section style={{ position: 'relative', padding: 'clamp(3rem,6vw,6rem) 1.5rem', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: '#04060f' }}>
-          <div style={{
-            position: 'absolute', inset: 0, opacity: 0.1,
-            backgroundImage: 'radial-gradient(#6366f1 1px, transparent 1px)',
-            backgroundSize: '20px 20px',
-          }} />
-        </div>
-        <div style={{ position: 'relative', maxWidth: 896, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 700, color: 'white', margin: '0 0 24px' }}>
-            Ready for Takeoff?
-          </h2>
-          <p style={{ fontSize: 20, color: 'rgba(255,255,255,0.5)', margin: '0 0 40px' }}>
-            Join 500+ elite sales organizations moving at the speed of light.
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, flexWrap: 'wrap' }}>
-            <Link to={ROUTES.SIGNUP} style={{
-              ...velocityGradient,
-              padding: '1.25rem 2.5rem', borderRadius: 12,
-              fontSize: 20, fontWeight: 700, color: 'white', textDecoration: 'none',
-              boxShadow: '0 20px 40px -8px rgba(99,102,241,0.45)',
-              display: 'inline-block',
-            }}>
-              Claim Your Cockpit
-            </Link>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-              Waitlist: <span style={{ color: '#0db9f2' }}>Active</span>
-            </span>
-          </div>
-        </div>
-      </section>
 
       {/* ── Footer ── */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '3rem 1.5rem' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 24, height: 24, borderRadius: 4, background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'white', fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
+      <footer className="border-t border-quest-border/50 bg-[#050508] py-12 px-6">
+        <div className="max-w-[1280px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+            <div>
+              <span className="font-epic text-lg font-bold text-quest-gold block mb-3">DESTINY</span>
+              <p className="font-body text-sm text-quest-muted leading-relaxed">
+                The personal sales planner that makes your daily maths work.
+              </p>
             </div>
-            <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 18, fontWeight: 700, color: 'white' }}>Salesblock.io</span>
+            <div>
+              <h4 className="font-epic text-xs font-bold uppercase tracking-[0.15em] text-quest-text mb-4">Product</h4>
+              <ul className="space-y-2 list-none p-0 m-0">
+                {['Features', 'Pricing', 'Roadmap', 'Changelog'].map((item) => (
+                  <li key={item}>
+                    <a href="#" className="font-body text-sm text-quest-muted hover:text-quest-text transition-colors no-underline">{item}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-epic text-xs font-bold uppercase tracking-[0.15em] text-quest-text mb-4">Company</h4>
+              <ul className="space-y-2 list-none p-0 m-0">
+                {['About', 'Blog', 'Careers', 'Contact'].map((item) => (
+                  <li key={item}>
+                    <a href="#" className="font-body text-sm text-quest-muted hover:text-quest-text transition-colors no-underline">{item}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-epic text-xs font-bold uppercase tracking-[0.15em] text-quest-text mb-4">Legal</h4>
+              <ul className="space-y-2 list-none p-0 m-0">
+                {['Privacy', 'Terms', 'Security'].map((item) => (
+                  <li key={item}>
+                    <a href="#" className="font-body text-sm text-quest-muted hover:text-quest-text transition-colors no-underline">{item}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 32, fontSize: 14, fontWeight: 500 }}>
-            {['Twitter', 'LinkedIn', 'Privacy', 'Terms'].map(item => (
-              <a key={item} href="#" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>{item}</a>
-            ))}
-          </div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
-            © 2025 SB_ACTION_SYSTEM
+          <div className="border-t border-quest-border/30 pt-6 flex items-center justify-between flex-wrap gap-4">
+            <span className="font-body text-xs text-quest-muted">
+              &copy; 2025 Destiny Planner. All rights reserved.
+            </span>
+            <div className="flex gap-6">
+              {['Twitter', 'LinkedIn'].map((item) => (
+                <a key={item} href="#" className="font-body text-xs text-quest-muted hover:text-quest-text transition-colors no-underline">{item}</a>
+              ))}
+            </div>
           </div>
         </div>
       </footer>
 
-      {/* ── Global styles ── */}
+      {/* ── Ticker animation ── */}
       <style>{`
-        @keyframes ping {
-          75%, 100% { transform: scale(2.2); opacity: 0; }
+        @keyframes ticker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
-        .sb-ping {
-          animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
-        }
-        .sb-hero-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 4rem;
-          align-items: center;
-        }
-        .sb-metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 2rem;
-        }
-        .sb-philosophy-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 3rem;
-          align-items: center;
-        }
-        .sb-nav-links {
-          display: flex;
-          gap: 2.5rem;
-          align-items: center;
-        }
-        @media (max-width: 768px) {
-          .sb-hero-grid { grid-template-columns: 1fr; }
-          .sb-metrics-grid { grid-template-columns: repeat(2, 1fr); }
-          .sb-philosophy-grid { grid-template-columns: 1fr; }
-          .sb-nav-links { display: none; }
+        .animate-ticker {
+          animation: ticker 30s linear infinite;
         }
       `}</style>
-
     </div>
   )
 }
