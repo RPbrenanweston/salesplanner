@@ -12,6 +12,8 @@ export enum UserRole {
 export enum SalesBlockStatus {
   SCHEDULED = 'scheduled',
   IN_PROGRESS = 'in_progress',
+  PAUSED = 'paused',
+  ABANDONED = 'abandoned',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
 }

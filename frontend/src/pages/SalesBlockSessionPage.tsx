@@ -36,6 +36,13 @@ import {
   Home,
   Calendar,
   Linkedin,
+  SkipForward,
+  Pause,
+  Play,
+  PartyPopper,
+  CalendarPlus,
+  XCircle,
+  Globe,
 } from 'lucide-react'
 import ComposeEmailModal from '../components/ComposeEmailModal'
 import BookMeetingModal from '../components/BookMeetingModal'
@@ -62,6 +69,11 @@ interface SessionContact {
   hasActivity?: boolean
   activityCount?: number
   lastActivityAt?: string | null
+  isSkipped?: boolean
+  // Account-specific fields (populated when listType === 'accounts')
+  isAccount?: boolean
+  domain?: string | null
+  industry?: string | null
 }
 
 interface SalesBlockData {
@@ -95,6 +107,7 @@ export default function SalesBlockSessionPage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string>('')
+  const [listType, setListType] = useState<'contacts' | 'accounts'>('contacts')
 
   // Session type derived from salesblock
   const sessionType: SessionType = salesblock?.session_type || 'call'
@@ -139,6 +152,11 @@ export default function SalesBlockSessionPage() {
     asks: number
     meetings: number
   } | null>(null)
+
+  // Session pause / abandon / timer celebration
+  const [isPaused, setIsPaused] = useState(false)
+  const [_isAbandoned, setIsAbandoned] = useState(false)
+  const [timerExpired, setTimerExpired] = useState(false)
 
   // Session resume
   const [resumeBannerVisible, setResumeBannerVisible] = useState(false)
@@ -197,124 +215,205 @@ export default function SalesBlockSessionPage() {
           }
         }
 
-        // Fetch contacts from the list
-        const { data: listContactsData, error: lcError } = await supabase
-          .from('list_contacts')
-          .select('contact_id')
-          .eq('list_id', sbData.list_id)
-          .order('position', { ascending: true })
+        // Detect list type
+        const { data: listMetaData } = await supabase
+          .from('lists')
+          .select('list_type')
+          .eq('id', sbData.list_id)
+          .single()
 
-        if (lcError) throw lcError
+        const currentListType = (listMetaData?.list_type as 'contacts' | 'accounts') || 'contacts'
+        setListType(currentListType)
 
-        let contactIds = listContactsData.map((lc) => lc.contact_id)
+        if (currentListType === 'accounts') {
+          // ── Account list loading ──
+          const { data: accountListItems, error: aliError } = await supabase
+            .from('account_list_items')
+            .select('account_id')
+            .eq('list_id', sbData.list_id)
+            .order('position', { ascending: true })
 
-        if (contactIds.length === 0) {
-          // Fallback: re-resolve via list filter_criteria
-          const { data: listData } = await supabase
-            .from('lists')
-            .select('filter_criteria, org_id')
-            .eq('id', sbData.list_id)
-            .single()
+          if (aliError) throw aliError
 
-          const filters = listData?.filter_criteria?.filters
-          if (filters && filters.length > 0) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let contactQuery: any = supabase
-              .from('contacts')
-              .select('id')
-              .eq('org_id', listData.org_id)
+          const accountIds = (accountListItems || []).map((ali) => ali.account_id)
 
-            for (const filter of filters) {
-              if (!filter.value) continue
-              if (filter.field === 'custom_field' && filter.customFieldKey) {
-                const jsonbPath = `custom_fields->${filter.customFieldKey}`
-                if (filter.operator === 'equals')
-                  contactQuery = contactQuery.eq(jsonbPath, filter.value)
-                else if (filter.operator === 'contains')
-                  contactQuery = contactQuery.ilike(jsonbPath, `%${filter.value}%`)
-              } else {
-                if (filter.operator === 'equals')
-                  contactQuery = contactQuery.eq(filter.field, filter.value)
-                else if (filter.operator === 'contains')
-                  contactQuery = contactQuery.ilike(filter.field, `%${filter.value}%`)
-                else if (filter.operator === 'starts_with')
-                  contactQuery = contactQuery.ilike(filter.field, `${filter.value}%`)
-                else if (filter.operator === 'greater_than' && filter.field === 'created_at')
-                  contactQuery = contactQuery.gt(filter.field, filter.value)
-                else if (filter.operator === 'less_than' && filter.field === 'created_at')
-                  contactQuery = contactQuery.lt(filter.field, filter.value)
-              }
-            }
-
-            const { data: resolvedContacts } = await contactQuery
-            const resolved = (resolvedContacts ?? []) as { id: string }[]
-            if (resolved.length > 0) {
-              const junctionRecords = resolved.map((c, index) => ({
-                list_id: sbData.list_id,
-                contact_id: c.id,
-                position: index,
-              }))
-              await supabase.from('list_contacts').insert(junctionRecords)
-              contactIds = resolved.map((c) => c.id)
-            }
-          }
-
-          if (contactIds.length === 0) {
+          if (accountIds.length === 0) {
             setContacts([])
             setLoading(false)
             return
           }
+
+          // Fetch account details in batches (Supabase URL limit with large .in() lists)
+          const BATCH_SIZE = 50
+          const allAccountsData: Array<{ id: string; name: string; domain: string | null; industry: string | null; phone: string | null; notes: string | null }> = []
+          for (let i = 0; i < accountIds.length; i += BATCH_SIZE) {
+            const batch = accountIds.slice(i, i + BATCH_SIZE)
+            const { data: batchData, error: batchError } = await supabase
+              .from('accounts')
+              .select('id, name, domain, industry, phone, notes')
+              .in('id', batch)
+
+            if (batchError) throw batchError
+            if (batchData) allAccountsData.push(...batchData)
+          }
+
+          const accountsData = allAccountsData
+
+          // Preserve position order from account_list_items
+          const accountMap = new Map((accountsData || []).map(a => [a.id, a]))
+          const mappedAccounts: SessionContact[] = accountIds
+            .map(id => accountMap.get(id))
+            .filter(Boolean)
+            .map(account => ({
+              id: account!.id,
+              first_name: account!.name,
+              last_name: '',
+              email: '',
+              phone: account!.phone || null,
+              company: account!.name,
+              title: account!.industry || null,
+              notes: account!.notes || null,
+              linkedin_url: null,
+              isAccount: true,
+              domain: account!.domain || null,
+              industry: account!.industry || null,
+            }))
+
+          setContacts(mappedAccounts)
+        } else {
+          // ── Contact list loading (existing logic) ──
+          const { data: listContactsData, error: lcError } = await supabase
+            .from('list_contacts')
+            .select('contact_id')
+            .eq('list_id', sbData.list_id)
+            .order('position', { ascending: true })
+
+          if (lcError) throw lcError
+
+          let contactIds = listContactsData.map((lc) => lc.contact_id)
+
+          if (contactIds.length === 0) {
+            console.error(
+              `[SalesBlock Session] list_contacts returned 0 rows for list_id=${sbData.list_id}. Attempting filter_criteria fallback.`
+            )
+
+            // Fallback: re-resolve via list filter_criteria
+            const { data: listData } = await supabase
+              .from('lists')
+              .select('filter_criteria, org_id')
+              .eq('id', sbData.list_id)
+              .single()
+
+            const filters = listData?.filter_criteria?.filters
+            const hasFilterCriteria = filters && filters.length > 0
+
+            if (hasFilterCriteria) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              let contactQuery: any = supabase
+                .from('contacts')
+                .select('id')
+                .eq('org_id', listData.org_id)
+
+              for (const filter of filters) {
+                if (!filter.value) continue
+                if (filter.field === 'custom_field' && filter.customFieldKey) {
+                  const jsonbPath = `custom_fields->${filter.customFieldKey}`
+                  if (filter.operator === 'equals')
+                    contactQuery = contactQuery.eq(jsonbPath, filter.value)
+                  else if (filter.operator === 'contains')
+                    contactQuery = contactQuery.ilike(jsonbPath, `%${filter.value}%`)
+                } else {
+                  if (filter.operator === 'equals')
+                    contactQuery = contactQuery.eq(filter.field, filter.value)
+                  else if (filter.operator === 'contains')
+                    contactQuery = contactQuery.ilike(filter.field, `%${filter.value}%`)
+                  else if (filter.operator === 'starts_with')
+                    contactQuery = contactQuery.ilike(filter.field, `${filter.value}%`)
+                  else if (filter.operator === 'greater_than' && filter.field === 'created_at')
+                    contactQuery = contactQuery.gt(filter.field, filter.value)
+                  else if (filter.operator === 'less_than' && filter.field === 'created_at')
+                    contactQuery = contactQuery.lt(filter.field, filter.value)
+                }
+              }
+
+              const { data: resolvedContacts } = await contactQuery
+              const resolved = (resolvedContacts ?? []) as { id: string }[]
+              if (resolved.length > 0) {
+                const junctionRecords = resolved.map((c, index) => ({
+                  list_id: sbData.list_id,
+                  contact_id: c.id,
+                  position: index,
+                }))
+                await supabase.from('list_contacts').insert(junctionRecords)
+                contactIds = resolved.map((c) => c.id)
+              } else {
+                console.error(
+                  `[SalesBlock Session] filter_criteria fallback resolved 0 contacts for list_id=${sbData.list_id}. filter_criteria exists=${hasFilterCriteria}, filters count=${filters.length}`
+                )
+              }
+            } else {
+              console.error(
+                `[SalesBlock Session] No filter_criteria on list_id=${sbData.list_id}. This list may have been imported via automation without linking contacts.`
+              )
+            }
+
+            if (contactIds.length === 0) {
+              setContacts([])
+              setLoading(false)
+              return
+            }
+          }
+
+          // Fetch contact details
+          const { data: contactsData, error: contactsError } = await supabase
+            .from('contacts')
+            .select('id, first_name, last_name, email, phone, company, title, notes, linkedin_url')
+            .in('id', contactIds)
+
+          if (contactsError) throw contactsError
+
+          // Batch activity check — single query instead of N+1
+          const { data: activityData } = await supabase
+            .from('activities')
+            .select('contact_id, created_at')
+            .in('contact_id', contactIds)
+            .order('created_at', { ascending: false })
+
+          // Build map: contact_id → { count, lastActivityAt }
+          const activityMap = new Map<string, { count: number; lastActivityAt: string }>()
+          for (const a of activityData || []) {
+            const existing = activityMap.get(a.contact_id)
+            if (existing) {
+              existing.count++
+            } else {
+              activityMap.set(a.contact_id, { count: 1, lastActivityAt: a.created_at })
+            }
+          }
+
+          const contactsWithActivity = (contactsData || []).map((contact) => {
+            const activity = activityMap.get(contact.id)
+            return {
+              ...contact,
+              hasActivity: !!activity,
+              activityCount: activity?.count ?? 0,
+              lastActivityAt: activity?.lastActivityAt ?? null,
+            }
+          })
+
+          // Smart sort: unworked contacts first (by original position),
+          // then worked contacts sorted by oldest activity first (due for follow-up)
+          contactsWithActivity.sort((a, b) => {
+            if (!a.hasActivity && b.hasActivity) return -1
+            if (a.hasActivity && !b.hasActivity) return 1
+            // Both worked — oldest activity first (needs follow-up soonest)
+            if (a.lastActivityAt && b.lastActivityAt) {
+              return new Date(a.lastActivityAt).getTime() - new Date(b.lastActivityAt).getTime()
+            }
+            return 0
+          })
+
+          setContacts(contactsWithActivity)
         }
-
-        // Fetch contact details
-        const { data: contactsData, error: contactsError } = await supabase
-          .from('contacts')
-          .select('id, first_name, last_name, email, phone, company, title, notes, linkedin_url')
-          .in('id', contactIds)
-
-        if (contactsError) throw contactsError
-
-        // Batch activity check — single query instead of N+1
-        const { data: activityData } = await supabase
-          .from('activities')
-          .select('contact_id, created_at')
-          .in('contact_id', contactIds)
-          .order('created_at', { ascending: false })
-
-        // Build map: contact_id → { count, lastActivityAt }
-        const activityMap = new Map<string, { count: number; lastActivityAt: string }>()
-        for (const a of activityData || []) {
-          const existing = activityMap.get(a.contact_id)
-          if (existing) {
-            existing.count++
-          } else {
-            activityMap.set(a.contact_id, { count: 1, lastActivityAt: a.created_at })
-          }
-        }
-
-        const contactsWithActivity = (contactsData || []).map((contact) => {
-          const activity = activityMap.get(contact.id)
-          return {
-            ...contact,
-            hasActivity: !!activity,
-            activityCount: activity?.count ?? 0,
-            lastActivityAt: activity?.lastActivityAt ?? null,
-          }
-        })
-
-        // Smart sort: unworked contacts first (by original position),
-        // then worked contacts sorted by oldest activity first (due for follow-up)
-        contactsWithActivity.sort((a, b) => {
-          if (!a.hasActivity && b.hasActivity) return -1
-          if (a.hasActivity && !b.hasActivity) return 1
-          // Both worked — oldest activity first (needs follow-up soonest)
-          if (a.lastActivityAt && b.lastActivityAt) {
-            return new Date(a.lastActivityAt).getTime() - new Date(b.lastActivityAt).getTime()
-          }
-          return 0
-        })
-
-        setContacts(contactsWithActivity)
 
         // Check for saved session state
         const savedRaw = localStorage.getItem(`salesblock_session_${salesblockId}`)
@@ -338,14 +437,21 @@ export default function SalesBlockSessionPage() {
     loadData()
   }, [salesblockId, user])
 
-  // Start session (status → in_progress)
+  // Start session (status → in_progress) — also handles resuming from paused/abandoned
   useEffect(() => {
-    if (!salesblockId || !salesblock || salesblock.status !== 'scheduled') return
+    if (!salesblockId || !salesblock) return
+    if (!['scheduled', 'paused', 'abandoned'].includes(salesblock.status)) return
 
     async function startSession() {
+      const updates: Record<string, string> = { status: 'in_progress' }
+      // Only set actual_start on first start, not resume
+      if (salesblock!.status === 'scheduled') {
+        updates.actual_start = new Date().toISOString()
+      }
+
       const { error } = await supabase
         .from('salesblocks')
-        .update({ status: 'in_progress', actual_start: new Date().toISOString() })
+        .update(updates)
         .eq('id', salesblockId)
 
       if (error) {
@@ -368,15 +474,15 @@ export default function SalesBlockSessionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex, sessionNotes])
 
-  // Timer
+  // Timer — pauses when isPaused, celebrates on expiry instead of auto-ending
   useEffect(() => {
-    if (isCompleted) return
+    if (isCompleted || isPaused || timerExpired) return
 
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => {
         const next = prev + 1
         if (salesblock && next >= salesblock.duration_minutes * 60) {
-          handleEndSession()
+          setTimerExpired(true)
         }
         return next
       })
@@ -384,7 +490,7 @@ export default function SalesBlockSessionPage() {
 
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [salesblock, isCompleted])
+  }, [salesblock, isCompleted, isPaused, timerExpired])
 
   // Load live stats on mount + after dispositions
   const refreshLiveStats = useCallback(async () => {
@@ -426,13 +532,25 @@ export default function SalesBlockSessionPage() {
   }, [activeIndex, contacts.length])
 
   const handleSkip = () => {
-    const skipped = contacts[activeIndex]
-    const newContacts = [
-      ...contacts.slice(0, activeIndex),
-      ...contacts.slice(activeIndex + 1),
-      skipped,
-    ]
-    setContacts(newContacts)
+    setContacts((prev) =>
+      prev.map((c, i) => (i === activeIndex ? { ...c, isSkipped: true } : c))
+    )
+    // Advance to next non-skipped contact
+    const nextActive = contacts.findIndex(
+      (c, i) => i > activeIndex && !c.isSkipped
+    )
+    if (nextActive !== -1) {
+      setActiveIndex(nextActive)
+    } else {
+      // Try wrapping to find any non-skipped before current
+      const wrapActive = contacts.findIndex(
+        (c, i) => i < activeIndex && !c.isSkipped
+      )
+      if (wrapActive !== -1) {
+        setActiveIndex(wrapActive)
+      }
+      // If all skipped, activeIndex stays (user sees skipped state)
+    }
     setConnectedFlowOpen(false)
   }
 
@@ -502,6 +620,62 @@ export default function SalesBlockSessionPage() {
     [activeContact, salesblockId, user, orgId, sessionType, activeIndex, refreshLiveStats, handleNext]
   )
 
+  // Pause — stops timer, saves state, user can navigate away and return
+  const handlePause = async () => {
+    setIsPaused(true)
+    if (!salesblockId) return
+
+    // Save current state to localStorage for resume
+    localStorage.setItem(
+      `salesblock_session_${salesblockId}`,
+      JSON.stringify({ activeIndex, elapsedSeconds, sessionNotes })
+    )
+
+    // Update status to paused in DB
+    await supabase
+      .from('salesblocks')
+      .update({ status: 'paused' })
+      .eq('id', salesblockId)
+  }
+
+  const handleUnpause = () => {
+    setIsPaused(false)
+
+    // Restore status to in_progress in DB
+    if (salesblockId) {
+      supabase
+        .from('salesblocks')
+        .update({ status: 'in_progress' })
+        .eq('id', salesblockId)
+    }
+  }
+
+  // Abandon — emotive exit, does NOT mark as completed
+  const handleAbandon = async () => {
+    if (!salesblockId) return
+
+    try {
+      // Save state so session can be resumed later
+      localStorage.setItem(
+        `salesblock_session_${salesblockId}`,
+        JSON.stringify({ activeIndex, elapsedSeconds, sessionNotes })
+      )
+
+      const { error } = await supabase
+        .from('salesblocks')
+        .update({ status: 'abandoned', actual_end: new Date().toISOString() })
+        .eq('id', salesblockId)
+
+      if (error) throw error
+
+      setIsAbandoned(true)
+      navigate(ROUTES.HOME)
+    } catch (error) {
+      console.error('Error abandoning session:', error)
+    }
+  }
+
+  // Finish — the proper completion path
   const handleEndSession = async () => {
     if (!salesblockId) return
 
@@ -516,7 +690,7 @@ export default function SalesBlockSessionPage() {
 
       const uniqueContacts = new Set(activities?.map((a) => a.contact_id)).size
       const stats = {
-        totalContacts: contacts.length,
+        totalContacts: contacts.filter((c) => !c.isSkipped).length,
         contactsWorked: uniqueContacts,
         calls: activities?.filter((a) => a.type === 'call').length || 0,
         emails: activities?.filter((a) => a.type === 'email').length || 0,
@@ -606,13 +780,62 @@ export default function SalesBlockSessionPage() {
     )
   }
 
+  // ---------- Empty list guard — don't mark as completed ----------
+
+  if (!loading && contacts.length === 0 && !isCompleted) {
+    const listName = salesblock?.title || 'Unknown'
+    const listId = salesblock?.list_id
+
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-void-950">
+        <div className="glass-card p-8 max-w-md text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-500/10 mb-4">
+            <XCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h2 className="font-display text-xl font-bold text-gray-900 dark:text-white mb-2">
+            No {listType === 'accounts' ? 'accounts' : 'contacts'} found
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-white/40 mb-2">
+            The list for &ldquo;{listName}&rdquo; has no linked {listType === 'accounts' ? 'accounts' : 'contacts'}.
+          </p>
+          <p className="text-xs text-gray-400 dark:text-white/30 mb-6">
+            {listType === 'accounts'
+              ? 'Check that the list has accounts assigned before starting a session.'
+              : 'This can happen if contacts were imported via automation without linking them to the list, or if the list\'s contacts are not visible due to permissions. Check that the list has contacts assigned before starting a session.'}
+          </p>
+          <div className="flex flex-col gap-3">
+            {listId && (
+              <button
+                onClick={() => navigate(`/lists/${listId}`)}
+                className="flex items-center justify-center gap-2 px-6 py-3 border border-indigo-electric text-indigo-electric dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg font-semibold transition-all duration-200 ease-snappy mx-auto w-full"
+              >
+                Go to List
+              </button>
+            )}
+            <button
+              onClick={() => navigate(ROUTES.SALESBLOCKS)}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg font-semibold transition-all duration-200 ease-snappy mx-auto w-full"
+            >
+              <Home className="w-5 h-5" />
+              Back to SalesBlocks
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // ---------- Completion screen ----------
 
   if (isCompleted && completionStats) {
     return (
       <div className="flex flex-col h-full bg-gray-50 dark:bg-void-950 p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto w-full space-y-6">
-          <div>
+          {/* Celebration Header */}
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-signal/10 mb-4">
+              <PartyPopper className="w-8 h-8 text-emerald-signal" />
+            </div>
             <p className="vv-section-title mb-1">Session Complete</p>
             <h1 className="font-display text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {salesblock.title}
@@ -633,15 +856,38 @@ export default function SalesBlockSessionPage() {
             elapsedSeconds={elapsedSeconds}
           />
 
-          {/* Session Notes */}
+          {/* Reflection Prompts */}
           <div className="glass-card p-6">
-            <label className="vv-section-title block mb-2">Session Notes</label>
+            <label className="vv-section-title block mb-3">Session Reflection</label>
+            <div className="space-y-3 mb-4">
+              <p className="text-xs text-gray-500 dark:text-white/40 italic">
+                These prompts will help with your daily debrief:
+              </p>
+              <ul className="text-sm text-gray-600 dark:text-white/50 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-electric mt-0.5">•</span>
+                  What objections came up most? How did you handle them?
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-electric mt-0.5">•</span>
+                  Which conversations felt strongest? What made them work?
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-electric mt-0.5">•</span>
+                  What would you do differently in the next session?
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-electric mt-0.5">•</span>
+                  Any follow-ups you need to action before end of day?
+                </li>
+              </ul>
+            </div>
             <textarea
               value={sessionNotes}
               onChange={(e) => setSessionNotes(e.target.value)}
-              placeholder="Add any observations or follow-up items from this session..."
+              placeholder="Capture your reflections here — what worked, what to improve, follow-ups needed..."
               className="w-full px-4 py-3 border border-gray-200 dark:border-white/10 rounded-lg bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-electric text-sm"
-              rows={4}
+              rows={5}
             />
             {noteSaveError && (
               <div className="mt-3 p-3 bg-red-alert/10 border border-red-alert rounded-lg flex items-center gap-2">
@@ -650,13 +896,26 @@ export default function SalesBlockSessionPage() {
             )}
           </div>
 
-          <button
-            onClick={handleBackToHome}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg font-semibold transition-all duration-200 ease-snappy"
-          >
-            <Home className="w-5 h-5" />
-            <span>Back to Home</span>
-          </button>
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => {
+                handleSaveNotes()
+                navigate(ROUTES.SALESBLOCKS + '?action=schedule')
+              }}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-electric hover:bg-indigo-electric/80 text-white rounded-lg font-semibold transition-all duration-200 ease-snappy"
+            >
+              <CalendarPlus className="w-5 h-5" />
+              <span>Schedule Next Session</span>
+            </button>
+            <button
+              onClick={handleBackToHome}
+              className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-200 ease-snappy"
+            >
+              <Home className="w-5 h-5" />
+              <span>Back to Home</span>
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -694,25 +953,115 @@ export default function SalesBlockSessionPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-600 dark:text-white/50 font-mono">
+          <div className="flex items-center gap-3">
+            <div className={`text-sm font-mono ${timerExpired ? 'text-emerald-600 dark:text-emerald-signal font-bold' : isPaused ? 'text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-white/50'}`}>
+              {isPaused && '⏸ '}
               {formatTime(elapsedSeconds)} / {salesblock.duration_minutes} min
             </div>
+
+            {/* Pause / Resume toggle */}
+            {isPaused ? (
+              <button
+                onClick={handleUnpause}
+                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-signal text-white text-sm rounded-lg hover:bg-emerald-signal/80 transition-all duration-200 ease-snappy"
+              >
+                <Play className="w-4 h-4" />
+                Resume
+              </button>
+            ) : (
+              <button
+                onClick={handlePause}
+                className="flex items-center gap-1.5 px-3 py-2 border border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 text-sm rounded-lg hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all duration-200 ease-snappy"
+              >
+                <Pause className="w-4 h-4" />
+                Pause
+              </button>
+            )}
+
+            {/* Abandon — emotive exit */}
+            <button
+              onClick={handleAbandon}
+              className="flex items-center gap-1.5 px-3 py-2 border border-red-300 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200 ease-snappy"
+            >
+              <XCircle className="w-4 h-4" />
+              Abandon
+            </button>
+
+            {/* Finish — proper completion */}
             <button
               onClick={handleEndSession}
-              className="px-4 py-2 bg-red-alert text-white text-sm rounded-lg hover:bg-red-alert/80 transition-all duration-200 ease-snappy"
+              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-electric text-white text-sm rounded-lg hover:bg-indigo-electric/80 transition-all duration-200 ease-snappy"
             >
-              End Session
+              <Check className="w-4 h-4" />
+              Finish
             </button>
           </div>
         </div>
         <div className="w-full bg-gray-200 dark:bg-white/10 rounded-full h-1.5">
           <div
-            className="bg-indigo-electric h-1.5 rounded-full transition-all duration-300"
+            className={`h-1.5 rounded-full transition-all duration-300 ${timerExpired ? 'bg-emerald-signal' : 'bg-indigo-electric'}`}
             style={{ width: `${Math.min(progressPct, 100)}%` }}
           />
         </div>
       </div>
+
+      {/* Timer Expiry Celebration Banner */}
+      {timerExpired && !isCompleted && (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-indigo-500/10 to-purple-500/10 border-b border-emerald-500/20 px-4 py-4">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <div className="flex items-center gap-3">
+              <PartyPopper className="w-6 h-6 text-emerald-signal" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-signal">
+                  Time's up — great session!
+                </p>
+                <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
+                  You can keep going or finish up and review your session
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleEndSession}
+              className="flex items-center gap-1.5 px-4 py-2 bg-emerald-signal text-white text-sm rounded-lg hover:bg-emerald-signal/80 font-semibold transition-all duration-200 ease-snappy"
+            >
+              <Check className="w-4 h-4" />
+              Finish Session
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Paused Overlay Banner */}
+      {isPaused && (
+        <div className="bg-amber-50 dark:bg-amber-500/5 border-b border-amber-200 dark:border-amber-500/20 px-4 py-4">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <div className="flex items-center gap-3">
+              <Pause className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <div>
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Session Paused</p>
+                <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
+                  Timer stopped. You can leave and come back — your progress is saved.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(ROUTES.HOME)}
+                className="px-3 py-1.5 text-xs border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-all duration-150 ease-snappy"
+              >
+                Leave Session
+              </button>
+              <button
+                onClick={handleUnpause}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all duration-200 ease-snappy"
+              >
+                <Play className="w-3 h-3" />
+                Resume
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resume Banner */}
       {resumeBannerVisible && (
@@ -745,53 +1094,105 @@ export default function SalesBlockSessionPage() {
         {/* ─── LEFT: Contact Queue ─── */}
         <div className="w-64 border-r border-gray-200 dark:border-white/10 overflow-y-auto bg-gray-50 dark:bg-white/[0.02] flex-shrink-0">
           <div className="p-3 border-b border-gray-200 dark:border-white/10">
-            <h3 className="vv-section-title text-xs">Queue ({contacts.length})</h3>
+            <h3 className="vv-section-title text-xs">Queue ({contacts.filter((c) => !c.isSkipped).length})</h3>
             <p className="text-[10px] text-gray-400 dark:text-white/30 font-mono mt-0.5">
               {activeIndex + 1} of {contacts.length}
             </p>
           </div>
           <div className="divide-y divide-gray-200 dark:divide-white/10">
-            {contacts.map((contact, index) => (
-              <div
-                key={contact.id}
-                className={`px-3 py-2.5 cursor-pointer transition-all duration-150 ease-snappy ${
-                  index === activeIndex
-                    ? 'bg-indigo-electric/10 dark:bg-indigo-electric/10 border-l-4 border-indigo-electric'
-                    : 'hover:bg-gray-50 dark:hover:bg-white/[0.08]'
-                }`}
-                onClick={() => {
-                  setActiveIndex(index)
-                  setConnectedFlowOpen(false)
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {contact.first_name} {contact.last_name}
-                    </p>
-                    <p className="text-[11px] text-gray-500 dark:text-white/40 truncate">
-                      {contact.company || 'No company'}
-                    </p>
+            {contacts.filter((c) => !c.isSkipped).map((contact) => {
+              const originalIndex = contacts.indexOf(contact)
+              return (
+                <div
+                  key={contact.id}
+                  className={`px-3 py-2.5 cursor-pointer transition-all duration-150 ease-snappy ${
+                    originalIndex === activeIndex
+                      ? 'bg-indigo-electric/10 dark:bg-indigo-electric/10 border-l-4 border-indigo-electric'
+                      : 'hover:bg-gray-50 dark:hover:bg-white/[0.08]'
+                  }`}
+                  onClick={() => {
+                    setActiveIndex(originalIndex)
+                    setConnectedFlowOpen(false)
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {contact.isAccount ? contact.first_name : `${contact.first_name} ${contact.last_name}`}
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-white/40 truncate">
+                        {contact.isAccount
+                          ? (contact.domain || contact.industry || 'No domain')
+                          : (contact.company || 'No company')}
+                      </p>
+                    </div>
+                    {contact.hasActivity && (
+                      <span className="flex items-center gap-1 flex-shrink-0 ml-1.5">
+                        {(contact.activityCount ?? 0) > 1 && (
+                          <span className="text-[10px] font-mono text-emerald-signal bg-emerald-signal/10 rounded-full px-1.5 py-0.5">
+                            {contact.activityCount}x
+                          </span>
+                        )}
+                        <Check className="w-4 h-4 text-emerald-signal" />
+                      </span>
+                    )}
                   </div>
-                  {contact.hasActivity && (
-                    <span className="flex items-center gap-1 flex-shrink-0 ml-1.5">
-                      {(contact.activityCount ?? 0) > 1 && (
-                        <span className="text-[10px] font-mono text-emerald-signal bg-emerald-signal/10 rounded-full px-1.5 py-0.5">
-                          {contact.activityCount}x
-                        </span>
-                      )}
-                      <Check className="w-4 h-4 text-emerald-signal" />
-                    </span>
-                  )}
                 </div>
-              </div>
-            ))}
-            {contacts.length === 0 && (
+              )
+            })}
+            {contacts.filter((c) => !c.isSkipped).length === 0 && (
               <div className="p-6 text-center">
                 <p className="text-sm text-gray-500 dark:text-white/40">No contacts in this list</p>
               </div>
             )}
           </div>
+
+          {/* ─── Skipped Contacts Review Section ─── */}
+          {contacts.some((c) => c.isSkipped) && (
+            <>
+              <div className="p-3 border-t border-b border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5">
+                <h3 className="vv-section-title text-xs text-amber-700 dark:text-amber-400">
+                  Skipped ({contacts.filter((c) => c.isSkipped).length})
+                </h3>
+                <p className="text-[10px] text-amber-500 dark:text-amber-400/60 font-mono mt-0.5">
+                  Review or remove
+                </p>
+              </div>
+              <div className="divide-y divide-gray-200 dark:divide-white/10">
+                {contacts.filter((c) => c.isSkipped).map((contact) => {
+                  const originalIndex = contacts.indexOf(contact)
+                  return (
+                    <div
+                      key={contact.id}
+                      className={`px-3 py-2.5 cursor-pointer transition-all duration-150 ease-snappy opacity-60 ${
+                        originalIndex === activeIndex
+                          ? 'bg-amber-50 dark:bg-amber-500/10 border-l-4 border-amber-400'
+                          : 'hover:bg-gray-50 dark:hover:bg-white/[0.08]'
+                      }`}
+                      onClick={() => {
+                        setActiveIndex(originalIndex)
+                        setConnectedFlowOpen(false)
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-500 dark:text-white/50 truncate">
+                            {contact.isAccount ? contact.first_name : `${contact.first_name} ${contact.last_name}`}
+                          </p>
+                          <p className="text-[11px] text-gray-400 dark:text-white/30 truncate">
+                            {contact.isAccount
+                              ? (contact.domain || contact.industry || 'No domain')
+                              : (contact.company || 'No company')}
+                          </p>
+                        </div>
+                        <SkipForward className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 ml-1.5" />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </div>
 
         {/* ─── CENTER: Active Contact + Dispositions ─── */}
@@ -801,10 +1202,12 @@ export default function SalesBlockSessionPage() {
               {/* Contact header */}
               <div className="mb-4">
                 <h1 className="font-display text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                  {activeContact.first_name} {activeContact.last_name}
+                  {activeContact.isAccount ? activeContact.first_name : `${activeContact.first_name} ${activeContact.last_name}`}
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-white/50">
-                  {activeContact.title || 'No title'} at {activeContact.company || 'No company'}
+                  {activeContact.isAccount
+                    ? [activeContact.industry, activeContact.domain].filter(Boolean).join(' | ') || 'No details'
+                    : `${activeContact.title || 'No title'} at ${activeContact.company || 'No company'}`}
                 </p>
               </div>
 
@@ -819,13 +1222,26 @@ export default function SalesBlockSessionPage() {
                     {activeContact.phone}
                   </a>
                 )}
-                <a
-                  href={`mailto:${activeContact.email}`}
-                  className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
-                >
-                  <Mail className="w-4 h-4" />
-                  {activeContact.email}
-                </a>
+                {activeContact.isAccount && activeContact.domain && (
+                  <a
+                    href={activeContact.domain.startsWith('http') ? activeContact.domain : `https://${activeContact.domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                    {activeContact.domain}
+                  </a>
+                )}
+                {!activeContact.isAccount && activeContact.email && (
+                  <a
+                    href={`mailto:${activeContact.email}`}
+                    className="flex items-center gap-2 text-sm text-indigo-electric hover:text-indigo-electric/70 transition-colors"
+                  >
+                    <Mail className="w-4 h-4" />
+                    {activeContact.email}
+                  </a>
+                )}
                 {activeContact.linkedin_url && (
                   <a
                     href={activeContact.linkedin_url}
@@ -918,10 +1334,11 @@ export default function SalesBlockSessionPage() {
               <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
                 <button
                   onClick={handleSkip}
-                  disabled={contacts.length <= 1}
-                  className="px-4 py-2 text-sm border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 ease-snappy"
+                  disabled={contacts.filter((c) => !c.isSkipped).length <= 1 || activeContact?.isSkipped}
+                  className="flex items-center gap-1.5 px-4 py-2 text-sm border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 rounded-lg hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700 dark:hover:bg-amber-500/10 dark:hover:border-amber-500/30 dark:hover:text-amber-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 ease-snappy"
                 >
-                  Skip to End
+                  <SkipForward className="w-3.5 h-3.5" />
+                  Skip
                 </button>
               </div>
             </div>
