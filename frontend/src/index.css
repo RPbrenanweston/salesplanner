@@ -119,14 +119,34 @@
 @tailwind utilities;
 
 :root {
-  --void-950: #020617;
-  --void-900: #0F172A;
-  --void-800: #131f24;
-  --indigo-electric: #6366F1;
-  --cyan-neon: #0db9f2;
-  --purple-neon: #8b5cf6;
-  --red-alert: #f43f5e;
-  --emerald-signal: #10b981;
+  /* ── Theme color tokens — overridden at runtime by applyTheme() ── */
+  /* Defaults match the salesplanner (baseline) theme */
+  --color-primary: #6366F1;
+  --color-primary-dim: rgba(99, 102, 241, 0.15);
+  --color-bg: #020617;
+  --color-surface: #0F172A;
+  --color-surface-alt: #131f24;
+  --color-text: #F8FAFC;
+  --color-text-muted: rgba(248, 250, 252, 0.5);
+  --color-accent: #0db9f2;
+  --color-accent2: #8b5cf6;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-danger: #f43f5e;
+  --color-success: #10b981;
+
+  /* ── Theme font tokens — overridden at runtime by applyTheme() ── */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  /* ── Legacy variable aliases (kept for backwards compat) ── */
+  --void-950: var(--color-bg);
+  --void-900: var(--color-surface);
+  --void-800: var(--color-surface-alt);
+  --indigo-electric: var(--color-primary);
+  --cyan-neon: var(--color-accent);
+  --purple-neon: var(--color-accent2);
+  --red-alert: var(--color-danger);
+  --emerald-signal: var(--color-success);
 
   /* Epic Quest / Hero's Journey design tokens */
   --quest-gold: #D4AF37;

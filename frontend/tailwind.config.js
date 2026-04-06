@@ -8,25 +8,48 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Space Grotesk', 'sans-serif'],
+        // Theme-driven fonts — swapped at runtime via CSS variables
+        display: ['var(--font-display)', 'Space Grotesk', 'sans-serif'],
+        body: ['var(--font-body)', 'Lato', 'sans-serif'],
+        // Fixed fonts
         sans: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
-        // Hero's Journey design system
         epic: ['Cinzel', 'serif'],
-        body: ['Lato', 'sans-serif'],
       },
       colors: {
+        // ── Theme-driven colors (swap at runtime via CSS variables) ──
+        // These replace the hardcoded void/neon/electric tokens.
+        // Existing components using `dark:bg-void-950` etc. continue to
+        // work because the void-* tokens below now reference CSS variables.
         void: {
-          950: '#020617',
-          900: '#0F172A',
-          800: '#131f24',
-          700: '#1e2d35',
+          950: 'var(--color-bg)',
+          900: 'var(--color-surface)',
+          800: 'var(--color-surface-alt)',
+          700: 'var(--color-surface-alt)',
         },
-        'indigo-electric': '#6366F1',
-        'cyan-neon': '#0db9f2',
-        'purple-neon': '#8b5cf6',
-        'red-alert': '#f43f5e',
-        'emerald-signal': '#10b981',
+        'indigo-electric': 'var(--color-primary)',
+        'cyan-neon': 'var(--color-accent)',
+        'purple-neon': 'var(--color-accent2)',
+        'red-alert': 'var(--color-danger)',
+        'emerald-signal': 'var(--color-success)',
+
+        // ── Semantic theme tokens (for new components) ──
+        theme: {
+          primary: 'var(--color-primary)',
+          'primary-dim': 'var(--color-primary-dim)',
+          bg: 'var(--color-bg)',
+          surface: 'var(--color-surface)',
+          'surface-alt': 'var(--color-surface-alt)',
+          text: 'var(--color-text)',
+          'text-muted': 'var(--color-text-muted)',
+          accent: 'var(--color-accent)',
+          accent2: 'var(--color-accent2)',
+          border: 'var(--color-border)',
+          danger: 'var(--color-danger)',
+          success: 'var(--color-success)',
+        },
+
+        // ── Fixed tokens ──────────────────────────────────────────
         muted: {
           DEFAULT: '#e2e8f0',
           foreground: '#64748b',
@@ -35,7 +58,7 @@ export default {
           DEFAULT: '#ffffff',
           foreground: '#0f172a',
         },
-        // Hero's Journey / Epic Quest design system
+        // Hero's Journey / Epic Quest design system (legacy)
         quest: {
           gold: '#D4AF37',
           'gold-dim': 'rgba(212, 175, 55, 0.15)',

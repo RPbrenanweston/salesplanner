@@ -18,6 +18,7 @@ import PageLoader from './components/PageLoader'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './components/AppLayout'
 import { Toaster } from './components/ui/toaster'
+import { useThemeConfig } from './providers/ThemeProvider'
 
 // Lazy load all page components for code splitting
 const Home = lazy(() => import('./pages/Home'))
@@ -58,6 +59,15 @@ const DayPlannerPage = lazy(() => import('./pages/DayPlannerPage'))
 const MorningBriefingPage = lazy(() => import('./pages/MorningBriefingPage'))
 const DailyDebriefPage = lazy(() => import('./pages/DailyDebriefPage'))
 
+// Theme-specific pages
+const DailyReflection = lazy(() => import('./pages/DailyReflection'))
+const Affirmations = lazy(() => import('./pages/Affirmations'))
+const Horoscope = lazy(() => import('./pages/Horoscope'))
+const HyperfocusTimer = lazy(() => import('./pages/HyperfocusTimer'))
+const WorkoutLog = lazy(() => import('./pages/WorkoutLog'))
+const WeightTracker = lazy(() => import('./pages/WeightTracker'))
+const CaregiverLog = lazy(() => import('./pages/CaregiverLog'))
+
 const queryClient = new QueryClient()
 
 /** Gate: only renders children when ?debug=true is present, otherwise redirects to /dashboard */
@@ -69,275 +79,404 @@ function DebugGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AppRoutes() {
+  const themeConfig = useThemeConfig()
+  const { features } = themeConfig
+
+  return (
+    <Routes>
+      {/* Marketing - public home */}
+      <Route path="/" element={<MarketingPage />} />
+
+      {/* Auth routes - public */}
+      <Route path="/signin" element={<SignIn />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/pricing" element={<PricingPage />} />
+
+      {/* Diagnostics - protected, gated behind ?debug=true, no layout (standalone debug page) */}
+      <Route
+        path="/diagnostics"
+        element={
+          <ProtectedRoute>
+            <DebugGate>
+              <Diagnostics />
+            </DebugGate>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* OAuth callbacks - public */}
+      <Route path="/oauth/gmail/callback" element={<GmailOAuthCallback />} />
+      <Route path="/oauth/outlook/callback" element={<OutlookOAuthCallback />} />
+      <Route path="/oauth/google-calendar/callback" element={<GoogleCalendarOAuthCallback />} />
+      <Route path="/oauth/outlook-calendar/callback" element={<OutlookCalendarOAuthCallback />} />
+      <Route path="/oauth/salesforce/callback" element={<SalesforceOAuthCallback />} />
+      <Route path="/oauth/attio/callback" element={<AttioOAuthCallback />} />
+
+      {/* Protected routes with AppLayout */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Home />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {features.sessions && (
+        <>
+          <Route
+            path="/salesblocks"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <SalesBlocks />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/salesblocks/:salesblockId/session"
+            element={
+              <ProtectedRoute>
+                <SalesBlockSessionPage />
+              </ProtectedRoute>
+            }
+          />
+        </>
+      )}
+
+      {features.contacts && (
+        <>
+          <Route
+            path="/lists"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Lists />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lists/:listId"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ListDetailPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contacts"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ContactsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contacts/:contactId"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ContactDetailPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+        </>
+      )}
+
+      {features.accounts && (
+        <>
+          <Route
+            path="/accounts"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <AccountsPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/accounts/:accountId"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <AccountDetailPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+        </>
+      )}
+
+      <Route
+        path="/email"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Email />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/social"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Social />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {features.pipeline && (
+        <Route
+          path="/pipeline"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Pipeline />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+
+      {features.goals && (
+        <Route
+          path="/goals"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Goals />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+
+      {features.analytics && (
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Analytics />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+
+      {features.team && (
+        <Route
+          path="/team"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Team />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <SettingsPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {features.scripts && (
+        <Route
+          path="/scripts"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Scripts />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+
+      {features.emailTemplates && (
+        <Route
+          path="/templates"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <EmailTemplates />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+
+      <Route
+        path="/arena"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Arena />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/content-library"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <ContentLibrary />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Productivity */}
+      <Route
+        path="/planner"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <DayPlannerPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/briefing"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <MorningBriefingPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/debrief"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <DailyDebriefPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Theme-specific feature pages */}
+      {features.dailyReflection && (
+        <Route
+          path="/reflection"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <DailyReflection />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+      {features.affirmations && (
+        <Route
+          path="/affirmations"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Affirmations />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+      {features.horoscope && (
+        <Route
+          path="/horoscope"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Horoscope />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+      {features.hyperfocusTimer && (
+        <Route
+          path="/hyperfocus"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <HyperfocusTimer />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+      {features.workoutLog && (
+        <Route
+          path="/workout"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <WorkoutLog />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+      {features.weightTracker && (
+        <Route
+          path="/weight"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <WeightTracker />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+      {features.caregiverLog && (
+        <Route
+          path="/caregiver"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <CaregiverLog />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+      )}
+    </Routes>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Marketing - public home */}
-            <Route path="/" element={<MarketingPage />} />
-
-            {/* Auth routes - public */}
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/pricing" element={<PricingPage />} />
-
-            {/* Diagnostics - protected, gated behind ?debug=true, no layout (standalone debug page) */}
-            <Route
-              path="/diagnostics"
-              element={
-                <ProtectedRoute>
-                  <DebugGate>
-                    <Diagnostics />
-                  </DebugGate>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* OAuth callbacks - public */}
-            <Route path="/oauth/gmail/callback" element={<GmailOAuthCallback />} />
-            <Route path="/oauth/outlook/callback" element={<OutlookOAuthCallback />} />
-            <Route path="/oauth/google-calendar/callback" element={<GoogleCalendarOAuthCallback />} />
-            <Route path="/oauth/outlook-calendar/callback" element={<OutlookCalendarOAuthCallback />} />
-            <Route path="/oauth/salesforce/callback" element={<SalesforceOAuthCallback />} />
-            <Route path="/oauth/attio/callback" element={<AttioOAuthCallback />} />
-
-            {/* Protected routes with AppLayout */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Home />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/salesblocks"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <SalesBlocks />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/salesblocks/:salesblockId/session"
-              element={
-                <ProtectedRoute>
-                  <SalesBlockSessionPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/lists"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Lists />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/lists/:listId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <ListDetailPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/contacts"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <ContactsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/contacts/:contactId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <ContactDetailPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/email"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Email />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/social"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Social />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/pipeline"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Pipeline />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/goals"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Goals />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Analytics />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/team"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Team />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <SettingsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/scripts"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Scripts />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/templates"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <EmailTemplates />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/arena"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Arena />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/content-library"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <ContentLibrary />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Accounts */}
-            <Route
-              path="/accounts"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <AccountsPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/accounts/:accountId"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <AccountDetailPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Productivity (Super Productivity integration) */}
-            <Route
-              path="/planner"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <DayPlannerPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/briefing"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <MorningBriefingPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/debrief"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <DailyDebriefPage />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
+          <AppRoutes />
         </Suspense>
         <Toaster />
       </BrowserRouter>

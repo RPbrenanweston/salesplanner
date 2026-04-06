@@ -16,7 +16,7 @@
 // prompt: Add loading skeleton for profile before rendering. Guard all user property access with optional chaining (user?.email). Toast error on updateUserPreferences failure. Consider role-based nav filtering — fetch user role from profile, filter navItems per role. Add visual indicator (tooltip) when org logo fails to load vs. deliberately omitted.
 
 /** @crumbfn AppLayout | Main authenticated app shell with theme and nav | Cross-tab theme sync, profile null guard, role-based nav +L54-L211 */
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, useMemo, ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -43,12 +43,20 @@ import {
   Swords,
   Library,
   Contact,
+  BookMarked,
+  Star,
+  Timer,
+  Dumbbell,
+  Scale,
+  Heart,
+  Sparkles,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import { useUserProfile, useOrganizationLogo } from '../hooks'
 import { updateUserPreferences } from '../lib/queries/userQueries'
 import { ROUTES } from '../lib/routes'
+import { useThemeConfig } from '../providers/ThemeProvider'
 import TrialExpiryBanner from './TrialExpiryBanner'
 
 interface NavItem {
@@ -56,28 +64,6 @@ interface NavItem {
   path: string
   icon: typeof Home
 }
-
-const navItems: NavItem[] = [
-  { name: 'Home', path: ROUTES.HOME, icon: Home },
-  { name: 'SalesBlocks', path: ROUTES.SALESBLOCKS, icon: Clock },
-  { name: 'Lists', path: ROUTES.LISTS, icon: List },
-  { name: 'Contacts', path: ROUTES.CONTACTS, icon: Contact },
-  { name: 'Accounts', path: ROUTES.ACCOUNTS, icon: Building2 },
-  { name: 'Arena', path: ROUTES.ARENA, icon: Swords },
-  { name: 'Content Library', path: ROUTES.CONTENT_LIBRARY, icon: Library },
-  { name: 'Day Planner', path: ROUTES.DAY_PLANNER, icon: CalendarDays },
-  { name: 'Briefing', path: ROUTES.MORNING_BRIEFING, icon: Sunrise },
-  { name: 'Debrief', path: ROUTES.DAILY_DEBRIEF, icon: BookOpen },
-  { name: 'Scripts', path: ROUTES.SCRIPTS, icon: FileText },
-  { name: 'Templates', path: ROUTES.TEMPLATES, icon: Layout },
-  { name: 'Email', path: ROUTES.EMAIL, icon: Mail },
-  { name: 'Social', path: ROUTES.SOCIAL, icon: Share2 },
-  { name: 'Pipeline', path: ROUTES.PIPELINE, icon: TrendingUp },
-  { name: 'Goals', path: ROUTES.GOALS, icon: Target },
-  { name: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart2 },
-  { name: 'Team', path: ROUTES.TEAM, icon: Users },
-  { name: 'Settings', path: ROUTES.SETTINGS, icon: Settings },
-]
 
 interface AppLayoutProps {
   children: ReactNode
@@ -87,7 +73,45 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const { theme, resolvedTheme, setTheme } = useTheme()
+  const themeConfig = useThemeConfig()
+  const { features, labels } = themeConfig
   const [collapsed, setCollapsed] = useState(false)
+
+  const navItems = useMemo<NavItem[]>(() => {
+    const items: NavItem[] = [
+      { name: 'Home', path: ROUTES.HOME, icon: Home },
+    ]
+    if (features.sessions) items.push({ name: labels.sessionNamePlural, path: ROUTES.SALESBLOCKS, icon: Clock })
+    if (features.contacts) {
+      items.push({ name: 'Lists', path: ROUTES.LISTS, icon: List })
+      items.push({ name: labels.contactsName, path: ROUTES.CONTACTS, icon: Contact })
+    }
+    if (features.accounts) items.push({ name: 'Accounts', path: ROUTES.ACCOUNTS, icon: Building2 })
+    items.push({ name: 'Arena', path: ROUTES.ARENA, icon: Swords })
+    items.push({ name: 'Content Library', path: ROUTES.CONTENT_LIBRARY, icon: Library })
+    items.push({ name: 'Day Planner', path: ROUTES.DAY_PLANNER, icon: CalendarDays })
+    items.push({ name: 'Briefing', path: ROUTES.MORNING_BRIEFING, icon: Sunrise })
+    items.push({ name: 'Debrief', path: ROUTES.DAILY_DEBRIEF, icon: BookOpen })
+    if (features.scripts) items.push({ name: labels.scriptsName, path: ROUTES.SCRIPTS, icon: FileText })
+    if (features.emailTemplates) items.push({ name: 'Templates', path: ROUTES.TEMPLATES, icon: Layout })
+    if (features.pipeline) items.push({ name: 'Pipeline', path: ROUTES.PIPELINE, icon: TrendingUp })
+    if (features.goals) items.push({ name: 'Goals', path: ROUTES.GOALS, icon: Target })
+    if (features.analytics) items.push({ name: 'Analytics', path: ROUTES.ANALYTICS, icon: BarChart2 })
+    if (features.team) items.push({ name: 'Team', path: ROUTES.TEAM, icon: Users })
+    // Theme-specific pages
+    if (features.dailyReflection) items.push({ name: 'Daily Reflection', path: '/reflection', icon: BookMarked })
+    if (features.affirmations) items.push({ name: 'Affirmations', path: '/affirmations', icon: Sparkles })
+    if (features.horoscope) items.push({ name: 'Horoscope', path: '/horoscope', icon: Star })
+    if (features.hyperfocusTimer) items.push({ name: 'Hyperfocus Timer', path: '/hyperfocus', icon: Timer })
+    if (features.workoutLog) items.push({ name: 'Workout Log', path: '/workout', icon: Dumbbell })
+    if (features.weightTracker) items.push({ name: 'Weight Tracker', path: '/weight', icon: Scale })
+    if (features.caregiverLog) items.push({ name: 'Caregiver Log', path: '/caregiver', icon: Heart })
+    // Email/Social always available
+    items.push({ name: 'Email', path: ROUTES.EMAIL, icon: Mail })
+    items.push({ name: 'Social', path: ROUTES.SOCIAL, icon: Share2 })
+    items.push({ name: 'Settings', path: ROUTES.SETTINGS, icon: Settings })
+    return items
+  }, [features, labels])
 
   // Fetch user profile using the new hook (handles caching)
   const { data: userProfile } = useUserProfile(user?.id)
@@ -148,7 +172,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             />
           ) : (
             <div className={`${collapsed ? 'text-sm' : 'text-xl'} font-display font-bold text-indigo-electric transition-all`}>
-              {collapsed ? 'SB' : 'SalesBlock.io'}
+              {collapsed ? labels.shortName : labels.fullName}
             </div>
           )}
         </div>

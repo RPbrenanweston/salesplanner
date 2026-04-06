@@ -3,8 +3,13 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 const isPlanner = process.env.VITE_APP === 'planner'
+const activeTheme = process.env.VITE_THEME ?? 'salesplanner'
 
 export default defineConfig({
+  define: {
+    // Injected at build time — read by ThemeProvider to select the active theme config
+    __THEME__: JSON.stringify(activeTheme),
+  },
   plugins: [
     react(),
     // In planner mode, rewrite root URL to serve index-planner.html
