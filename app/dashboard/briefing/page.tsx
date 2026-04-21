@@ -307,7 +307,7 @@ export default function MorningBriefingPage() {
                     No debrief from yesterday yet.
                   </p>
                   <p className="text-xs text-gray-400 dark:text-white/30 mt-1">
-                    Complete your <a href="/debrief" className="text-indigo-electric hover:underline">Daily Debrief</a> each
+                    Complete your <a href="/dashboard/debrief" className="text-indigo-electric hover:underline">Daily Debrief</a> each
                     evening to see your wins, improvements, and focus areas here every morning.
                   </p>
                 </div>
