@@ -1,28 +1,22 @@
-# Ralph working files (generated during runs)
+# env
+.env
+.env.local
+.env*.local
+
+# build artifacts
+.next/
+node_modules/
+dist/
+*.tsbuildinfo
+
+# ralph working files
 prd.json
 progress.txt
 .last-branch
 exclusions.json
 config.json
 
-# Environment variables and credentials
-.env
-.env.local
-.env.*.local
-
-# Node modules
-node_modules/
-dist/
-
-# Archive is optional to commit
-# archive/
-
-# OS files
+# misc
 .DS_Store
-
-# Vercel
 .vercel/
-
-#Claude
 .claude/
-.vercel
