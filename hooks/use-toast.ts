@@ -1,3 +1,5 @@
+"use client";
+
 /** @id salesblock.hooks.notifications.use-toast */
 // @crumb frontend-hook-use-toast
 // UI | notification_management | toast_lifecycle | pub_sub_pattern
