@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* SalesPlanner theme — salesplanner color tokens */
+:root,
+html {
+  --color-primary: #6366F1;
+  --color-primary-dim: rgba(99, 102, 241, 0.15);
+  --color-bg: #020617;
+  --color-surface: #0F172A;
+  --color-surface-alt: #131f24;
+  --color-text: #F8FAFC;
+  --color-text-muted: rgba(248, 250, 252, 0.5);
+  --color-accent: #0db9f2;
+  --color-accent2: #8b5cf6;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-danger: #f43f5e;
+  --color-success: #10b981;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
